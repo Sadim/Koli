@@ -60,10 +60,19 @@ browser extension and a natural-language command tab layered on top.
   clearly labeled DRAFT / NOT LEGAL ADVICE (not claiming "lawyer
   drafted" the way some competitors do).
 - **"Send to Koli" browser extension** — right-click any link/selection
-  on any page, sends to Koli's Inbox tab. Separate codebase
-  (`send-to-koli-extension/`), talks to an Apps Script Web App deployment
-  via a shared secret. Process Inbox turns queued captures into real
-  analysis on demand.
+  on any page, sends to Koli's Prospects tab (or straight to Channels/
+  Videos for a recognized channel/video link, full analysis inline).
+  Separate codebase (`send-to-koli-extension/`), talks to an Apps Script
+  Web App deployment via a shared secret. Process Prospects turns any
+  still-queued note captures into real analysis on demand.
+- **Outreach draft generator** — one Channels row -> a short, personalized
+  cold-outreach email, hooked on a specific detail mined from the
+  creator's last 3 videos (auto-caption transcript, sampled across the
+  whole video, falls back to the description when no captions exist).
+  Business-oriented tone, body hard-capped at 500 characters (prompt +
+  deterministic backstop). Lands in an editable **Outreach Drafts**
+  sheet, not a locked export — Chars column is a live formula so it
+  keeps tracking the limit as you hand-edit the draft.
 
 ### Cross-cutting
 - **Assistant tab** — plain-English command box, Gemini function-calling
@@ -105,13 +114,32 @@ sponsor-row off-by-one indexing.
 **Built against documented APIs, not yet live-confirmed**: Gemini's
 function-calling response shape (Assistant tab), SponsorBlock's exact
 JSON field names, the Web App `doPost`/`doGet` deployment flow end to
-end, the browser extension's full context-menu → POST → Inbox loop.
-None of these are guesses — they're built to documented behavior — but
-"documented" and "tested against a live response" aren't the same thing,
-and I want that distinction visible rather than implied away.
+end, the browser extension's full context-menu → POST → Inbox loop, and
+the outreach draft generator end to end (caption sampling, the Gemini
+prompt's actual output shape, the 500-char enforcement against a real
+response). None of these are guesses — they're built to documented
+behavior — but "documented" and "tested against a live response" aren't
+the same thing, and I want that distinction visible rather than implied
+away.
+
+**What automated tests do and don't cover**: `tests/run-logic-tests.js`
+(Node, `node tests/run-logic-tests.js`) covers every pure/deterministic
+function in Koli — the parts with no SpreadsheetApp, UrlFetchApp, or API
+key involved. It does not and cannot touch anything that needs a live
+Sheet, a live YouTube/Gemini call, or a real browser extension install —
+that gap is real and is exactly the "not yet live-confirmed" list above,
+not something the test suite closes.
 
 ## Recent changelog
 
+- Outreach draft generator (last-3-videos hook, 500-char cap, editable
+  Outreach Drafts sheet) + fixed "Send to Koli" extension mislabeling its
+  destination as "Prospects" on the YouTube tab (it's Channels/Videos)
+- First automated test coverage (`tests/run-logic-tests.js`, pure-logic
+  only) — caught and fixed two real bugs same session: a null
+  authenticity score silently becoming a real score of 1 instead of
+  staying "no data," and brand-name casing normalization contradicting
+  its own documented behavior on lowercase brand names
 - Manual email entry (preserves edits across re-runs)
 - Outreach pipeline + Do Not Contact exclusion in Discover
 - Creator One-Pager export

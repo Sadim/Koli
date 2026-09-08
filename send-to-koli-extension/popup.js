@@ -129,7 +129,7 @@ function autoSave(indicatorId) {
 // ---------- YouTube tab ----------
 function renderYoutubeTab() {
   renderColumnGrid(document.getElementById('youtubeColGrid'), state.locks.youtube.columns, { editable: true, indicatorId: 'youtubeAutosave' });
-  updateLockPill(document.getElementById('youtubeLockPill'), state.locks.youtube);
+  updateLockPill(document.getElementById('youtubeLockPill'), state.locks.youtube, 'Channels/Videos');
 }
 document.getElementById('youtubeLockPill').onclick = () => openLockModal('youtube');
 document.getElementById('youtubeAddColBtn').onclick = () => {
@@ -164,13 +164,13 @@ document.getElementById('applyColumnsConfirm').onclick = async () => {
   }
 };
 
-function updateLockPill(pillEl, lock) {
+function updateLockPill(pillEl, lock, defaultLabel) {
   const icon = pillEl.querySelector('.lock-icon');
   const label = pillEl.querySelector('.lock-label');
   pillEl.classList.toggle('locked', !!lock.locked);
   if (lock.locked) {
     icon.textContent = '🔒';
-    label.textContent = (lock.name ? lock.name + ': ' : '') + (lock.tab || 'Prospects');
+    label.textContent = (lock.name ? lock.name + ': ' : '') + (lock.tab || defaultLabel || 'Prospects');
   } else {
     icon.textContent = '🔓';
     label.textContent = 'Choose worksheet';
@@ -207,7 +207,7 @@ function renderOtherTab() {
 
   document.getElementById('otherProfileNameLabel').textContent = profile.name;
   renderColumnGrid(document.getElementById('otherColGrid'), profile.columns, { editable: true, indicatorId: 'otherAutosave' });
-  updateLockPill(document.getElementById('otherLockPill'), profile);
+  updateLockPill(document.getElementById('otherLockPill'), profile, 'Prospects');
 }
 document.getElementById('addFirstProfileBtn').onclick = () => openAddPlatformModal();
 document.getElementById('otherLockPill').onclick = () => openLockModal(activeOtherProfileId);
@@ -350,7 +350,7 @@ document.getElementById('lockSecret').addEventListener('blur', async () => {
 // ---------- Settings screen ----------
 function renderSettingsScreen() {
   const yt = state.locks.youtube;
-  document.getElementById('ytSummaryTarget').textContent = yt.locked ? (yt.tab || 'Prospects') : 'Not connected';
+  document.getElementById('ytSummaryTarget').textContent = yt.locked ? (yt.tab || 'Channels/Videos') : 'Not connected';
   document.getElementById('ytSummaryEdit').onclick = () => { showScreen('home'); document.querySelector('.tab[data-tab="youtube"]').click(); openLockModal('youtube'); };
 
   const wrap = document.getElementById('otherLocksSummary');

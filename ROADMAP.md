@@ -301,10 +301,10 @@ entirely, no YouTube angle. Not folded into this roadmap.
 2. **Batch 2 remainder**: sponsor intelligence report, multi-creator
    comparison doc, brand strategy deconstruction (awareness vs.
    conversion), brand-kit ingestion (OCR)
-3. **Batch 3 remainder**: outreach draft generator, weekly digest email,
-   PDF/CSV snapshot export, duplicate detection, audience fraud signals,
-   brand safety/compliance screening (own collected text), audience
-   sentiment scoring
+3. **Batch 3 remainder**: weekly digest email, PDF/CSV snapshot export,
+   duplicate detection, audience fraud signals, brand safety/compliance
+   screening (own collected text), audience sentiment scoring
+   (outreach draft generator ✅ shipped — see round 9 above)
 4. **Batch 4**: historical trend snapshots, API cost tracker,
    creator-brand semantic matching (embeddings), ad-read text auditing,
    sponsor timestamp/chapter extraction
@@ -342,7 +342,7 @@ entirely, no YouTube angle. Not folded into this roadmap.
 
 ## Batch 3 — Efficiency & vetting depth
 
-- Outreach draft generator (Gemini pitch email per creator, using data already collected)
+- ✅ **Outreach draft generator** — shipped round 9 (see "Just shipped" above)
 - Weekly digest email (new sponsor detections, tracked-profile changes)
 - PDF/CSV snapshot export of any tab
 - Duplicate detection (same channel re-analyzed under a different URL format)
@@ -393,6 +393,54 @@ having anything real to point it at:
 
 Revisit each once the underlying activity (contracts signed, campaigns
 run, leads converted) has enough volume to make automating it worthwhile.
+
+## Just shipped, round 9 — Outreach draft generator, extension pill fix, first test suite
+
+- **Outreach draft generator, live** (Batch 3 item, first of the "queued
+  next" list to ship). `outreachDraftService.gs` + Export > Draft
+  Outreach Email (selected Channels row). Reads the last 3 videos'
+  auto-caption transcripts (same best-effort endpoint sponsor timestamps
+  already use — falls back to the description when a video has no
+  captions), samples 3 evenly-spaced windows per transcript instead of
+  just the intro (intros are almost always generic filler), and asks
+  Gemini to hook the whole email on ONE specific concrete detail from
+  ONE video. Business-oriented tone, personalized by construction (the
+  hook requirement forces it), body hard-capped at 500 characters —
+  enforced twice: once in the prompt, once as a deterministic backstop
+  (`enforceEmailCharLimit_`, trims at the last word boundary) since
+  nothing on Gemini's end actually enforces a stated limit. Lands in a
+  new **Outreach Drafts** sheet, not a Doc — cells are natively editable,
+  and the Chars column is a live `=LEN()` formula so it keeps tracking
+  the limit as you hand-edit the draft afterward.
+- **Extension bug fixed**: the lock pill and Settings summary always
+  fell back to labeling the destination "Prospects" once locked, even on
+  the YouTube tab — but channel/video captures haven't landed in
+  Prospects since the round-7-era doPost rewrite (they go straight to
+  Channels/Videos; only notes still queue to Prospects). The pill was
+  telling you the wrong tab. Fixed to show "Channels/Videos" as the
+  YouTube-tab default; "Other Platforms" profiles keep the "Prospects"
+  default since that one's still accurate for them.
+- **First real test coverage**: `tests/run-logic-tests.js` — Node,
+  zero dependencies, runs each pure/deterministic .gs file in its own vm
+  context and exercises it directly. Only covers logic that doesn't
+  touch SpreadsheetApp/UrlFetchApp/a live key (still nothing that
+  replaces actually running this in a real Sheet — see STATUS.md), but
+  it's the first thing in this project that runs unattended and catches
+  a regression instead of relying on inspection. Caught two real bugs on
+  its first run, both fixed same session:
+  - `clampAuthenticityScore_(null)` returned `1` instead of staying
+    `null` (`Number(null) === 0`, not `NaN` — the isNaN check never
+    fired). `computeEngagementQualityScore_` in
+    `channelMetricsService.gs` specifically treats a null authenticity
+    score as neutral (50/100) for the "no comment sample available"
+    case — that fallback was silently dead code, every such channel was
+    scoring as if its comments looked bot-farmed instead of "no data."
+  - `canonicalBrandName_`'s own doc comment says it preserves
+    intentional lowercase branding ("adidas", "iRobot") — the code
+    title-cased *any* all-lowercase input regardless, so "adidas" was
+    coming out "Adidas," contradicting its own stated intent. Narrowed
+    the reshape to ALL-CAPS-only input, matching what the comment always
+    claimed it did.
 
 ## On Groq / Mistral / HF Serverless / Cloudflare Workers AI
 

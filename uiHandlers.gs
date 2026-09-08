@@ -22,7 +22,8 @@ function onOpen() {
       .addItem('Creator One-Pager (selected row)', 'exportCreatorOnePager')
       .addItem('Draft Deal Memo (selected row)', 'exportDealMemo')
       .addItem('Performance Report (Channels or Profile row)', 'exportPerformanceReport')
-      .addItem('New Campaign (selected Channels row)', 'showCreateCampaignDialog'))
+      .addItem('New Campaign (selected Channels row)', 'showCreateCampaignDialog')
+      .addItem('Draft Outreach Email (selected Channels row)', 'showDraftOutreachEmail'))
     .addItem('Refresh Tracked Profiles', 'runRefreshTrackedProfiles')
     .addItem('Process Prospects', 'processInbox')
     .addSeparator()
@@ -107,6 +108,8 @@ function showHelp() {
     'Discover — find channels/videos similar to a seed link.\n' +
     'Refresh Tracked Profiles — pulls new videos for every channel you\'ve tagged as tracked.\n' +
     'Export > Creator One-Pager — pitch-ready PDF for the selected Channels row.\n' +
+    'Export > Draft Outreach Email — personalized cold-email draft hooked on a specific ' +
+    'detail from the creator\'s last 3 videos, editable in the Outreach Drafts sheet.\n' +
     'Assistant — plain-English command box, restricted to Koli\'s own actions.\n' +
     'Run Diagnostics — checks your API keys and Drive permissions in one click.\n' +
     'Set your YouTube and Gemini API keys first under Settings.',

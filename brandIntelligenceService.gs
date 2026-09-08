@@ -31,9 +31,12 @@ function normalizeBrandName_(raw) {
 function canonicalBrandName_(raw) {
   const normalized = normalizeBrandName_(raw);
   if (!normalized) return '';
-  // Only reshape casing if the original was ALL CAPS or all lowercase —
-  // preserve intentional stylized casing (e.g. "adidas", "iRobot").
-  if (normalized === normalized.toUpperCase() || normalized === normalized.toLowerCase()) {
+  // Only reshape casing if the original was ALL CAPS — an all-lowercase
+  // name is left as-is, since that's frequently intentional branding
+  // ("adidas", "e.l.f.") rather than someone just typing carelessly, and
+  // guessing wrong here would be worse than leaving it alone. Mixed case
+  // (e.g. "iRobot") was never touched either way.
+  if (normalized === normalized.toUpperCase()) {
     return normalized.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
   }
   return normalized;

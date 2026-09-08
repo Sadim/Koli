@@ -16,6 +16,7 @@ const SHEET_NAMES = {
   CAMPAIGNS: 'Campaigns',
   BRAND_TARGETS: 'Brand Targets',
   GAP_ANALYSIS: 'Gap Analysis',
+  OUTREACH_DRAFTS: 'Outreach Drafts',
   SNAPSHOTS: '_SubscriberSnapshots',       // hidden — sub-count log for New Subscribers diffing
   TRACKED_PROFILES: '_TrackedProfiles'      // hidden — control sheet for Profile tracking
 };
@@ -28,6 +29,12 @@ const INBOX_HEADERS = ['Status', 'Type', 'Value', 'Page Title', 'Source URL', 'C
 // the extension sidebar later, not attempted here.
 const CAMPAIGN_HEADERS = ['Channel', 'Channel ID', 'Brand', 'Stage', 'Deliverables', 'Value', 'Deadline', 'Notes', 'Created', 'Updated'];
 const CAMPAIGN_STAGES = ['Briefed', 'In Production', 'Delivered', 'Payment Pending', 'Paid', 'Complete', 'Cancelled'];
+
+// Outreach draft generator (Batch 3) — one row per generated draft, not
+// one row per channel, since re-drafting a channel (new videos since last
+// time) should add a new attempt rather than overwrite the last one.
+const OUTREACH_DRAFT_HEADERS = ['Channel', 'Channel ID', 'Video Referenced', 'Subject', 'Email Body', 'Chars', 'Status', 'Generated'];
+const OUTREACH_DRAFT_STATUSES = ['Draft', 'Reviewed', 'Sent'];
 
 // Column index (1-based) of the hidden ID key column, per sheet — used by
 // findRowByKey_ and by hideColumns() calls in sheetWriter.gs.

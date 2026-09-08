@@ -211,6 +211,14 @@ function geminiCallWithTools_(prompt, toolDeclarations) {
  * checking it.
  */
 function clampAuthenticityScore_(rawScore) {
+  // Number(null) is 0, not NaN — without this explicit check, a genuine
+  // "no comment sample" null (returned on purpose when there's nothing to
+  // score) silently became a real score of 1, the worst possible value,
+  // instead of staying null. That defeated the neutral-50 fallback
+  // computeEngagementQualityScore_ specifically has for this case (see
+  // channelMetricsService.gs) — a channel with no data was scoring as if
+  // its comments looked bot-farmed.
+  if (rawScore === null || rawScore === undefined || rawScore === '') return null;
   const n = Number(rawScore);
   if (isNaN(n)) return null;
   return Math.max(1, Math.min(10, Math.round(n)));

@@ -11,6 +11,7 @@ HIDDEN_COLS[SHEET_NAMES.VIDEOS] = [3];
 HIDDEN_COLS[SHEET_NAMES.SPONSORS] = [2];
 HIDDEN_COLS[SHEET_NAMES.PROFILE] = [3, 4];
 HIDDEN_COLS[SHEET_NAMES.CAMPAIGNS] = [2];
+HIDDEN_COLS[SHEET_NAMES.OUTREACH_DRAFTS] = [2];
 
 function getOrCreateSheet_(name, headers) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
