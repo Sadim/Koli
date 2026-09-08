@@ -151,7 +151,6 @@ function getSettings() {
     lookbackDays: Number(getProp_(PROP_KEYS.LOOKBACK_DAYS, DEFAULTS.LOOKBACK_DAYS)),
     commentSampleSize: Number(getProp_(PROP_KEYS.COMMENT_SAMPLE_SIZE, DEFAULTS.COMMENT_SAMPLE_SIZE)),
     scanChannelSponsors: getBoolProp_(PROP_KEYS.SCAN_CHANNEL_SPONSORS, true),
-    logSponsorMentions: getBoolProp_(PROP_KEYS.LOG_SPONSOR_MENTIONS, false),
     attemptSponsorTimestamp: getBoolProp_(PROP_KEYS.ATTEMPT_SPONSOR_TIMESTAMP, false),
     inboxSecretSet: !!props.getProperty(PROP_KEYS.INBOX_SHARED_SECRET),
     timezone: getTimezone_()
@@ -169,7 +168,6 @@ function saveSettings(settings) {
   if (settings.inboxSecret) props.setProperty(PROP_KEYS.INBOX_SHARED_SECRET, settings.inboxSecret.trim());
   if (settings.timezone) props.setProperty(PROP_KEYS.TIMEZONE, settings.timezone.trim());
   props.setProperty(PROP_KEYS.SCAN_CHANNEL_SPONSORS, String(!!settings.scanChannelSponsors));
-  props.setProperty(PROP_KEYS.LOG_SPONSOR_MENTIONS, String(!!settings.logSponsorMentions));
   props.setProperty(PROP_KEYS.ATTEMPT_SPONSOR_TIMESTAMP, String(!!settings.attemptSponsorTimestamp));
   return { ok: true };
 }

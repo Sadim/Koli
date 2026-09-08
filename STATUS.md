@@ -48,10 +48,11 @@ browser extension and a natural-language command tab layered on top.
   description logs as "Unknown (SponsorBlock-confirmed)" instead of
   vanishing.
 - **Sponsors tab** — aggregate rollup, always on, per (channel, brand)
-  pair.
-- **Sponsor Mentions tab** — optional per-mention detail log with
-  timestamps (verified via SponsorBlock when available, best-effort
-  caption-text-match otherwise), independent Settings toggle.
+  pair, including the latest mention's Posted date, timestamp (verified
+  via SponsorBlock when available, best-effort caption-text-match
+  otherwise), and evidence text. Sponsor Mentions, the old separate
+  per-mention log, is retired — full mention-by-mention history isn't
+  kept anymore, only the latest per (channel, brand).
 
 ### Outreach
 - **Outreach pipeline** — native dropdown status column on Channels
@@ -141,6 +142,12 @@ not something the test suite closes.
 
 ## Recent changelog
 
+- Sponsor Mentions retired — Posted/Timestamp/Evidence merged into the
+  Sponsors rollup (always-on, latest-mention semantics). Outreach draft
+  generator's prompt rewritten for tone: was reading as a brand
+  cold-pitching a creator, corrected to an agency offering well-matched,
+  long-term sponsor opportunities — leads with the creator's pain point,
+  not a request.
 - "Send to Koli" extension: Channel vs. Video is now an explicit
   right-click menu choice ("Send to Worksheet → Channel/Video"), not
   auto-detected from the URL — and the popup's column editor has a real

@@ -79,10 +79,6 @@
     <div><label for="scanSponsors">Scan recent videos for sponsors during Channel analysis</label></div>
   </div>
   <div class="chk-row">
-    <input type="checkbox" id="logMentions" />
-    <div><label for="logMentions">Log individual sponsor mentions</label><span class="chk-hint">Adds rows to the Sponsor Mentions tab, not just the Sponsors rollup</span></div>
-  </div>
-  <div class="chk-row">
     <input type="checkbox" id="attemptTimestamp" />
     <div><label for="attemptTimestamp">Attempt in-video timestamp for mentions</label><span class="chk-hint">Best-effort — uses auto-captions when available, adds a small delay per mention found</span></div>
   </div>
@@ -114,7 +110,6 @@
       document.getElementById('lookback').value = s.lookbackDays;
       document.getElementById('sampleSize').value = s.commentSampleSize;
       document.getElementById('scanSponsors').checked = !!s.scanChannelSponsors;
-      document.getElementById('logMentions').checked = !!s.logSponsorMentions;
       document.getElementById('attemptTimestamp').checked = !!s.attemptSponsorTimestamp;
       document.getElementById('inboxSecretStatus').textContent = s.inboxSecretSet ? 'Currently set.' : 'Not set.';
       document.getElementById('timezone').value = s.timezone;
@@ -153,7 +148,6 @@
         inboxSecret: document.getElementById('inboxSecret').value.trim(),
         timezone: document.getElementById('timezone').value.trim(),
         scanChannelSponsors: document.getElementById('scanSponsors').checked,
-        logSponsorMentions: document.getElementById('logMentions').checked,
         attemptSponsorTimestamp: document.getElementById('attemptTimestamp').checked
       });
   };

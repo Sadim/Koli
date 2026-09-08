@@ -512,6 +512,39 @@ the root instead of just re-wording:
   thing to migrate later. Not scheduled yet; a real Batch 2/3 candidate
   once Sponsors/Sponsor Mentions consolidation itself is scoped.
 
+## Just shipped, round 12 — Sponsors/Sponsor Mentions consolidation, humanized outreach drafts
+
+- **Sponsor Mentions retired.** It and Sponsors were carrying almost the
+  same information twice. Posted/Timestamp/Evidence now live directly
+  on the Sponsors rollup (SPONSOR_HEADERS grew from 7 to 10 columns,
+  pure append — existing sheets migrate automatically, no manual step).
+  Each column reflects the LATEST mention for that (channel, brand)
+  pair, same "current state" semantics Last Seen already had — full
+  mention-by-mention history is no longer kept, a deliberate
+  simplification. `logSponsorMentions_` and its gating Settings toggle
+  are gone; SponsorBlock's free verified timestamp is now always
+  attempted (used to require the toggle + LOG_SPONSOR_MENTIONS both on),
+  the caption-fuzzy-match fallback still costs a real network call so
+  it's still gated behind Attempt In-Video Timestamp alone.
+  `normalizeExistingSponsors()` (Normalize Sponsor Names) updated to
+  carry Posted/Timestamp/Evidence through a merge instead of silently
+  clearing them — caught this before it shipped as a real regression the
+  consolidation would have introduced.
+- **Outreach drafts, humanized.** Full prompt rewrite in
+  `draftOutreachEmailCopy_` (outreachDraftService.gs). Positioning was
+  wrong before: it read as a brand cold-pitching a creator for a promo.
+  Corrected to the actual relationship — an agency OFFERING a creator
+  well-matched sponsor opportunities it will source and manage
+  long-term, not asking the creator for anything. Explicit tone rules
+  now in the prompt: lead with value not a request, name one real pain
+  point (inconsistent sponsor income, generic ill-fitting deals, time
+  spent chasing brands, negotiating without an agent) rather than
+  generic flattery, no salesy/needy language (banned phrases listed
+  explicitly — "would love to," "amazing opportunity," exclamation
+  points), low-pressure closing question instead of a hard CTA. The
+  video-detail personalization hook and 500-char hard limit are
+  unchanged — only the actual copy the model is asked to write changed.
+
 ## On Groq / Mistral / HF Serverless / Cloudflare Workers AI
 
 - **Mistral** — adding as a Gemini fallback for rate-limit failures (Batch 3, next up)

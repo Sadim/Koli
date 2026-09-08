@@ -68,11 +68,12 @@ automatically the next time Koli writes to that sheet — no manual setup.
 | Channels | One row per channel |
 | Videos | One row per video |
 | Profile | One row per video, scoped to tracked/date-ranged channel pulls |
-| Sponsors | One row per (channel, brand) — auto-aggregated, always on |
-| Sponsor Mentions | One row per individual mention, with evidence — optional, Settings toggle |
+| Sponsors | One row per (channel, brand), auto-aggregated, always on — includes the latest mention's Posted date, timestamp, and evidence text (Sponsor Mentions, the old separate per-mention log, is retired) |
 | Discover Results | Appended results from Discover runs |
-| Inbox | Captures from the "Send to Koli" browser extension — process with Koli > Process Inbox |
+| Prospects | Captures from the "Send to Koli" browser extension (notes only — channel/video links go straight to Channels/Videos) — process with Koli > Process Prospects |
 | Dashboard | KPI cells + a spot to add your own charts |
+| Outreach Drafts | Generated cold-outreach email drafts — Koli > Export > Draft Outreach Email |
+| Brand Fit Scores | Channel-vs-campaign-brief scores — Koli > Brand Intelligence > Brand Fit Score |
 | _SubscriberSnapshots, _TrackedProfiles | Hidden control sheets — don't edit directly |
 
 ## New Google permissions (Export feature)

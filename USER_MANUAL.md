@@ -101,8 +101,7 @@ anything outside that list, by design.
 | Lookback window | 90 days | Used for Posts/Mo |
 | Comment sample size | 40 | Per video, for authenticity scoring |
 | Scan recent videos for sponsors | On | Channel analysis's sponsor scan |
-| Log individual sponsor mentions | Off | Adds rows to Sponsor Mentions, not just the Sponsors rollup |
-| Attempt in-video timestamp | Off | Best-effort caption match when SponsorBlock has no coverage |
+| Attempt in-video timestamp | Off | Best-effort caption match when SponsorBlock has no coverage (SponsorBlock's own verified timestamp is free and always attempted regardless of this toggle) |
 | Extension shared secret | — | Required for the browser extension to work |
 
 ## Sheets Koli manages
@@ -112,8 +111,7 @@ anything outside that list, by design.
 | Channels | Channel tab, Assistant, extension (via Process Inbox) |
 | Videos | Video tab, Assistant, extension |
 | Profile | Profile tab, Refresh Tracked Profiles |
-| Sponsors | Any feature that detects a sponsor (aggregate, always on) |
-| Sponsor Mentions | Same, only when the Settings toggle is on |
+| Sponsors | Any feature that detects a sponsor — aggregate rollup, always on, now includes the latest mention's Posted date/timestamp/evidence (the old separate Sponsor Mentions log is retired) |
 | Discover Results | Discover tab, Assistant |
 | Inbox | The browser extension only |
 | Dashboard | Formulas + a script-computed authenticity average, refreshed on open |

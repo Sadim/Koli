@@ -1,9 +1,13 @@
 /**
  * sponsorService.gs
- * Aggregate Sponsors tab always updates (cheap, useful by default).
- * Sponsor Mentions (per-mention detail) and in-video timestamps are each
- * independent Settings checkboxes — see PROP_KEYS.LOG_SPONSOR_MENTIONS
- * and PROP_KEYS.ATTEMPT_SPONSOR_TIMESTAMP.
+ * Sponsors is the only sponsor-detection sheet now — Sponsor Mentions
+ * (the old per-mention detail log) is retired; its Posted/Timestamp/
+ * Evidence columns live directly on the Sponsors rollup instead. The two
+ * sheets were carrying almost the same information twice, so each
+ * (channel, brand) row now just holds the LATEST mention's Posted date,
+ * timestamp, and evidence text alongside the aggregate First Seen/Last
+ * Seen/Mentions/Sample Video fields — full mention-by-mention history is
+ * no longer kept, a deliberate simplification, not a bug.
  *
  * Verification tier: for any video, SponsorBlock is checked first (free,
  * crowd-verified, exact timestamps) before falling back to Gemini's
@@ -23,10 +27,6 @@ function recordSponsorMentions(channelId, channelName, video, sponsors) {
   if (!effectiveSponsors.length) return;
 
   upsertAggregateSponsors_(channelId, channelName, video, effectiveSponsors, sbSegments);
-
-  if (getBoolProp_(PROP_KEYS.LOG_SPONSOR_MENTIONS, false)) {
-    logSponsorMentions_(channelName, video, effectiveSponsors, sbSegments);
-  }
 }
 
 function upsertAggregateSponsors_(channelId, channelName, video, sponsors, sbSegments) {
@@ -37,7 +37,13 @@ function upsertAggregateSponsors_(channelId, channelName, video, sponsors, sbSeg
   const sampleVideoValue = video.videoId
     ? '=HYPERLINK("' + videoUrl_(video.videoId) + '","' + safeTitle + '")'
     : safeTitle;
+
+  // SponsorBlock's verified timestamp is free (sbSegments is already
+  // fetched above) — always attempted. The caption-fuzzy-match fallback
+  // costs a real network call, so it stays behind its own Settings
+  // toggle, same as before, just written here instead of a separate sheet.
   const sbTimestamp = (sbSegments && sbSegments.length) ? formatSeconds_(sbSegments[0].start) : null;
+  const attemptCaptionTimestamp = getBoolProp_(PROP_KEYS.ATTEMPT_SPONSOR_TIMESTAMP, false);
 
   sponsors.forEach(function (s) {
     const brand = sanitizeCellText_(canonicalBrandName_(s.brand) || s.brand);
@@ -45,22 +51,38 @@ function upsertAggregateSponsors_(channelId, channelName, video, sponsors, sbSeg
     const rowIndex = findSponsorRow_(data, channelId, s.brand);
     let targetRow;
 
+    let timestamp = '';
+    if (sbTimestamp) {
+      timestamp = sbTimestamp + ' (verified — SponsorBlock)';
+    } else if (attemptCaptionTimestamp && video.videoId) {
+      const ts = findSponsorTimestamp_(video.videoId, s.evidence || s.brand);
+      timestamp = ts ? (ts + ' (estimated — caption match)') : 'No match found';
+    }
+    const evidence = sanitizeCellText_(s.evidence || '');
+
     if (rowIndex === -1) {
-      sheet.appendRow([sanitizeCellText_(channelName), channelId, brand, publishedDate, publishedDate, 1, '']);
+      sheet.appendRow([sanitizeCellText_(channelName), channelId, brand, publishedDate, publishedDate, 1, '', publishedDate, timestamp, evidence]);
       targetRow = sheet.getLastRow();
       const sampleCell = sheet.getRange(targetRow, 7);
       video.videoId ? sampleCell.setFormula(sampleVideoValue) : sampleCell.setValue(sampleVideoValue);
-      data.push([channelName, channelId, brand, publishedDate, publishedDate, 1, '']);
+      data.push([channelName, channelId, brand, publishedDate, publishedDate, 1, '', publishedDate, timestamp, evidence]);
     } else {
       targetRow = rowIndex + 1; // data[0] is header, so data[i] -> sheet row i+1
       const existingCount = Number(data[rowIndex][5]) || 0;
       const firstSeen = data[rowIndex][3];
       const lastSeen = data[rowIndex][4];
+      const isLatest = publishedDate >= lastSeen;
 
       sheet.getRange(targetRow, 4).setValue(publishedDate < firstSeen ? publishedDate : firstSeen);
       sheet.getRange(targetRow, 5).setValue(publishedDate > lastSeen ? publishedDate : lastSeen);
       sheet.getRange(targetRow, 6).setValue(existingCount + 1);
       data[rowIndex][5] = existingCount + 1;
+
+      // Posted/Timestamp/Evidence track the LATEST mention only — an
+      // older re-processed video shouldn't overwrite more recent evidence.
+      if (isLatest) {
+        sheet.getRange(targetRow, 8, 1, 3).setValues([[publishedDate, timestamp, evidence]]);
+      }
     }
 
     if (sbTimestamp) {
@@ -87,38 +109,16 @@ function findSponsorRow_(data, channelId, brand) {
   return -1;
 }
 
-function logSponsorMentions_(channelName, video, sponsors, sbSegments) {
-  const sheet = getOrCreateSheet_(SHEET_NAMES.SPONSOR_MENTIONS, SPONSOR_MENTION_HEADERS);
-  const attemptTimestamp = getBoolProp_(PROP_KEYS.ATTEMPT_SPONSOR_TIMESTAMP, false);
-  const publishedDate = video.publishedAt ? new Date(video.publishedAt) : new Date();
-  const safeTitle = sanitizeCellText_(video.title || '').replace(/"/g, "'");
-  const videoValue = video.videoId
-    ? '=HYPERLINK("' + videoUrl_(video.videoId) + '","' + safeTitle + '")'
-    : safeTitle;
-  const sbBest = (sbSegments && sbSegments.length) ? formatSeconds_(sbSegments[0].start) : null;
-
-  sponsors.forEach(function (s) {
-    let timestamp = '';
-    if (sbBest) {
-      timestamp = sbBest + ' (verified — SponsorBlock)';
-    } else if (attemptTimestamp && video.videoId) {
-      const ts = findSponsorTimestamp_(video.videoId, s.evidence || s.brand);
-      timestamp = ts ? (ts + ' (estimated — caption match)') : 'No match found';
-    }
-    const row = sheet.getLastRow() + 1;
-    sheet.getRange(row, 1, 1, 6).setValues([[
-      sanitizeCellText_(channelName), '', sanitizeCellText_(canonicalBrandName_(s.brand) || s.brand), publishedDate, timestamp, sanitizeCellText_(s.evidence || '')
-    ]]);
-    const videoCell = sheet.getRange(row, 2);
-    video.videoId ? videoCell.setFormula(videoValue) : videoCell.setValue(videoValue);
-  });
-}
-
 function getSponsorsForChannel(channelId) {
   const sheet = getOrCreateSheet_(SHEET_NAMES.SPONSORS, SPONSOR_HEADERS);
   const data = sheet.getDataRange().getValues();
   return data.slice(1)
     .filter(function (row) { return row[1] === channelId; })
-    .map(function (row) { return { brand: row[2], firstSeen: row[3], lastSeen: row[4], mentions: row[5] }; })
+    .map(function (row) {
+      return {
+        brand: row[2], firstSeen: row[3], lastSeen: row[4], mentions: row[5],
+        lastPosted: row[7], lastTimestamp: row[8], lastEvidence: row[9]
+      };
+    })
     .sort(function (a, b) { return b.mentions - a.mentions; });
 }

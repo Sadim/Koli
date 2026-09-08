@@ -5,6 +5,16 @@
  * of the creator's last 3 videos instead of generic "love your content!"
  * filler.
  *
+ * Positioning matters here, stated explicitly since it changes the whole
+ * email: this is an agency reaching out to OFFER a creator well-matched
+ * sponsor opportunities and handle the relationship long-term — not a
+ * brand cold-pitching a creator for a one-off promo. The email leads with
+ * what's in it for the creator (a real pain point solved — inconsistent
+ * sponsor income, generic deals that don't fit their content, time spent
+ * chasing brands instead of making videos) rather than what's being asked
+ * of them. Warm and direct, not salesy or needy — see the prompt in
+ * draftOutreachEmailCopy_ for the specific tone rules this enforces.
+ *
  * "Watching" a video here means the same thing it means everywhere else
  * in Koli: reading its public auto-caption transcript (captionsService.gs
  * — the same best-effort, unofficial endpoint already used for sponsor
@@ -113,24 +123,40 @@ function draftOutreachEmailCopy_(rowData, aboutSummary, videoExcerpts) {
   }).join('\n\n');
 
   const prompt =
-    'You are drafting a short, cold outreach email from an influencer-marketing agency to a YouTube ' +
-    'creator, proposing a brand-partnership conversation. Business-oriented tone: professional and direct, ' +
-    'no gushing fan language, no generic filler like "I hope this finds you well."\n\n' +
+    'You work at a boutique creator-partnerships agency. Draft a short outreach email to a YouTube ' +
+    'creator. You are NOT a brand cold-pitching for a promo, and this is NOT a generic sponsorship ' +
+    'request — you represent brands and bring the creator well-matched sponsor opportunities, handling ' +
+    'the vetting and negotiation so they don\'t have to chase deals themselves. You\'re offering to build ' +
+    'an ongoing relationship, not close a one-off transaction. The email should read like it\'s about what ' +
+    'you\'re bringing THEM, not what you want FROM them.\n\n' +
+    'Mandatory tone rules:\n' +
+    '- Write like one person emailing another, not a company emailing an audience. Plain, warm, direct.\n' +
+    '- Lead with value. Never open with a request — earn the reply before you ask for anything.\n' +
+    '- Frame this as the start of a long-term, mutually beneficial relationship, not a single deal.\n' +
+    '- Do not sound needy, eager, or salesy. No exclamation points. Never use "would love to," ' +
+    '"amazing/incredible/huge opportunity," "reaching out to explore," or "brand-partnership conversation." ' +
+    'Write like someone who already has good opportunities to offer, not someone hoping to be picked.\n' +
+    '- Name ONE real, specific pain point this creator likely has — inconsistent sponsor income, generic ' +
+    'brand deals that don\'t fit their content, time spent pitching brands instead of making videos, or ' +
+    'negotiating alone with no agent — and speak directly to that one, not a list of several.\n' +
+    '- No corporate jargon, no "synergy," no filler like "I hope this finds you well."\n\n' +
     'Creator: ' + rowData.name + '\nNiche: ' + (rowData.niche || 'unknown') + '\n' +
     'About: ' + (aboutSummary || 'n/a') + '\n\n' +
     'Below are excerpts from their 3 most recent videos. Pick exactly ONE specific, concrete detail — a ' +
-    'moment, technique, opinion, or result — from ONE excerpt to build the whole email around. Ignore ' +
-    'generic intro greetings and generic subscribe/outro requests; the point is proof this was actually ' +
-    'watched, not a template. If an excerpt is description-only (no transcript), you may reference its ' +
-    'stated topic, just don\'t claim to quote a specific line from it.\n\n' +
+    'moment, technique, opinion, or result — from ONE excerpt to open the email with, as proof this was ' +
+    'actually watched, not a template. Ignore generic intro greetings and generic subscribe/outro ' +
+    'requests. If an excerpt is description-only (no transcript), you may reference its stated topic, ' +
+    'just don\'t claim to quote a specific line from it.\n\n' +
     videoBlock + '\n\n' +
     'Respond as JSON: {"subject": "...", "body": "...", "referencedVideoIndex": <0, 1, or 2>}\n' +
-    '- "subject": references the specific detail you picked. Under 70 characters.\n' +
-    '- "body": opens with one sentence hooked on that specific detail (this is the personalization — no ' +
-    '"great content!"), states the partnership interest in one sentence, ends with one clear call to ' +
-    'action, signs off with "[Your name]" on its own line. HARD LIMIT ' + OUTREACH_EMAIL_MAX_CHARS + ' ' +
-    'characters total, no exceptions — count as you write and stop well under the limit rather than ' +
-    'padding to it.\n' +
+    '- "subject": references the specific detail you picked. Under 70 characters. Curious, not salesy — ' +
+    'not a pitch line.\n' +
+    '- "body": one sentence hooked on that specific detail, one sentence naming the pain point and what ' +
+    'you\'re offering to solve it (well-matched, long-term sponsor opportunities you\'d bring and manage ' +
+    '— not "we want to sponsor you"), one low-pressure closing question (e.g. "worth a quick reply?" — ' +
+    'not "let\'s schedule a call to discuss deliverables"), signs off with "[Your name]" on its own line. ' +
+    'HARD LIMIT ' + OUTREACH_EMAIL_MAX_CHARS + ' characters total, no exceptions — count as you write and ' +
+    'stop well under the limit rather than padding to it.\n' +
     '- "referencedVideoIndex": which excerpt (0, 1, or 2) the hook came from.';
 
   const result = geminiCallJson_(prompt);

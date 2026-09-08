@@ -72,13 +72,21 @@ function normalizeExistingSponsors() {
         channel: row[col('Channel')], channelId: channelId, brand: canonicalBrandName_(row[col('Brand')]),
         firstSeen: row[col('First Seen')], lastSeen: row[col('Last Seen')],
         mentions: Number(row[col('Mentions')]) || 0,
-        sampleVideoFormula: sampleVideoFormulas[i] || '', sampleVideoText: row[col('Sample Video')]
+        sampleVideoFormula: sampleVideoFormulas[i] || '', sampleVideoText: row[col('Sample Video')],
+        // Posted/Timestamp/Evidence track whichever source row has the
+        // latest Last Seen — same "latest mention wins" rule
+        // upsertAggregateSponsors_ uses, so merging duplicates never
+        // regresses to older evidence.
+        lastPosted: row[col('Posted')], lastTimestamp: row[col('Timestamp')], lastEvidence: row[col('Evidence')]
       };
     } else {
       const m = merged[key];
       m.mentions += Number(row[col('Mentions')]) || 0;
       if (new Date(row[col('First Seen')]) < new Date(m.firstSeen)) m.firstSeen = row[col('First Seen')];
-      if (new Date(row[col('Last Seen')]) > new Date(m.lastSeen)) m.lastSeen = row[col('Last Seen')];
+      if (new Date(row[col('Last Seen')]) > new Date(m.lastSeen)) {
+        m.lastSeen = row[col('Last Seen')];
+        m.lastPosted = row[col('Posted')]; m.lastTimestamp = row[col('Timestamp')]; m.lastEvidence = row[col('Evidence')];
+      }
       if (!m.sampleVideoFormula && sampleVideoFormulas[i]) m.sampleVideoFormula = sampleVideoFormulas[i];
     }
   });
@@ -96,6 +104,7 @@ function normalizeExistingSponsors() {
     const sampleCell = sheet.getRange(row, 7);
     if (m.sampleVideoFormula) sampleCell.setFormula(m.sampleVideoFormula);
     else if (m.sampleVideoText) sampleCell.setValue(m.sampleVideoText);
+    sheet.getRange(row, 8, 1, 3).setValues([[m.lastPosted || '', m.lastTimestamp || '', sanitizeCellText_(m.lastEvidence || '')]]);
   });
 
   ui.alert('Sponsors normalized', (before - after) + ' duplicate row(s) merged — ' + before + ' rows became ' + after + '.', ui.ButtonSet.OK);

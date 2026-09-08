@@ -8,6 +8,10 @@ const SHEET_NAMES = {
   CHANNELS: 'Channels',
   VIDEOS: 'Videos',
   SPONSORS: 'Sponsors',
+  // Retired — Posted/Timestamp/Evidence moved into SPONSORS itself (see
+  // SPONSOR_HEADERS). Kept only as a name to recognize a pre-existing
+  // "Sponsor Mentions" tab from before this change; Koli never writes to
+  // it again and never deletes it — safe to archive/delete by hand.
   SPONSOR_MENTIONS: 'Sponsor Mentions',
   DASHBOARD: 'Dashboard',
   PROFILE: 'Profile',
@@ -118,11 +122,19 @@ const VIDEO_HEADERS = [
   'Eng %', 'Posted', 'Day', 'New Subs', 'Location', 'Age', 'Gender', 'Updated'
 ];
 
-const SPONSOR_HEADERS = ['Channel', 'Channel ID', 'Brand', 'First Seen', 'Last Seen', 'Mentions', 'Sample Video'];
+// Sponsor Mentions (per-mention detail log) retired — Posted/Timestamp/
+// Evidence folded directly into the Sponsors rollup instead of living in
+// a second, near-identical sheet. Each of the 3 borrowed columns reflects
+// the MOST RECENT mention for that (channel, brand) pair, same "latest
+// known state" semantics Last Seen already had — this is a deliberate
+// simplification (full mention-by-mention history is no longer kept),
+// not an oversight. See sponsorService.gs.
+const SPONSOR_HEADERS = [
+  'Channel', 'Channel ID', 'Brand', 'First Seen', 'Last Seen', 'Mentions', 'Sample Video',
+  'Posted', 'Timestamp', 'Evidence'
+];
 const BRAND_TARGET_HEADERS = ['Brand', 'Niche/Category', 'Priority', 'Notes', 'Added'];
 const BRAND_TARGET_PRIORITIES = ['High', 'Medium', 'Low'];
-
-const SPONSOR_MENTION_HEADERS = ['Channel', 'Video', 'Brand', 'Posted', 'Timestamp', 'Evidence'];
 
 const PROFILE_HEADERS = [
   'Status', 'Channel', 'Video ID', 'Channel ID', 'Video', 'Posted', 'Views',
@@ -147,8 +159,10 @@ const PROP_KEYS = {
   COMMENT_SAMPLE_SIZE: 'COMMENT_SAMPLE_SIZE',
   CPM_NICHE_OVERRIDE: 'CPM_NICHE_OVERRIDE',
   SCAN_CHANNEL_SPONSORS: 'SCAN_CHANNEL_SPONSORS',       // checkbox, default on
-  LOG_SPONSOR_MENTIONS: 'LOG_SPONSOR_MENTIONS',         // checkbox, default off
-  ATTEMPT_SPONSOR_TIMESTAMP: 'ATTEMPT_SPONSOR_TIMESTAMP', // checkbox, default off
+  // LOG_SPONSOR_MENTIONS retired along with the Sponsor Mentions sheet —
+  // Posted/Timestamp/Evidence are now core Sponsors columns, always on,
+  // nothing left to toggle.
+  ATTEMPT_SPONSOR_TIMESTAMP: 'ATTEMPT_SPONSOR_TIMESTAMP', // checkbox, default off — gates the caption-fuzzy-match fallback only; SponsorBlock-verified timestamps are free and always attempted
   INBOX_SHARED_SECRET: 'INBOX_SHARED_SECRET', // checked against the browser extension's POSTs
   REPORTS_FOLDER_ID: 'REPORTS_FOLDER_ID', // remembered once created — avoids needing to search Drive (see reportService.gs)
   MISTRAL_API_KEY: 'MISTRAL_API_KEY', // optional fallback when Gemini's own retries are exhausted

@@ -253,10 +253,6 @@
       <div><label for="qsScanSponsors">Scan recent videos for sponsors during Channel analysis</label></div>
     </div>
     <div class="chk-row">
-      <input type="checkbox" id="qsLogMentions" />
-      <div><label for="qsLogMentions">Log individual sponsor mentions</label><span class="chk-hint">Adds rows to the Sponsor Mentions tab, not just the rollup</span></div>
-    </div>
-    <div class="chk-row">
       <input type="checkbox" id="qsAttemptTimestamp" />
       <div><label for="qsAttemptTimestamp">Attempt in-video timestamp for mentions</label><span class="chk-hint">Best-effort, uses auto-captions when available</span></div>
     </div>
@@ -453,15 +449,13 @@
         gm.textContent = s.geminiKeySet ? 'Set (…' + s.geminiKeyMasked.slice(-4) + ')' : 'Not set';
         gm.className = 'key-status ' + (s.geminiKeySet ? 'set' : 'unset');
         document.getElementById('qsScanSponsors').checked = !!s.scanChannelSponsors;
-        document.getElementById('qsLogMentions').checked = !!s.logSponsorMentions;
         document.getElementById('qsAttemptTimestamp').checked = !!s.attemptSponsorTimestamp;
       }).getSettings();
     }
-    ['qsScanSponsors', 'qsLogMentions', 'qsAttemptTimestamp'].forEach(id => {
+    ['qsScanSponsors', 'qsAttemptTimestamp'].forEach(id => {
       document.getElementById(id).onchange = () => {
         google.script.run.saveSettings({
           scanChannelSponsors: document.getElementById('qsScanSponsors').checked,
-          logSponsorMentions: document.getElementById('qsLogMentions').checked,
           attemptSponsorTimestamp: document.getElementById('qsAttemptTimestamp').checked
         });
       };
