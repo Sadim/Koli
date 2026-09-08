@@ -3,7 +3,7 @@
 **Draft — have this reviewed before publishing, same as any other legal
 document in this project. This is a starting point, not a final policy.**
 
-Last updated: [DATE]
+Last updated: September 8, 2026
 
 ## What this extension does
 
@@ -63,4 +63,4 @@ everywhere you might want to use it, not passive data collection.
 
 ## Contact
 
-Questions about this policy: [CONTACT EMAIL]
+Questions about this policy: mryaxx@gmail.com

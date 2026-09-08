@@ -127,7 +127,11 @@ prompt's actual output shape, the 500-char enforcement against a real
 response), and Brand Fit Score end to end (the brief-fit Gemini prompt's
 actual output shape, and whether the 7-component composite feels right
 against real channels/briefs — the math itself is unit-tested, the
-judgment calls behind the weights aren't). None of these are guesses — they're built to documented
+judgment calls behind the weights aren't). Also now: the `drive.file` +
+Advanced Drive Service rewrite in reportService.gs — this is the exact
+class of change that broke Export once before (see ROADMAP.md round
+13), so treat Creator One-Pager/Deal Memo/Performance Report as
+unverified until you've run each one for real. None of these are guesses — they're built to documented
 behavior — but "documented" and "tested against a live response" aren't
 the same thing, and I want that distinction visible rather than implied
 away.
@@ -142,6 +146,17 @@ not something the test suite closes.
 
 ## Recent changelog
 
+- Drive OAuth scope dropped from full `drive` to `drive.file` (via the
+  Advanced Drive Service, reportService.gs rewritten to stop calling
+  DriveApp entirely) — this was the actual CASA-cost blocker for
+  Workspace Marketplace publishing, resolved without paying for CASA.
+  **Not live-tested** (see "what's verified" below) — test Export for
+  real before trusting it, same caveat as everything else built without
+  a Google account available. Added Brand View (Koli > Export > Set Up
+  Brand View) — a live Looker Studio-ready sheet, brand-safe columns
+  only. Drafted the missing Terms of Service and filled in the Privacy
+  Policy's placeholders — both needed for either store's publishing
+  checklist.
 - Sponsor Mentions retired — Posted/Timestamp/Evidence merged into the
   Sponsors rollup (always-on, latest-mention semantics). Outreach draft
   generator's prompt rewritten for tone: was reading as a brand

@@ -281,5 +281,22 @@ console.log('cpmService.gs');
   });
 }
 
+// ---------- brandViewService.gs ----------
+console.log('brandViewService.gs');
+{
+  const m = loadGs('brandViewService.gs');
+
+  test('columnToLetter_: single-letter columns', () => {
+    assert.strictEqual(m.columnToLetter_(1), 'A');
+    assert.strictEqual(m.columnToLetter_(26), 'Z');
+  });
+  test('columnToLetter_: double-letter columns (the actual point of this function)', () => {
+    assert.strictEqual(m.columnToLetter_(27), 'AA');
+    assert.strictEqual(m.columnToLetter_(28), 'AB');
+    assert.strictEqual(m.columnToLetter_(52), 'AZ');
+    assert.strictEqual(m.columnToLetter_(53), 'BA');
+  });
+}
+
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

@@ -194,25 +194,51 @@ Not building either portal split yet; flagging the shape now.
 ## Publishing checklist — Chrome Web Store + Google Workspace Marketplace
 
 **Chrome Web Store** (the extension):
-- $5 one-time developer registration fee
-- Real icon assets (16/48/128px) — manifest currently has none
-- Privacy policy URL — required, extension transmits data via the Web App
-- Screenshots + store listing copy
-- Justification for the `<all_urls>` host permission — broad permissions draw extra review scrutiny; may be worth narrowing to specific site patterns (youtube.com at minimum) if the review process pushes back
-- Review timeline: days to weeks, longer for broad-permission extensions
+- [x] Real icon assets (16/48/128px)
+- [x] Store listing copy (STORE_LISTING.md)
+- [x] Privacy policy drafted (PRIVACY_POLICY.md) — placeholders filled in
+- [ ] **Privacy policy needs a public URL.** A markdown file in the repo
+  doesn't satisfy Chrome's requirement — it needs to be hosted somewhere
+  reachable (GitHub Pages, a simple static page, whatever's easiest) and
+  that URL is what goes in the Developer Dashboard field.
+- [ ] **Screenshots** — not created. Can generate the popup-UI ones from
+  the existing `.preview/` static harness; the "context menu open"
+  screenshot needs an actual browser with the extension loaded (can't be
+  faked from a static render).
+- [ ] **$5 one-time developer registration fee** — needs the account
+  holder, not something that can be done on your behalf.
+- Justification for the `<all_urls>` host permission is already written
+  in STORE_LISTING.md; broad permissions still draw extra review
+  scrutiny, may need narrowing to youtube.com if review pushes back.
+- Review timeline: days to weeks, longer for broad-permission extensions.
 
 **Google Workspace Marketplace** (the Add-on):
-- OAuth consent screen verification (privacy policy, terms of service, app branding, support contact)
-- Still on full `drive` scope (restricted, needs CASA) — reducing this
-  to `drive.file` for real means rewriting `reportService.gs` to use the
-  Advanced Drive Service instead of `DriveApp`, then testing it live
-  before trusting it again. Not done yet — see "Just shipped" above for
-  what happened on the first attempt.
-- A demonstration video showing scope usage is required for sensitive-tier scopes even without CASA
-- Marketplace SDK listing (screenshots, category, description) — separate step from OAuth verification itself
-- Still pending regardless of scopes: the multi-document/multi-tenant properties refactor (Script Properties → per-document or per-user), since a publicly listed add-on can't have every installer sharing one set of stored settings
+- [x] **Drive scope dropped to `drive.file` — the CASA blocker is
+  resolved without paying for CASA.** `reportService.gs` rewritten to
+  use the Advanced Drive Service (`Drive.*`, Drive API v3) instead of
+  `DriveApp` — see round 13 below and the file's own top comment. This
+  is genuinely the second attempt at this exact change (the first broke
+  Export live and was reverted); it could not be tested against a live
+  response here either (no Google account in this environment) —
+  **test Export/Deal Memo/Performance Report for real before trusting
+  this**, and if it breaks, the fix is either the specific wrong
+  `Drive.*` call or reverting the commit back to full `drive` + CASA.
+- [x] Terms of Service drafted (TERMS_OF_SERVICE.md — did not exist at
+  all before this)
+- [x] Multi-document/multi-tenant properties refactor (round 6, already done)
+- [ ] Privacy policy + ToS both need public URLs (same as above) —
+  OAuth consent screen verification requires linking to them, not
+  uploading the files
+- [ ] A demonstration video showing scope usage (still required for any
+  sensitive-tier scope, `drive.file` included, just a much shorter/
+  simpler video than a full-`drive` walkthrough would need)
+- [ ] Marketplace SDK listing (screenshots, category, description) —
+  separate step from OAuth verification itself
 
-Given the scope fix just landed, the Marketplace path is meaningfully lighter than it looked a few messages ago. The properties refactor is now the biggest remaining piece — want that next, or the Chrome Web Store prep (icons, privacy policy, listing copy) since it's more self-contained and doesn't depend on the backend work?
+Both stores now converge on the same two blockers: **hosting the legal
+docs at public URLs**, and **screenshots**. Everything else that was
+genuinely blocking (the CASA cost, the missing ToS, the properties
+refactor) is resolved.
 
 ## Just shipped, round 6 — properties refactor + Chrome Web Store prep
 
@@ -544,6 +570,42 @@ the root instead of just re-wording:
   points), low-pressure closing question instead of a hard CTA. The
   video-detail personalization hook and 500-char hard limit are
   unchanged — only the actual copy the model is asked to write changed.
+
+## Just shipped, round 13 — drive.file rewrite, Brand View, publish-prep docs
+
+- **Drive scope dropped from full `drive` to `drive.file`, for real this
+  time.** The user can't afford CASA's ~$540+/year and wants to publish
+  to both stores, so this was worth doing properly rather than paying
+  for the broader scope. Root cause of the first attempt's failure:
+  `DriveApp`'s own implementation forces full `drive` for most of its
+  methods no matter what the manifest declares — narrowing the scope
+  alone while still calling DriveApp was never going to work.
+  `reportService.gs` rewritten to use the Advanced Drive Service
+  (`Drive.*`, enabled in appsscript.json) exclusively — folder create/
+  get, file reparenting (v3 has no "move," it's add-parent + remove-
+  parent), and PDF export all go through `Drive.Files.*` now, never
+  `DriveApp`. Genuinely unverified against a live response (still no
+  Google account here) — flagged plainly in the file's own top comment
+  and in the checklist below. Test Export for real before relying on it.
+- **Brand View** (`brandViewService.gs`) — Koli > Export > Set Up Brand
+  View. A single live `QUERY()` formula exposing only Channel/Niche/
+  Subs/Avg Views/Posts-per-Month/Grade/Contact from Channels — the
+  answer to "how do we present via a link without Sheets Canvas' paid
+  tier": connect Looker Studio's Sheets connector to this tab, share
+  the Looker Studio report's own link with a brand, and the brand never
+  touches the real spreadsheet or sees Outreach status/internal Notes/
+  IDs. Column letters resolve from Channels' actual header row rather
+  than being hardcoded, so a future column reorder doesn't silently
+  break it.
+- **Terms of Service drafted** (send-to-koli-extension/TERMS_OF_SERVICE.md)
+  — didn't exist at all before, and Workspace Marketplace's OAuth
+  consent verification requires one. Same "draft, have counsel review"
+  framing as the Privacy Policy. Filled in the Privacy Policy's
+  remaining `[DATE]`/`[CONTACT EMAIL]` placeholders too.
+- **What's still actually blocking either store**: hosting both legal
+  docs at public URLs (a repo markdown file doesn't satisfy either
+  store's requirement), and screenshots. Neither is an engineering
+  problem at this point — see the Publishing checklist above.
 
 ## On Groq / Mistral / HF Serverless / Cloudflare Workers AI
 

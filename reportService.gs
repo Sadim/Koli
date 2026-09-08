@@ -8,6 +8,24 @@
  * document is meant to go to a brand, not stay in-house. If you want an
  * internal-facing version with that data included later, that's a
  * different template, not a toggle on this one.
+ *
+ * Drive access: the Advanced Drive Service (Drive API v3, `Drive.*` —
+ * see appsscript.json's enabledAdvancedServices), not the built-in
+ * DriveApp. This is the second attempt at dropping the OAuth scope from
+ * full `drive` to `drive.file` — the first attempt (still using DriveApp
+ * itself, just hoping the manifest scope alone would narrow it) broke
+ * Export live and was reverted, because DriveApp's own implementation
+ * forces full `drive` for most of its methods regardless of what's
+ * declared. The fix this time is to stop calling DriveApp at all, not
+ * just to redeclare the scope — every Drive touch below goes through
+ * Drive.Files.* instead. `drive.file` only grants access to files/folders
+ * this app itself creates, which is exactly what every function here
+ * does (nothing here ever needs to read a file it didn't create).
+ * Stated plainly since this is genuinely unverified against a live
+ * response — no Google account available to test it here (see
+ * STATUS.md's "what's verified vs. not"). If Export breaks again after
+ * this ships, the fix is either fixing the specific Drive.* call that's
+ * wrong, or reverting this commit and going back to full `drive` + CASA.
  */
 
 function exportCreatorOnePager() {
@@ -79,14 +97,13 @@ function buildCreatorOnePager_(row) {
   }
 
   doc.saveAndClose();
-  const docFile = DriveApp.getFileById(doc.getId());
-  docFile.moveTo(folder);
+  const docId = doc.getId();
+  moveFileToFolder_(docId, folder);
 
-  const pdfBlob = docFile.getAs('application/pdf');
-  const pdfFile = folder.createFile(pdfBlob);
-  pdfFile.setName(baseName + '.pdf');
+  const pdfBlob = exportDocAsPdfBlob_(docId, baseName + '.pdf');
+  const pdfFile = Drive.Files.create({ name: baseName + '.pdf', parents: [folder] }, pdfBlob);
 
-  return { channelName: rowData.name, docUrl: docFile.getUrl(), pdfUrl: pdfFile.getUrl() };
+  return { channelName: rowData.name, docUrl: doc.getUrl(), pdfUrl: driveViewUrl_(pdfFile.id) };
 }
 
 function exportDealMemo() {
@@ -153,29 +170,60 @@ function buildDealMemo_(row) {
     'stated in the video and/or on-screen, not buried in a description). This is general awareness, not legal advice — confirm current requirements with counsel.');
 
   doc.saveAndClose();
-  const docFile = DriveApp.getFileById(doc.getId());
-  docFile.moveTo(folder);
+  moveFileToFolder_(doc.getId(), folder);
 
-  return { channelName: rowData.name, docUrl: docFile.getUrl() };
+  return { channelName: rowData.name, docUrl: doc.getUrl() };
 }
 
-/** Keeps report files next to the spreadsheet in Drive rather than scattered in "My Drive" root. */
 /**
  * Creates the Reports folder once, remembers its ID, reuses it after —
- * avoids repeatedly searching Drive for it. On full `drive` scope for
- * now (a `drive.file` attempt broke live — DriveApp forces full `drive`
- * for most of its methods regardless of manifest scope; see ROADMAP.md).
- * Lands in the user's root Drive rather than next to the spreadsheet.
+ * avoids repeatedly searching Drive for it. Returns the folder ID
+ * (a string), not a DriveApp-style Folder object — everything downstream
+ * here uses Drive.Files.* (the Advanced Drive Service), which works with
+ * IDs. Lands in the user's root Drive rather than next to the
+ * spreadsheet, same as before.
  */
 function getOrCreateReportsFolder_() {
   const storedId = getProp_(PROP_KEYS.REPORTS_FOLDER_ID, '');
   if (storedId) {
-    try { return DriveApp.getFolderById(storedId); }
-    catch (e) { /* stored folder no longer reachable — fall through and recreate */ }
+    try {
+      const existing = Drive.Files.get(storedId, { fields: 'id, trashed' });
+      if (!existing.trashed) return existing.id;
+    } catch (e) { /* stored folder no longer reachable — fall through and recreate */ }
   }
-  const folder = DriveApp.createFolder('Koli Reports');
-  PropertiesService.getDocumentProperties().setProperty(PROP_KEYS.REPORTS_FOLDER_ID, folder.getId());
-  return folder;
+  const folder = Drive.Files.create({ name: 'Koli Reports', mimeType: 'application/vnd.google-apps.folder' });
+  PropertiesService.getDocumentProperties().setProperty(PROP_KEYS.REPORTS_FOLDER_ID, folder.id);
+  return folder.id;
+}
+
+/**
+ * Drive API v3 has no "move" call — reparenting a file means adding the
+ * new parent and removing whatever it had before, in one files.update
+ * request. docId is a DocumentApp document's ID, already saved/closed by
+ * the caller.
+ */
+function moveFileToFolder_(fileId, folderId) {
+  const file = Drive.Files.get(fileId, { fields: 'parents' });
+  const previousParents = (file.parents || []).join(',');
+  Drive.Files.update({}, fileId, null, { addParents: folderId, removeParents: previousParents, fields: 'id, parents' });
+}
+
+/**
+ * Exports a Doc to a PDF Blob via the Advanced Drive Service. Hedged with
+ * a type check rather than assuming one exact return shape:
+ * Drive.Files.export's wrapper has returned a Blob directly in some
+ * Apps Script/API-version combinations and an HTTP-response-like object
+ * needing .getBlob() in others, and this couldn't be confirmed against a
+ * live response before shipping (see this file's top comment).
+ */
+function exportDocAsPdfBlob_(docId, filename) {
+  const result = Drive.Files.export(docId, 'application/pdf');
+  const blob = (result && typeof result.getBlob === 'function') ? result.getBlob() : result;
+  return blob.setName(filename);
+}
+
+function driveViewUrl_(fileId) {
+  return 'https://drive.google.com/file/d/' + fileId + '/view';
 }
 
 function formatDateShort_(date) {
@@ -298,7 +346,6 @@ function buildPerformanceReport_(channelId, channelName) {
   }
 
   doc.saveAndClose();
-  const docFile = DriveApp.getFileById(doc.getId());
-  docFile.moveTo(folder);
-  return { docUrl: docFile.getUrl(), videoCount: rows.length };
+  moveFileToFolder_(doc.getId(), folder);
+  return { docUrl: doc.getUrl(), videoCount: rows.length };
 }

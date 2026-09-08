@@ -24,7 +24,8 @@ function onOpen() {
       .addItem('Draft Deal Memo (selected row)', 'exportDealMemo')
       .addItem('Performance Report (Channels or Profile row)', 'exportPerformanceReport')
       .addItem('New Campaign (selected Channels row)', 'showCreateCampaignDialog')
-      .addItem('Draft Outreach Email (selected Channels row)', 'showDraftOutreachEmail'))
+      .addItem('Draft Outreach Email (selected Channels row)', 'showDraftOutreachEmail')
+      .addItem('Set Up Brand View (for Looker Studio)', 'showBrandView'))
     .addItem('Refresh Tracked Profiles', 'runRefreshTrackedProfiles')
     .addItem('Process Prospects', 'processInbox')
     .addSeparator()
@@ -113,6 +114,8 @@ function showHelp() {
     'detail from the creator\'s last 3 videos, editable in the Outreach Drafts sheet.\n' +
     'Brand Intelligence > Brand Fit Score — score one or more selected Channels rows against ' +
     'a specific brand brief (niche, audience, budget), not just Grade\'s general quality score.\n' +
+    'Export > Set Up Brand View — a live, brand-safe Channels view for connecting Looker Studio ' +
+    'and sharing a presentation link with a brand, without giving them access to this spreadsheet.\n' +
     'Assistant — plain-English command box, restricted to Koli\'s own actions.\n' +
     'Run Diagnostics — checks your API keys and Drive permissions in one click.\n' +
     'Set your YouTube and Gemini API keys first under Settings.',
