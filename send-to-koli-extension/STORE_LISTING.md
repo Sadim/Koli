@@ -66,15 +66,6 @@ permission is inert until the user actively right-clicks and chooses
 a Koli menu item; no data is read or transmitted passively or in the
 background.
 
-**Content script (`content.js`, runs on all pages)**: Powers "Select
-similar items on this page" — right-click one item in a list/grid of
-similar entries (a creator directory, a leaderboard, search results)
-and capture all matching entries in one action. The script only reads
-the page DOM and acts when the user explicitly triggers it from the
-context menu; it does not run automatically, does not persist data,
-and does not follow links or pagination on its own — one page, one
-user-initiated action, nothing scheduled or unattended.
-
 ## Screenshots needed (not yet created)
 1. Context menu open on a YouTube video page showing "Send to Worksheet → Video"
 2. The popup's YouTube tab (Channels/Videos switcher + worksheet lock + column list)

@@ -80,9 +80,9 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
  * rebuildContextMenus), only used by send() as a soft mismatch check
  * against whatever was explicitly clicked. Unrecognized platforms/URLs
  * still send fine as a generic note — unrestricted on purpose, that's
- * what makes off-platform mentions and "select similar" on third-party
- * directories useful at all. Add a new platform here when it's time —
- * one object, not a rewrite.
+ * what makes off-platform mentions (a creator referenced on a blog, a
+ * forum post, a directory listing) useful to capture at all. Add a new
+ * platform here when it's time — one object, not a rewrite.
  */
 const RECOGNIZED_PLATFORMS = [
   {

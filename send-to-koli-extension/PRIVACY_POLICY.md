@@ -14,12 +14,12 @@ called Koli.
 ## What data is accessed, and when
 
 The extension only accesses page content when you explicitly trigger
-it — right-clicking a link and choosing "Send link to Koli," right-
-clicking selected text and choosing "Send selection to Koli as a
-note," right-clicking a page and choosing "Send this page to Koli,"
-or right-clicking an item in a list and choosing "Select similar items
-on this page" (which reads the surrounding page structure to find
-matching items, then only sends the ones you confirm).
+it — right-clicking a YouTube link and choosing "Send to Worksheet →
+Channel" or "→ Video," right-clicking selected text and choosing "Send
+selection to Koli as a note," right-clicking a page and choosing "Send
+this page to Worksheet → Channel" or "→ Video," or — once you've set up
+a profile for another platform — right-clicking anything and choosing
+"Send to [Platform Name]."
 Nothing is read, collected, or transmitted automatically or in the
 background. Specifically, when you trigger one of these actions, the
 extension sends:
@@ -51,7 +51,7 @@ developer or to any third party.
 - Does not collect analytics or telemetry
 - Does not sell, share, or transmit data to any third party
 - Does not read or transmit page content unless you explicitly trigger
-  one of the three actions above
+  one of the actions listed above
 
 ## Why this extension requests broad host permissions
 
