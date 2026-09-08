@@ -8,6 +8,8 @@
 
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('Koli')
+    .addItem('⚡ Attention', 'showAttentionView')
+    .addSeparator()
     .addItem('Profile', 'showProfileSidebar')
     .addItem('Discover', 'showDiscoverSidebar')
     .addItem('Dashboard', 'showDashboard')
@@ -105,6 +107,8 @@ function showDashboard() {
 function showHelp() {
   SpreadsheetApp.getUi().alert(
     'Koli',
+    'Attention — start here. Stale Outreach follow-ups, recent sponsor activity, and high-grade ' +
+    'channels with no sponsor history yet — what actually needs you today, not another table to skim.\n' +
     'Analyze Channels / Analyze Videos — bulk metadata enrichment.\n' +
     'Profile — full per-video history for one channel over a date range, trackable going forward.\n' +
     'Discover — find channels/videos similar to a seed link.\n' +
@@ -116,7 +120,6 @@ function showHelp() {
     'a specific brand brief (niche, audience, budget), not just Grade\'s general quality score.\n' +
     'Export > Set Up Brand View — a live, brand-safe Channels view for connecting Looker Studio ' +
     'and sharing a presentation link with a brand, without giving them access to this spreadsheet.\n' +
-    'Assistant — plain-English command box, restricted to Koli\'s own actions.\n' +
     'Run Diagnostics — checks your API keys and Drive permissions in one click.\n' +
     'Set your YouTube and Gemini API keys first under Settings.',
     SpreadsheetApp.getUi().ButtonSet.OK

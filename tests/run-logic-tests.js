@@ -298,5 +298,80 @@ console.log('brandViewService.gs');
   });
 }
 
+// ---------- attentionService.gs ----------
+console.log('attentionService.gs');
+{
+  // Minimal SpreadsheetApp/PropertiesService stub — just enough for
+  // findRecentSponsorActivity_/findUnclaimedHighGrade_ to read a fixed
+  // set of "Sponsors" rows without touching a real spreadsheet.
+  function fakeSpreadsheetApp(sponsorRows) {
+    const sheet = {
+      getLastRow: () => sponsorRows.length + 1,
+      getRange: (row, colStart, numRows, numCols) => ({
+        getValues: () => sponsorRows.map((r) => r.slice(colStart - 1, colStart - 1 + (numCols || r.length)))
+      })
+    };
+    return { getActiveSpreadsheet: () => ({ getSheetByName: () => sheet }) };
+  }
+
+  const daysAgo = (n) => new Date(Date.now() - n * 24 * 60 * 60 * 1000);
+  const CHANNEL_COLS = ['Channel', 'ID', 'Outreach', 'Last Contact', 'Grade'];
+  const col = (name) => CHANNEL_COLS.indexOf(name);
+  const channelRow = (overrides) => {
+    const base = { Channel: 'Test Channel', ID: 'UC1', Outreach: 'Not Contacted', 'Last Contact': '', Grade: 'C' };
+    Object.assign(base, overrides);
+    return CHANNEL_COLS.map((c) => base[c]);
+  };
+
+  function loadAttention(sponsorRows) {
+    // reportService.gs supplies formatDateShort_ — its Drive-touching
+    // functions are fine to load unused, they're never called here.
+    return loadGsMulti(['constants.gs', 'reportService.gs', 'attentionService.gs'], { SpreadsheetApp: fakeSpreadsheetApp(sponsorRows || []) });
+  }
+
+  test('findStaleOutreach_: Contacted with an old Last Contact date is flagged', () => {
+    const m = loadAttention();
+    const rows = [channelRow({ Outreach: 'Contacted', 'Last Contact': daysAgo(20) })];
+    const result = m.findStaleOutreach_(rows, col);
+    assert.strictEqual(result.length, 1);
+    assert.strictEqual(result[0].channel, 'Test Channel');
+  });
+  test('findStaleOutreach_: Contacted with NO Last Contact date ever set is flagged (never set, not skipped)', () => {
+    const m = loadAttention();
+    const rows = [channelRow({ Outreach: 'Contacted', 'Last Contact': '' })];
+    const result = m.findStaleOutreach_(rows, col);
+    assert.strictEqual(result.length, 1);
+    assert.strictEqual(result[0].col3, 'never set');
+  });
+  test('findStaleOutreach_: Contacted with a RECENT Last Contact is not flagged', () => {
+    const m = loadAttention();
+    const rows = [channelRow({ Outreach: 'Contacted', 'Last Contact': daysAgo(2) })];
+    assert.strictEqual(m.findStaleOutreach_(rows, col).length, 0);
+  });
+  test('findStaleOutreach_: statuses outside Contacted/Negotiating are never flagged, however stale', () => {
+    const m = loadAttention();
+    const rows = [
+      channelRow({ Outreach: 'Not Contacted', 'Last Contact': daysAgo(100) }),
+      channelRow({ Outreach: 'Closed - Won', 'Last Contact': daysAgo(100) }),
+      channelRow({ Outreach: 'Do Not Contact', 'Last Contact': '' })
+    ];
+    assert.strictEqual(m.findStaleOutreach_(rows, col).length, 0);
+  });
+
+  test('findUnclaimedHighGrade_: A/B grade with no Sponsors row at all is surfaced', () => {
+    const m = loadAttention([]); // empty Sponsors sheet
+    const rows = [channelRow({ ID: 'UC1', Grade: 'A' }), channelRow({ ID: 'UC2', Grade: 'D' })];
+    const result = m.findUnclaimedHighGrade_(rows, col);
+    assert.strictEqual(result.length, 1);
+    assert.strictEqual(result[0].channelId, 'UC1'); // the D-grade channel never qualifies regardless of sponsor history
+  });
+  test('findUnclaimedHighGrade_: A/B grade channel that DOES have a Sponsors row is excluded', () => {
+    // Sponsors row shape: [Channel, Channel ID, ...] — only col B (index 1) is read.
+    const m = loadAttention([['Test Channel', 'UC1', 'Brand', '', '', 1, '', '', '', '']]);
+    const rows = [channelRow({ ID: 'UC1', Grade: 'A' })];
+    assert.strictEqual(m.findUnclaimedHighGrade_(rows, col).length, 0);
+  });
+}
+
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

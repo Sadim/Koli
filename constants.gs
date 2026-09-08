@@ -23,6 +23,7 @@ const SHEET_NAMES = {
   OUTREACH_DRAFTS: 'Outreach Drafts',
   BRAND_FIT_SCORES: 'Brand Fit Scores',
   BRAND_VIEW: 'Brand View',
+  ATTENTION: 'Attention',
   SNAPSHOTS: '_SubscriberSnapshots',       // hidden — sub-count log for New Subscribers diffing
   TRACKED_PROFILES: '_TrackedProfiles'      // hidden — control sheet for Profile tracking
 };

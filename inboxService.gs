@@ -20,11 +20,9 @@
  *
  * `action` defaults to 'capture' (the original "Send to Koli" extension
  * behavior — {type, value, pageTitle, sourceUrl}), so the existing
- * extension keeps working unchanged. Everything else here is new
- * surface for the sidebar extension: the same vetted actions the
- * Assistant tab already exposes, reachable over HTTP now that a caller
- * outside the Sheet needs them — same principle as the Assistant's
- * restricted toolset, just a different entry point into it.
+ * extension keeps working unchanged. Everything else here is a vetted,
+ * fixed set of Koli's own functions reachable over HTTP for whatever
+ * calls this Web App outside the Sheet — never arbitrary code.
  *
  * This is Koli's only genuinely internet-facing surface — anyone with the
  * URL can send a request, gated only by the shared secret. Two defenses
@@ -95,10 +93,6 @@ function routeWebAppAction_(action, body) {
       const result = runDiscoverOne(body.seedInput, body.searchType || 'channel', body.resultCount || 5, filters);
       return result;
     }
-
-    case 'assistant':
-      if (!body.text) return { ok: false, error: 'Missing text.' };
-      return runAssistantCommand(body.text);
 
     case 'workspace_info':
       // Lets the sidebar label a saved connection with the actual sheet

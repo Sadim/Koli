@@ -83,5 +83,5 @@ pagination now, not just a short scrolling list).
   App URL and secret manually for every lock. A real upgrade, deliberately
   not attempted yet — see the project handoff doc for why and what it'd need.
 - **Voice/attachment features aren't part of this extension** — those exist
-  in the Google Sheets sidebar's Assistant mode, a completely separate
-  surface from this popup.
+  in the Google Sheets sidebar's input-options dropdown, a completely
+  separate surface from this popup.

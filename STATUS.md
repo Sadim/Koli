@@ -82,10 +82,9 @@ browser extension and a natural-language command tab layered on top.
   keeps tracking the limit as you hand-edit the draft.
 
 ### Cross-cutting
-- **Assistant tab** — plain-English command box, Gemini function-calling
-  restricted to a small fixed set of Koli's own vetted actions (analyze
-  channel/video, discover similar, export one-pager, check brand
-  safety). Not a general agent — can't execute anything outside that list.
+- **Attention** — the menu's first item, on purpose. Stale Outreach
+  follow-ups, recent sponsor activity, and high-grade channels with no
+  sponsor history yet — rebuilt fresh every open, zero new API cost.
 - **Run Diagnostics** — one-click check of YouTube key, Gemini key, and
   Drive/Docs permission.
 - **Dashboard** — KPI cells (channels/videos tracked, avg engagement,
@@ -118,9 +117,8 @@ stale Gemini model name, Dashboard `#REF!` errors, `DocumentApp.Table`
 API (`getRows()` doesn't exist, fixed to `getNumRows()`/`getRow(i)`),
 sponsor-row off-by-one indexing.
 
-**Built against documented APIs, not yet live-confirmed**: Gemini's
-function-calling response shape (Assistant tab), SponsorBlock's exact
-JSON field names, the Web App `doPost`/`doGet` deployment flow end to
+**Built against documented APIs, not yet live-confirmed**: SponsorBlock's
+exact JSON field names, the Web App `doPost`/`doGet` deployment flow end to
 end, the browser extension's full context-menu → POST → Inbox loop, and
 the outreach draft generator end to end (caption sampling, the Gemini
 prompt's actual output shape, the 500-char enforcement against a real
@@ -146,6 +144,17 @@ not something the test suite closes.
 
 ## Recent changelog
 
+- **Assistant tab removed entirely** — every action it could invoke
+  already had a faster, more certain direct path, and it worked against
+  the actual goal (a tight task loop, not an open-ended chat). Cut, not
+  hidden: assistantService.gs deleted, geminiCallWithTools_ removed, the
+  Web App's 'assistant' action removed, Sidebar's mode toggle collapsed
+  (one mode now, not two), "Read aloud" input-option removed.
+- **Attention view added** (Koli menu > ⚡ Attention, first item on
+  purpose) — the actual fix for "the core loop is pull-only." Surfaces
+  stale Outreach follow-ups, recent sponsor activity, and high-grade
+  unclaimed channels every time you open it. Zero new API/Gemini cost —
+  pure lookups over data already collected.
 - Drive OAuth scope dropped from full `drive` to `drive.file` (via the
   Advanced Drive Service, reportService.gs rewritten to stop calling
   DriveApp entirely) — this was the actual CASA-cost blocker for

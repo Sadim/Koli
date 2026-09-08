@@ -12,11 +12,12 @@ Grist/Teable + agent-layer strategy discussion.
 - **Brand safety check** (Reddit, free, no key) — borrowed the "keyless
   scraping" approach from last30days-skill after confirming Reddit's
   plain JSON search endpoint is unreliable for scripted access
-- **Assistant tab** — plain-English command box using Gemini function-calling,
-  restricted to a small fixed set of Koli's own vetted actions (analyze
-  channel/video, discover similar, export one-pager, check brand safety).
-  This is the answer to "OpenClaw-like agent, restricted to the worksheet" —
-  no new provider, no general agent, no arbitrary code execution.
+- ~~**Assistant tab**~~ — plain-English command box using Gemini
+  function-calling, restricted to a small fixed set of Koli's own vetted
+  actions. **Removed in a later round** (see the round below) — every
+  action it could invoke already had a faster, more certain direct path
+  (paste a link, click a menu item), so the NL layer added latency and
+  an unverified failure mode for zero new capability.
 
 ## Strategic decision: Grist over Teable, if/when the platform rebuild happens
 
@@ -606,6 +607,50 @@ the root instead of just re-wording:
   docs at public URLs (a repo markdown file doesn't satisfy either
   store's requirement), and screenshots. Neither is an engineering
   problem at this point — see the Publishing checklist above.
+
+## Just shipped, round 14 — Assistant removed, Attention view added
+
+Triggered by a straight product-strategy question: does the Assistant
+tab actually earn its place? Truth-mode verdict — no. Every action it
+could invoke already had a faster, more certain direct path (paste a
+link, click a menu item); the "compound request" benefit was
+theoretical (it dispatches one function call per message, never
+chains); and its function-calling response shape had sat unverified
+against a live response since the day it shipped. It also cut against
+the actual goal (get work done, make people want to come back) by
+inviting open-ended chat next to what's otherwise a tight task loop.
+
+- **Removed entirely**: `assistantService.gs` deleted, `geminiCallWithTools_`
+  (geminiService.gs, only ever used by the Assistant) removed, the
+  Web App's `case 'assistant'` action (inboxService.gs) removed,
+  Sidebar.html's Search/Assistant mode toggle collapsed away (there's
+  only one mode now, so the toggle itself is gone, not just hidden),
+  the "Read aloud" input-option removed (it only ever read Assistant's
+  own result panel). Voice note/Text/Attachment stay — those aren't
+  Assistant-specific.
+- **Attention view added** (`attentionService.gs`, Koli menu > ⚡
+  Attention, first item in the menu on purpose). Direct answer to "what
+  needs refinement" for the stated goal — the core loop was pull-only:
+  Koli only does something for you when you remember to open it and
+  paste a link. Attention surfaces 3 things every time you open it, all
+  pure lookups over data already collected (no new API/Gemini cost,
+  same rule Gap Analysis already follows):
+  1. Stale Outreach follow-ups (Contacted/Negotiating with no Last
+     Contact update in 14+ days, or never set) — the Outreach column
+     was otherwise write-only, nothing ever looked back at it.
+  2. Recent sponsor activity (Sponsors rows whose Last Seen landed in
+     the last 7 days) — a real change surfaces instead of sitting
+     quietly in a rollup nobody reopens.
+  3. High-grade channels (A/B) with zero recorded sponsor history —
+     a cheap proxy for "promising and worth pursuing," not a full Gap
+     Analysis run against every channel.
+  Both day-count thresholds are top-of-file constants, tune freely.
+- **Not done this round, still on the list**: multi-creator comparison
+  doc, a weekly digest email (Attention is the pull version of this;
+  the push/email version is real but separate work — needs a
+  time-based trigger + MailApp, neither touched yet), a first-run
+  setup nudge when API keys are missing.
+- 6 new logic tests (findStaleOutreach_, findUnclaimedHighGrade_), 39/39 passing.
 
 ## On Groq / Mistral / HF Serverless / Cloudflare Workers AI
 

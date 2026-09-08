@@ -150,53 +150,6 @@ function callGroqJson_(prompt) {
 }
 
 /**
- * Function-calling variant: Gemini either picks one tool from
- * `toolDeclarations` and returns its name + args, or replies with plain
- * text if nothing fits. Used only by the Assistant tab — the tools it can
- * pick from are a small, fixed set of Koli's own vetted functions, never
- * arbitrary code. Same retry/backoff behavior as geminiCallJson_.
- */
-function geminiCallWithTools_(prompt, toolDeclarations) {
-  const key = geminiApiKey_();
-  const url = 'https://generativelanguage.googleapis.com/v1beta/models/' +
-    DEFAULTS.GEMINI_MODEL + ':generateContent?key=' + key;
-  const payload = {
-    contents: [{ parts: [{ text: prompt }] }],
-    tools: [{ functionDeclarations: toolDeclarations }]
-  };
-
-  let attempt = 0, lastError, wasRateLimited = false;
-  while (attempt < DEFAULTS.GEMINI_MAX_RETRIES) {
-    const resp = UrlFetchApp.fetch(url, {
-      method: 'post', contentType: 'application/json',
-      payload: JSON.stringify(payload), muteHttpExceptions: true
-    });
-    const code = resp.getResponseCode();
-    const body = resp.getContentText();
-
-    if (code === 200) {
-      const data = JSON.parse(body);
-      const parts = data.candidates[0].content.parts || [];
-      const fnPart = parts.find(function (p) { return p.functionCall; });
-      if (fnPart) return { type: 'functionCall', name: fnPart.functionCall.name, args: fnPart.functionCall.args || {} };
-      const textPart = parts.find(function (p) { return p.text; });
-      return { type: 'text', text: textPart ? textPart.text : '' };
-    }
-    if (code === 429 || code >= 500) {
-      wasRateLimited = wasRateLimited || code === 429;
-      lastError = new Error('Gemini API ' + code);
-      const suggested = code === 429 ? parseRetryDelayMs_(body) : null;
-      const waitMs = suggested || (Math.pow(2, attempt) * 1000 + Math.floor(Math.random() * 300));
-      Utilities.sleep(Math.min(waitMs, 20000));
-      attempt++; continue;
-    }
-    throw new Error('Gemini API ' + code + ': ' + body.slice(0, 300));
-  }
-  if (wasRateLimited) throw new Error('Gemini API rate limit (429) — try again in a minute.');
-  throw lastError || new Error('Gemini API request failed after retries');
-}
-
-/**
  * ONE call for the whole Channel analysis: niche keywords, a 300-char
  * About/content-type summary (for the Channel cell note), and sponsor
  * detection scanned across up to 5 recent videos (Feature 4 signal).

@@ -85,10 +85,6 @@
   }
   .top-tab.active { border-top-color: var(--green); }
 
-  /* Assistant mode: tabs go bare (no white card), matching the reference's plain state */
-  .top-tabs.bare { width: auto; gap: 36px; box-shadow: none; justify-content: center; }
-  .top-tabs.bare .top-tab { background: none; padding: 2px 0; border-top: none; }
-
   /* ---------- Scrollable content area ---------- */
   .content-scroll { flex: 1; overflow-y: auto; padding: 0 8px; }
   .top-panel { display: none; }
@@ -113,7 +109,7 @@
   .field-grid-2 input { width: 100%; }
   .field-block { margin-bottom: 4px; }
 
-  /* ---------- One unified segmented-toggle style for Append/Replace, Channels/Video, Search/Assistant ---------- */
+  /* ---------- One unified segmented-toggle style for Append/Replace, Channels/Video ---------- */
   .seg { display: inline-flex; background: var(--seg); border-radius: 8px; padding: 2px; gap: 2px; }
   .seg button {
     border: 1px solid transparent; background: none; border-radius: 6px; padding: 5px 12px;
@@ -195,7 +191,7 @@
     font-family: inherit; font-size: 10.5px; font-style: italic; color: var(--mut); padding: 2px; margin-bottom: 12px;
   }
   .composer textarea:focus { outline: none; font-style: normal; color: var(--ink); }
-  .composer-row { display: flex; justify-content: space-between; align-items: center; }
+  .composer-row { display: flex; justify-content: flex-end; align-items: center; }
   .send-wrap {
     display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border);
     border-radius: 999px; height: 30px; padding: 0 12px; box-shadow: var(--shadow-xs); position: relative;
@@ -204,18 +200,6 @@
   .send-btn:hover { transform: scale(1.08); }
   .send-btn.stopping { color: var(--error); }
   .send-caret { background: none; border: none; padding: 0; margin-left: 2px; cursor: pointer; color: inherit; display: flex; align-items: center; }
-
-  .koli-banner {
-    display: flex; align-items: center; gap: 10px; margin: 12px 8px 0; background: var(--green-bg);
-    border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px;
-  }
-  .koli-banner .icon { width: 26px; height: 26px; flex: none; border-radius: 50%; background: var(--green); display: flex; align-items: center; justify-content: center; }
-  .koli-banner b { display: block; font-size: 12.5px; color: var(--ink); }
-  .koli-banner span { display: block; font-size: 10px; color: var(--mut); margin-top: 2px; }
-
-  .ask-prompt { margin-top: 30px; text-align: center; padding: 0 34px; }
-  .ask-prompt b { display: block; font-size: 14px; color: var(--ink); margin-top: 12px; }
-  .ask-prompt p { font-size: 10.5px; color: var(--mut); line-height: 1.55; margin-top: 7px; }
 
   .dd-menu {
     position: absolute; right: 20px; bottom: 66px; width: 168px; background: var(--surface); border: 1px solid var(--border);
@@ -318,24 +302,6 @@
     </div>
   </div>
 
-  <!-- ===================== ASSISTANT RESULT (shown when bottom mode = Assistant, replaces whichever top-panel was active) ===================== -->
-  <div class="top-panel" id="toppanel-assistant-result">
-    <div class="koli-banner">
-      <div class="icon"><svg width="12" height="12" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg></div>
-      <div><b>Koli</b><span>Your AI assistant for this channel.</span></div>
-    </div>
-    <div class="ask-prompt" id="assistant-empty-prompt">
-      <svg width="46" height="46" viewBox="0 0 48 48"><path d="M24 6.5c10.2 0 18.5 7.4 18.5 16.5S34.2 39.5 24 39.5c-2.5 0-4.9-.4-7.1-1.2L9 41.5l2.3-6.2C7.9 32.1 5.5 28 5.5 23 5.5 13.9 13.8 6.5 24 6.5z" fill="#EAF4EC" stroke="#1E8A4C" stroke-width="2.4" stroke-linejoin="round"/><path d="M24 14.5l2.4 6.1 6.1 2.4-6.1 2.4L24 31.5l-2.4-6.1-6.1-2.4 6.1-2.4 2.4-6.1z" fill="#1E8A4C"/></svg>
-      <b>Ask Koli anything</b>
-      <p>Get insights, summaries, ideas,<br>and more from this channel.</p>
-    </div>
-    <div id="assistant-result-area" style="display:none">
-      <label class="output-label">Result</label>
-      <div class="results" id="assistant-results"></div>
-      <div class="plain-hint">Ask in plain English — e.g. "analyze this channel: youtube.com/@handle", "find 3 channels similar to this one", or "check brand safety on Acme Tools." Restricted to Koli's own actions only — not a general web agent.</div>
-    </div>
-  </div>
-
   <div class="bottom-spacer"></div>
 </div>
 
@@ -344,10 +310,6 @@
   <div class="composer">
     <textarea id="universal-input" placeholder="Add Channel or Video Link"></textarea>
     <div class="composer-row">
-      <div class="seg" id="mode-toggle">
-        <button class="active" data-mode="search" id="mode-search">Search</button>
-        <button data-mode="assistant" id="mode-assistant">Assistant</button>
-      </div>
       <div class="send-wrap">
         <button class="send-btn" id="run-btn" title="Run">
           <svg width="13" height="13" viewBox="0 0 24 24"><path fill="currentColor" d="M7 4.5l13 7.5-13 7.5z"/></svg>
@@ -359,7 +321,6 @@
           <div class="dd-row" data-inputmode="voice"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v4M9 21h6"/></svg>Voice note</div>
           <div class="dd-row selected" data-inputmode="text"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2.5"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg>Text<svg class="dd-check" width="13" height="13" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M4.5 13l5 5L19.5 7"/></svg></div>
           <div class="dd-row" data-inputmode="attachment"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5l-8.9 8.9a4.5 4.5 0 0 1-6.4-6.4l8.9-8.9a3 3 0 0 1 4.2 4.2l-8.9 8.9a1.5 1.5 0 0 1-2.1-2.1l7.8-7.8"/></svg>Attachment</div>
-          <div class="dd-row" data-inputmode="readaloud"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19.5 5.5a9 9 0 0 1 0 13"/></svg>Read aloud</div>
         </div>
       </div>
     </div>
@@ -402,29 +363,11 @@
     currentTopTab = tab;
     topTabs.forEach(t => {
       document.querySelector('.top-tab[data-toptab="' + t + '"]').classList.toggle('active', t === tab);
+      document.getElementById('toppanel-' + t).classList.toggle('active', t === tab);
     });
-    setMode('search'); // switching Profile/Discover always returns to Search mode
   }
   setup('top tab click bindings', () => {
     topTabs.forEach(t => document.querySelector('.top-tab[data-toptab="' + t + '"]').onclick = () => setActiveTopTab(t));
-  });
-
-  // ---------- Search vs. Assistant mode ----------
-  let currentMode = 'search';
-  function setMode(mode) {
-    currentMode = mode;
-    document.getElementById('mode-search').classList.toggle('active', mode === 'search');
-    document.getElementById('mode-assistant').classList.toggle('active', mode === 'assistant');
-    document.getElementById('toppanel-profile').classList.toggle('active', mode === 'search' && currentTopTab === 'profile');
-    document.getElementById('toppanel-discover').classList.toggle('active', mode === 'search' && currentTopTab === 'discover');
-    document.getElementById('toppanel-assistant-result').classList.toggle('active', mode === 'assistant');
-    document.getElementById('topTabsBar').classList.toggle('bare', mode === 'assistant');
-    document.getElementById('universal-input').placeholder = mode === 'assistant' ? 'Ask Koli about this channel...' : 'Add Channel or Video Link';
-    document.getElementById('universal-useRange').style.display = mode === 'assistant' ? 'none' : 'inline-block';
-  }
-  setup('mode toggle click bindings', () => {
-    document.getElementById('mode-search').onclick = () => setMode('search');
-    document.getElementById('mode-assistant').onclick = () => setMode('assistant');
   });
   setup('initial tab activation', () => setActiveTopTab(currentTopTab));
 
@@ -615,42 +558,11 @@
     updateBatchChips(cfg, '<span class="chip idle">Stopped at ' + batchState.index + ' / ' + batchState.items.length + '</span>');
   }
 
-  // ---------- Assistant (single-shot) ----------
-  let assistantRunning = false;
-  function startAssistant() {
-    const text = document.getElementById('universal-input').value.trim();
-    if (!text) return;
-    const resultsEl = document.getElementById('assistant-results');
-    document.getElementById('assistant-empty-prompt').style.display = 'none';
-    document.getElementById('assistant-result-area').style.display = 'block';
-    assistantRunning = true; setRunBtnState(true);
-    resultsEl.innerHTML = '<div class="empty-state">Thinking…</div>';
-
-    google.script.run
-      .withSuccessHandler((result) => {
-        assistantRunning = false; setRunBtnState(false);
-        const cls = result.ok ? 'ok' : 'err';
-        resultsEl.innerHTML = '<div class="result-row ' + cls + '"><span class="result-icon">' + STATUS_ICONS[cls] +
-          '</span><span>' + escapeHtml(result.summary || result.message || '') + '</span></div>';
-      })
-      .withFailureHandler((err) => {
-        assistantRunning = false; setRunBtnState(false);
-        resultsEl.innerHTML = '<div class="result-row err"><span class="result-icon">' + STATUS_ICONS.err + '</span><span>' +
-          escapeHtml(err.message || String(err)) + '</span></div>';
-      })
-      .runAssistantCommand(text);
-  }
-
-  // ---------- Single Run/Stop button, behavior depends on mode ----------
+  // ---------- Single Run/Stop button ----------
   setup('run button', () => {
     document.getElementById('run-btn').onclick = () => {
-      if (currentMode === 'assistant') {
-        if (assistantRunning) return; // no cancel for a single in-flight Assistant call
-        startAssistant();
-      } else {
-        if (batchState.running) stopBatch();
-        else startBatch();
-      }
+      if (batchState.running) stopBatch();
+      else startBatch();
     };
   });
 
@@ -706,14 +618,6 @@
         } else if (mode === 'attachment') {
           ddMenu.style.display = 'none';
           showToast('Attachments aren\'t supported yet.');
-
-        } else if (mode === 'readaloud') {
-          ddMenu.style.display = 'none';
-          const resultsEl = document.getElementById('assistant-results');
-          const text = resultsEl ? resultsEl.textContent.trim() : '';
-          if (!text || !window.speechSynthesis) { showToast('Nothing to read yet.'); return; }
-          window.speechSynthesis.cancel();
-          window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
         }
       };
     });

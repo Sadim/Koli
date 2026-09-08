@@ -14,7 +14,6 @@ day," see OPERATOR_GUIDE.md instead. For installation, see README.md.
 | Analyze Videos | Opens the sidebar's Video tab |
 | Profile | Opens the sidebar's Profile tab |
 | Discover | Opens the sidebar's Discover tab |
-| Assistant | Opens the sidebar's Assistant tab |
 | Dashboard | Jumps to the Dashboard sheet, refreshes its stats |
 | Export > Creator One-Pager | PDF + Doc for the Channels row your cursor is on |
 | Export > Draft Deal Memo | Contract-starting-point Doc for the Channels row your cursor is on |
@@ -84,14 +83,6 @@ tolerance margin, not an exact match. Automatically skips anything
 marked Passed or Do Not Contact on Channels. Results append to
 **Discover Results**, never overwrite.
 
-### Assistant
-
-Plain-English request box — "analyze this channel: <link>", "find 3
-channels similar to this one," "check brand safety on Acme Tools."
-Restricted to five specific actions (analyze channel, analyze video,
-discover similar, export one-pager, check brand safety) — it cannot do
-anything outside that list, by design.
-
 ## Settings dialog
 
 | Field | Default | Notes |
@@ -108,12 +99,12 @@ anything outside that list, by design.
 
 | Sheet | Written by |
 |---|---|
-| Channels | Channel tab, Assistant, extension (via Process Inbox) |
-| Videos | Video tab, Assistant, extension |
+| Channels | Channel tab, extension (via Process Prospects) |
+| Videos | Video tab, extension |
 | Profile | Profile tab, Refresh Tracked Profiles |
 | Sponsors | Any feature that detects a sponsor — aggregate rollup, always on, now includes the latest mention's Posted date/timestamp/evidence (the old separate Sponsor Mentions log is retired) |
-| Discover Results | Discover tab, Assistant |
-| Inbox | The browser extension only |
+| Discover Results | Discover tab |
+| Prospects | The browser extension only (notes and unrecognized captures) |
 | Dashboard | Formulas + a script-computed authenticity average, refreshed on open |
 | _SubscriberSnapshots, _TrackedProfiles | Internal, hidden — don't edit |
 

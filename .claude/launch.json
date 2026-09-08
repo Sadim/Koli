@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "ui-preview",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8917", "--directory", ".preview"],
+      "runtimeExecutable": "node",
+      "runtimeArgs": [".preview/server.js"],
       "port": 8917
     }
   ]
