@@ -152,6 +152,7 @@
 
   /* ---------- Other Platforms: profile picker ---------- */
   .profile-row { display: flex; gap: 8px; padding: 15px 18px 0; flex-wrap: wrap; }
+  .type-toggle-hint { font-size: 10.5px; color: var(--ink-300); padding: 14px 18px 0; line-height: 1.5; }
   .profile-chip {
     background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 7px 14px; font-size: 11.5px;
     font-weight: 600; color: var(--ink-500); cursor: pointer; transition: all .15s var(--ease);
@@ -260,12 +261,17 @@
 
   <!-- YouTube tab -->
   <div class="tab-panel active" id="panel-youtube">
+    <p class="type-toggle-hint">Which sheet's columns are you editing? (Channel vs. Video is chosen separately, from the right-click "Send to Worksheet" menu.)</p>
+    <div class="profile-row" id="youtubeTypeToggle" style="padding-top:0;">
+      <button class="profile-chip active" data-coltype="channel">Channels</button>
+      <button class="profile-chip" data-coltype="video">Videos</button>
+    </div>
     <div class="panelwrap">
       <div class="panel">
         <button class="lock-pill" id="youtubeLockPill"><span class="lock-icon">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 7.3-2.3"/></svg>
         </span><span class="lock-label">Choose worksheet</span></button>
-        <p class="copy">Matches your Channels sheet once a link's analyzed. Drag to reorder, hover a column and tap the trash icon to remove — changes save automatically. <span class="autosave-indicator" id="youtubeAutosave"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 13l5 5L19.5 7"/></svg>Saved</span></p>
+        <p class="copy">Matches your <b id="youtubeSheetLabel">Channels</b> sheet once a link's analyzed. Drag to reorder, hover a column and tap the trash icon to remove — changes save automatically. <span class="autosave-indicator" id="youtubeAutosave"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 13l5 5L19.5 7"/></svg>Saved</span></p>
         <div class="grid" id="youtubeColGrid"></div>
         <button class="addrow" id="youtubeAddColBtn"><span>Add new column</span><span class="icon-plus">+</span></button>
       </div>
@@ -274,7 +280,7 @@
       <div class="flinks">
         <div><span class="flinks-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg></span>Reorder here, then apply it to your real sheet</div>
       </div>
-      <button class="primary-btn" id="youtubeApplyBtn">Apply to worksheet</button>
+      <button class="primary-btn" id="youtubeApplyBtn">Apply to Channels sheet</button>
     </div>
   </div>
 
@@ -373,7 +379,7 @@
 <div class="modal-backdrop" id="applyColumnsModal">
   <div class="modal">
     <h3>Apply to worksheet?</h3>
-    <div class="hint">This reorders your real Channels sheet's columns to match what's shown here, and hides any column you removed (nothing is deleted — hidden columns can be unhidden anytime in Sheets). Anyone else viewing this sheet will see the new layout too.</div>
+    <div class="hint" id="applyColumnsHint">This reorders your real Channels sheet's columns to match what's shown here, and hides any column you removed (nothing is deleted — hidden columns can be unhidden anytime in Sheets). Anyone else viewing this sheet will see the new layout too.</div>
     <div class="status" id="applyColumnsStatus"></div>
     <div class="modal-actions">
       <button class="btn-cancel" id="applyColumnsCancel">Cancel</button>

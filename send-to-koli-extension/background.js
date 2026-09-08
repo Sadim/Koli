@@ -14,11 +14,28 @@
  * guessed at, only ever explicit about which lock it's going to.
  */
 
+/**
+ * Channel and Video are explicit menu choices, not auto-detected — Koli's
+ * Channels and Videos sheets have genuinely different headers (Channels:
+ * Niche/Posts-per-Month/Contact/Subs/Grade/Outreach...; Videos: Views/
+ * Likes/Comments/Auth/Eng %/New Subs...), so guessing wrong from a URL
+ * pattern silently sends the wrong shape of data to the wrong place. Two
+ * explicit "Send to Worksheet" submenu items (for both a right-clicked
+ * link and the current page) put that choice in the user's hands instead.
+ * classifyUrl() is kept only as a soft mismatch check (see send()) — it
+ * never overrides what was explicitly clicked.
+ */
 function rebuildContextMenus() {
   chrome.contextMenus.removeAll(() => {
-    chrome.contextMenus.create({ id: 'send-link-to-koli', title: 'Send link to Koli (YouTube)', contexts: ['link'] });
+    chrome.contextMenus.create({ id: 'send-worksheet-link', title: 'Send to Worksheet', contexts: ['link'] });
+    chrome.contextMenus.create({ id: 'send-link-channel', parentId: 'send-worksheet-link', title: 'Channel', contexts: ['link'] });
+    chrome.contextMenus.create({ id: 'send-link-video', parentId: 'send-worksheet-link', title: 'Video', contexts: ['link'] });
+
     chrome.contextMenus.create({ id: 'send-selection-to-koli', title: 'Send selection to Koli as a note', contexts: ['selection'] });
-    chrome.contextMenus.create({ id: 'send-page-to-koli', title: 'Send this page to Koli', contexts: ['page'] });
+
+    chrome.contextMenus.create({ id: 'send-worksheet-page', title: 'Send this page to Worksheet', contexts: ['page'] });
+    chrome.contextMenus.create({ id: 'send-page-channel', parentId: 'send-worksheet-page', title: 'Channel', contexts: ['page'] });
+    chrome.contextMenus.create({ id: 'send-page-video', parentId: 'send-worksheet-page', title: 'Video', contexts: ['page'] });
 
     chrome.storage.sync.get('locks', ({ locks }) => {
       const others = (locks && locks.other) || [];
@@ -39,12 +56,16 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId === 'send-link-to-koli' && info.linkUrl) {
-    send(classifyUrl(info.linkUrl), info.linkUrl, tab.title, tab.url);
+  if (info.menuItemId === 'send-link-channel' && info.linkUrl) {
+    send('channel', info.linkUrl, tab.title, tab.url);
+  } else if (info.menuItemId === 'send-link-video' && info.linkUrl) {
+    send('video', info.linkUrl, tab.title, tab.url);
   } else if (info.menuItemId === 'send-selection-to-koli' && info.selectionText) {
     send('note', info.selectionText, tab.title, tab.url);
-  } else if (info.menuItemId === 'send-page-to-koli') {
-    send(classifyUrl(tab.url), tab.url, tab.title, tab.url);
+  } else if (info.menuItemId === 'send-page-channel') {
+    send('channel', tab.url, tab.title, tab.url);
+  } else if (info.menuItemId === 'send-page-video') {
+    send('video', tab.url, tab.title, tab.url);
   } else if (info.menuItemId.indexOf('send-other-') === 0) {
     const profileId = info.menuItemId.slice('send-other-'.length);
     const value = info.linkUrl || info.selectionText || tab.url;
@@ -54,11 +75,14 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
 /**
  * Recognized platforms — each with its own rules for what counts as a
- * "channel" vs. a "video/post." Only known platforms get auto-detected
- * classification; everything else still sends, just as a generic note
- * (unrestricted on purpose — that's what makes off-platform mentions and
- * "select similar" on third-party directories useful at all). Add a new
- * platform here when it's time — one object, not a rewrite.
+ * "channel" vs. a "video/post." No longer the source of truth for what
+ * gets sent as (that's now an explicit menu choice — see
+ * rebuildContextMenus), only used by send() as a soft mismatch check
+ * against whatever was explicitly clicked. Unrecognized platforms/URLs
+ * still send fine as a generic note — unrestricted on purpose, that's
+ * what makes off-platform mentions and "select similar" on third-party
+ * directories useful at all. Add a new platform here when it's time —
+ * one object, not a rewrite.
  */
 const RECOGNIZED_PLATFORMS = [
   {
@@ -123,13 +147,25 @@ async function send(type, value, pageTitle, sourceUrl, silent, lockId) {
 
   const resolvedName = resolveDisplayName_(pageTitle, value);
 
+  // Channel/Video is now an explicit menu choice (see rebuildContextMenus),
+  // never guessed — but classifyUrl() still runs here as a soft mismatch
+  // check, since picking the wrong one sends the right shape of data to
+  // the wrong sheet with no error (a video URL "looks like" a valid
+  // channel input often enough that Koli won't necessarily reject it).
+  // This only adds a heads-up to the notification; it never overrides
+  // what was explicitly clicked.
+  const guessedType = classifyUrl(value);
+  const mismatchWarning = (type === 'channel' || type === 'video') && guessedType !== 'note' && guessedType !== type
+    ? ' (this looked like a ' + guessedType + ' link — sent as ' + type + ' anyway)'
+    : '';
+
   // Channel/video sends now wait on live YouTube+Gemini calls (several
   // seconds, sometimes longer) — an immediate notification here doesn't
   // make that faster, but it means the wait isn't silent dead air with
   // no sign anything is happening. Notes are still effectively instant,
   // so they don't get this.
   if (!silent && (type === 'channel' || type === 'video')) {
-    notify('Analyzing…', resolvedName + ' — this takes a few seconds, hang tight.');
+    notify('Analyzing…', resolvedName + mismatchWarning + ' — this takes a few seconds, hang tight.');
   }
 
   try {

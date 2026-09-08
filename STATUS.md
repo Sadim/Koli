@@ -63,11 +63,13 @@ browser extension and a natural-language command tab layered on top.
 - **Draft Deal Memo export** — merge-field contract starting point,
   clearly labeled DRAFT / NOT LEGAL ADVICE (not claiming "lawyer
   drafted" the way some competitors do).
-- **"Send to Koli" browser extension** — right-click any link/selection
-  on any page, sends to Koli's Prospects tab (or straight to Channels/
-  Videos for a recognized channel/video link, full analysis inline).
-  Separate codebase (`send-to-koli-extension/`), talks to an Apps Script
-  Web App deployment via a shared secret. Process Prospects turns any
+- **"Send to Koli" browser extension** — right-click a link/page →
+  "Send to Worksheet → Channel" or "→ Video" (explicit, not guessed —
+  Channels and Videos are different sheets with different columns), full
+  analysis runs inline. A plain selection/page-with-no-choice sends as a
+  note to the Prospects tab instead. Separate codebase
+  (`send-to-koli-extension/`), talks to an Apps Script Web App
+  deployment via a shared secret. Process Prospects turns any
   still-queued note captures into real analysis on demand.
 - **Outreach draft generator** — one Channels row -> a short, personalized
   cold-outreach email, hooked on a specific detail mined from the
@@ -139,6 +141,12 @@ not something the test suite closes.
 
 ## Recent changelog
 
+- "Send to Koli" extension: Channel vs. Video is now an explicit
+  right-click menu choice ("Send to Worksheet → Channel/Video"), not
+  auto-detected from the URL — and the popup's column editor has a real
+  Channels/Videos switcher (separate column lists, separate Apply
+  action) instead of one blended list. Fixes the root cause the round-9
+  "Channels/Videos" pill label was only papering over.
 - Brand Fit Score (channel-vs-campaign-brief, 7 components — see
   constants.gs's BRAND_FIT_WEIGHTS for full reasoning) + a visual
   redesign of both the extension popup and the Sidebar (dark mode,

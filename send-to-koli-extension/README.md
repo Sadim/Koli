@@ -27,18 +27,24 @@ YouTube by default, or any other platform you've set up your own profile for.
 
 ## Use it
 
-- Right-click any link on any page → **Send link to Koli (YouTube)**. Auto-
-  detects whether it's a channel or video link.
+- Right-click any YouTube link → **Send to Worksheet → Channel** or
+  **→ Video**. Explicit, not auto-detected — Channels and Videos are
+  different sheets with different columns, so which one you're sending
+  to is always your call, never a guess from the URL shape.
 - Right-click selected text → **Send selection to Koli as a note**.
-- Right-click anywhere on a page (no selection) → **Send this page to Koli**.
+- Right-click anywhere on a page (no selection) → **Send this page to
+  Worksheet → Channel** or **→ Video** — same explicit choice, for
+  whichever page you're currently on.
 - Once you've added an Other-Platforms profile, a matching **"Send to
-  [Platform Name]"** item appears in the same right-click menu automatically.
+  [Platform Name]"** item appears in the same right-click menu automatically
+  (still a single generic capture — no channel/video split for those yet).
 
 ## The popup
 
-- **YouTube tab**: Koli's real 24-column layout, drag to reorder or delete
-  what you don't need — this only changes what the popup *shows* you, never
-  your actual worksheet.
+- **YouTube tab**: a **Channels / Videos** switcher at the top — each has
+  its own real column layout (Channels: 14 columns; Videos: 16), edited
+  and applied independently. Drag to reorder or delete what you don't
+  need; this only changes what the popup *shows* you until you tap Apply.
 - **Other Platforms tab**: one or more named profiles (Instagram, TikTok,
   whatever), each with its own fully editable column set (starts pre-filled
   from YouTube's defaults, edit or delete freely) and its own worksheet lock.
@@ -62,7 +68,7 @@ Everything lives in `chrome.storage.sync` under one key, `locks`:
 
 ```js
 {
-  youtube: { locked, url, secret, tab, columns: [...] },
+  youtube: { locked, url, secret, tab, columnsChannel: [...], columnsVideo: [...] },
   other: [ { id, name, locked, url, secret, tab, columns: [...] } ]
 }
 ```

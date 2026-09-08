@@ -112,12 +112,19 @@ function routeWebAppAction_(action, body) {
 
     case 'apply_channel_columns': {
       // Reorders and hides real Channels columns to match what the
-      // extension's YouTube tab has saved — a genuinely worksheet-
-      // modifying action, not the cosmetic local-only reference this
-      // used to be. See applyChannelColumnLayout_ for why hide, not
-      // delete.
+      // extension's Channels column editor has saved — a genuinely
+      // worksheet-modifying action, not the cosmetic local-only reference
+      // this used to be. See applyColumnLayout_ for why hide, not delete.
       if (!Array.isArray(body.columns) || !body.columns.length) return { ok: false, error: 'No column list provided.' };
-      return applyChannelColumnLayout_(body.columns);
+      return applyColumnLayout_(SHEET_NAMES.CHANNELS, body.columns);
+    }
+
+    case 'apply_video_columns': {
+      // Same operation, the Videos sheet's own (different) header set —
+      // kept as its own action rather than a flag on apply_channel_columns
+      // since Channels and Videos have never been interchangeable here.
+      if (!Array.isArray(body.columns) || !body.columns.length) return { ok: false, error: 'No column list provided.' };
+      return applyColumnLayout_(SHEET_NAMES.VIDEOS, body.columns);
     }
 
     default:

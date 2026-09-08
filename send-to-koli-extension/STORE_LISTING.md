@@ -13,19 +13,23 @@ Right-click any link or selection and send it straight into your Koli worksheet 
 
 Send to Koli turns any webpage into an input for your Koli research
 workflow. Right-click a YouTube channel or video link — or any selected
-text — and send it directly to your Koli spreadsheet's Prospects tab,
-without leaving the page you're on.
+text — and send it directly to your Koli spreadsheet, without leaving
+the page you're on.
 
 **What it does:**
-- Right-click a link → "Send link to Koli" — auto-detects whether it's
-  a channel or video link
+- Right-click a link → "Send to Worksheet → Channel" or "→ Video" —
+  your explicit choice, since Koli's Channels and Videos sheets have
+  different columns and sending to the wrong one isn't something worth
+  guessing at from the URL
 - Right-click selected text → "Send selection to Koli as a note" — for
   anything worth flagging that isn't a direct link
-- Right-click anywhere on a page → "Send this page to Koli"
+- Right-click anywhere on a page → "Send this page to Worksheet →
+  Channel" or "→ Video"
 
-Everything captured lands in your Koli sheet's Prospects tab, ready to
-process on your own schedule — nothing runs automatically the moment
-you send something.
+Channel and video captures run full analysis immediately and land
+straight in your Channels/Videos sheets; notes queue in a Prospects tab,
+processed on your own schedule via Koli's menu — nothing runs
+automatically the moment you send a note.
 
 **Your data, your infrastructure.** This extension talks only to a
 Google Apps Script Web App that you deploy and control with your own
@@ -72,6 +76,6 @@ and does not follow links or pagination on its own — one page, one
 user-initiated action, nothing scheduled or unattended.
 
 ## Screenshots needed (not yet created)
-1. Context menu open on a YouTube video page showing "Send link to Koli"
-2. The popup's YouTube tab (worksheet lock + column list)
-3. A Koli Prospects tab showing captured entries
+1. Context menu open on a YouTube video page showing "Send to Worksheet → Video"
+2. The popup's YouTube tab (Channels/Videos switcher + worksheet lock + column list)
+3. A Koli Channels or Videos tab showing captured entries

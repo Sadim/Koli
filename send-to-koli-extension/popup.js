@@ -6,13 +6,24 @@
  * written by background.js — this file only reads/paginates/deletes it.
  */
 
-const YOUTUBE_DEFAULT_COLUMNS = [
+// Kept literally in sync with constants.gs's CHANNEL_HEADERS / VIDEO_HEADERS
+// — the extension has no way to read those server-side, so this is a
+// manually-maintained mirror, same as every other column name used here.
+// Channels and Videos are genuinely different shapes (Grade/Outreach vs.
+// Views/Auth/New Subs), which is exactly why each gets its own editable
+// column list instead of one blended "YouTube columns" list.
+const CHANNEL_DEFAULT_COLUMNS = [
   'Status', 'Channel', 'ID', 'Niche', 'Posts/Mo', 'Contact', 'Subs', 'Avg Views',
   'Post Times', 'Grade', 'Outreach', 'Last Contact', 'Notes', 'Report'
+];
+const VIDEO_DEFAULT_COLUMNS = [
+  'Status', 'Video', 'ID', 'Channel', 'Views', 'Likes', 'Comments', 'Auth',
+  'Eng %', 'Posted', 'Day', 'New Subs', 'Location', 'Age', 'Gender', 'Updated'
 ];
 
 let state = { locks: { youtube: null, other: [] } };
 let activeOtherProfileId = null;
+let activeYoutubeColType = 'channel'; // 'channel' or 'video' — which column list/apply-target is showing
 let logPage = 0;
 const LOG_PAGE_SIZE = 5;
 
@@ -33,7 +44,16 @@ async function loadState() {
   const { locks } = await chrome.storage.sync.get('locks');
   state.locks = locks || { youtube: null, other: [] };
   if (!state.locks.youtube) {
-    state.locks.youtube = { locked: false, url: '', secret: '', tab: '', columns: YOUTUBE_DEFAULT_COLUMNS.slice() };
+    state.locks.youtube = { locked: false, url: '', secret: '', tab: '', columnsChannel: CHANNEL_DEFAULT_COLUMNS.slice(), columnsVideo: VIDEO_DEFAULT_COLUMNS.slice() };
+  } else {
+    const yt = state.locks.youtube;
+    // Migrate a pre-existing single `columns` list (from before Channels
+    // and Videos had separate editors) into columnsChannel — it was
+    // always really the Channels layout, Videos never had one before.
+    if (yt.columns && !yt.columnsChannel) yt.columnsChannel = yt.columns;
+    if (!yt.columnsChannel) yt.columnsChannel = CHANNEL_DEFAULT_COLUMNS.slice();
+    if (!yt.columnsVideo) yt.columnsVideo = VIDEO_DEFAULT_COLUMNS.slice();
+    delete yt.columns;
   }
   if (!state.locks.other) state.locks.other = [];
 }
@@ -139,24 +159,49 @@ function autoSave(indicatorId) {
   }, 400);
 }
 
-// ---------- YouTube tab ----------
+// ---------- YouTube tab (Channels / Videos column-editor switcher) ----------
+// Channels and Videos are genuinely different sheets with different
+// headers (see CHANNEL_DEFAULT_COLUMNS / VIDEO_DEFAULT_COLUMNS above) —
+// this switcher edits one or the other, never a blended "YouTube" list.
+// Which link/page a send actually becomes (Channel vs. Video) is chosen
+// separately, from the right-click menu (see background.js); this tab is
+// only about each destination sheet's column layout.
+function columnsKeyFor_(type) { return type === 'video' ? 'columnsVideo' : 'columnsChannel'; }
+function applyActionFor_(type) { return type === 'video' ? 'apply_video_columns' : 'apply_channel_columns'; }
+function sheetLabelFor_(type) { return type === 'video' ? 'Videos' : 'Channels'; }
+
 function renderYoutubeTab() {
-  renderColumnGrid(document.getElementById('youtubeColGrid'), state.locks.youtube.columns, { editable: true, indicatorId: 'youtubeAutosave' });
-  updateLockPill(document.getElementById('youtubeLockPill'), state.locks.youtube, 'Channels/Videos');
+  document.querySelectorAll('#youtubeTypeToggle .profile-chip').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.coltype === activeYoutubeColType);
+  });
+  const columns = state.locks.youtube[columnsKeyFor_(activeYoutubeColType)];
+  renderColumnGrid(document.getElementById('youtubeColGrid'), columns, { editable: true, indicatorId: 'youtubeAutosave' });
+  updateLockPill(document.getElementById('youtubeLockPill'), state.locks.youtube, sheetLabelFor_(activeYoutubeColType));
+  document.getElementById('youtubeSheetLabel').textContent = sheetLabelFor_(activeYoutubeColType);
+  document.getElementById('youtubeApplyBtn').textContent = 'Apply to ' + sheetLabelFor_(activeYoutubeColType) + ' sheet';
 }
+document.querySelectorAll('#youtubeTypeToggle .profile-chip').forEach((btn) => {
+  btn.onclick = () => { activeYoutubeColType = btn.dataset.coltype; renderYoutubeTab(); };
+});
 document.getElementById('youtubeLockPill').onclick = () => openLockModal('youtube');
 document.getElementById('youtubeAddColBtn').onclick = () => {
-  state.locks.youtube.columns.push('');
-  renderColumnGrid(document.getElementById('youtubeColGrid'), state.locks.youtube.columns, { editable: true, indicatorId: 'youtubeAutosave' });
+  const key = columnsKeyFor_(activeYoutubeColType);
+  state.locks.youtube[key].push('');
+  renderColumnGrid(document.getElementById('youtubeColGrid'), state.locks.youtube[key], { editable: true, indicatorId: 'youtubeAutosave' });
   autoSave('youtubeAutosave');
 };
 document.getElementById('youtubeApplyBtn').onclick = () => {
   document.getElementById('applyColumnsStatus').className = 'status';
+  document.getElementById('applyColumnsHint').textContent =
+    'This reorders your real ' + sheetLabelFor_(activeYoutubeColType) + ' sheet\'s columns to match what\'s shown here, ' +
+    'and hides any column you removed (nothing is deleted — hidden columns can be unhidden anytime in Sheets). ' +
+    'Anyone else viewing this sheet will see the new layout too.';
   document.getElementById('applyColumnsModal').classList.add('open');
 };
 document.getElementById('applyColumnsCancel').onclick = () => document.getElementById('applyColumnsModal').classList.remove('open');
 document.getElementById('applyColumnsConfirm').onclick = async () => {
   const lock = state.locks.youtube;
+  const type = activeYoutubeColType;
   const status = document.getElementById('applyColumnsStatus');
   if (!lock.locked || !lock.url || !lock.secret) {
     status.className = 'status err'; status.textContent = 'Lock a worksheet for YouTube first.';
@@ -166,11 +211,11 @@ document.getElementById('applyColumnsConfirm').onclick = async () => {
   try {
     const resp = await fetch(lock.url, {
       method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ secret: lock.secret, action: 'apply_channel_columns', columns: lock.columns.filter((c) => c && c.trim()) })
+      body: JSON.stringify({ secret: lock.secret, action: applyActionFor_(type), columns: lock[columnsKeyFor_(type)].filter((c) => c && c.trim()) })
     });
     const data = await resp.json();
     if (!data.ok) { status.className = 'status err'; status.textContent = data.error || 'Could not apply the layout.'; return; }
-    status.className = 'status ok'; status.textContent = 'Applied — your worksheet now matches this layout.';
+    status.className = 'status ok'; status.textContent = 'Applied — your ' + sheetLabelFor_(type) + ' sheet now matches this layout.';
     setTimeout(() => document.getElementById('applyColumnsModal').classList.remove('open'), 1200);
   } catch (e) {
     status.className = 'status err'; status.textContent = 'Could not reach your worksheet: ' + e.message;

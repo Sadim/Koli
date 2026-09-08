@@ -475,6 +475,43 @@ run, leads converted) has enough volume to make automating it worthwhile.
   (mocked `chrome.storage` / `google.script.run`) in both color schemes
   before shipping.
 
+## Just shipped, round 11 — extension Channel/Video split
+
+Direct response to feedback that the extension's YouTube column editor
+(and my own round-9 "Channels/Videos" pill fix) blended two sheets with
+genuinely different headers into one label/one column list. Fixed at
+the root instead of just re-wording:
+
+- **Context menu, explicit not auto-detected**: "Send link to Koli
+  (YouTube)" and "Send this page to Koli" (which auto-classified via
+  `classifyUrl()`) are replaced with a **"Send to Worksheet"** submenu
+  offering **Channel** / **Video** as an explicit user choice, for both
+  a right-clicked link and the current page. `classifyUrl()` is kept,
+  but demoted to a soft mismatch check — if what you clicked doesn't
+  look like what you picked, the "Analyzing…" notification says so, but
+  never overrides your explicit choice.
+- **Popup column editor, split for real**: the YouTube tab now has a
+  Channels/Videos switcher, each with its own real column list
+  (`columnsChannel`/`columnsVideo`, migrated automatically from the old
+  single `columns` field) and its own Apply action. Server side,
+  `applyChannelColumnLayout_` (sheetWriter.gs) generalized to
+  `applyColumnLayout_(sheetName, orderedNames)`, with a new
+  `apply_video_columns` Web App action alongside the existing
+  `apply_channel_columns`.
+- **Lock pill, contextual**: shows "Channels" or "Videos" depending on
+  which switcher tab is active, instead of one blended label — this is
+  what actually resolves the original complaint, not just different
+  wording.
+- **Sponsors as a 3rd send target — considered, not built.** Raised
+  alongside this: once Sponsors (aggregate rollup) and Sponsor Mentions
+  (per-mention detail log) are consolidated into one real schema, add
+  "Send to Worksheet → Sponsor" the same way. Explicitly gated on that
+  consolidation happening first — sending a bare brand-name link/
+  selection has no real destination schema to land in yet, and building
+  the send-target before the schema exists would just create another
+  thing to migrate later. Not scheduled yet; a real Batch 2/3 candidate
+  once Sponsors/Sponsor Mentions consolidation itself is scoped.
+
 ## On Groq / Mistral / HF Serverless / Cloudflare Workers AI
 
 - **Mistral** — adding as a Gemini fallback for rate-limit failures (Batch 3, next up)

@@ -362,16 +362,21 @@ function getActiveChannelRows_() {
 }
 
 /**
- * Reorders the Channels sheet's actual columns to match orderedNames,
- * and hides (never deletes) any existing column not in that list —
- * reversible, since a browser-extension click shouldn't be able to
- * permanently destroy real data. Columns not present at all are
- * silently skipped rather than erroring, so a slightly-out-of-date
- * requested layout doesn't block the ones that do still apply.
+ * Reorders a sheet's actual columns to match orderedNames, and hides
+ * (never deletes) any existing column not in that list — reversible,
+ * since a browser-extension click shouldn't be able to permanently
+ * destroy real data. Columns not present at all are silently skipped
+ * rather than erroring, so a slightly-out-of-date requested layout
+ * doesn't block the ones that do still apply. Shared by the "Send to
+ * Koli" extension's Channels and Videos column editors — same operation,
+ * different target sheet and header set (they're not interchangeable:
+ * Videos' real headers are Status/Video/ID/Channel/Views/Likes/Comments/
+ * Auth/Eng %/Posted/Day/New Subs/Location/Age/Gender/Updated, distinct
+ * from Channels' own set).
  */
-function applyChannelColumnLayout_(orderedNames) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.CHANNELS);
-  if (!sheet) throw new Error('No Channels sheet exists yet — analyze a channel first, then try again.');
+function applyColumnLayout_(sheetName, orderedNames) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  if (!sheet) throw new Error('No ' + sheetName + ' sheet exists yet — analyze one first, then try again.');
 
   // Create any requested column that doesn't exist yet — appended at the
   // end for now; the reorder pass right after puts it wherever it
