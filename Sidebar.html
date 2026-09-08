@@ -1,50 +1,75 @@
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --green: #1B7F3B; --green-bg: #EAF3EB; --teal: #2FB9C1; --teal-br: #3BC3CC;
+    color-scheme: light;
+    --green: #1B7F3B; --green-bg: #EAF3EB; --green-700: #145E2C; --teal: #2FB9C1; --teal-br: #3BC3CC;
     --navy: #15243C; --ink: #141414; --label: #9A8F82; --border: #E4E2E4;
     --seg: #C9C8CC; --mut: #6E6A62; --lime: #7F8F33; --lime-border: #DCE1C6; --lime-check: #B7CC33;
-    --bg: #F7F6F7; --error: #d93025; --amber: #f9ab00;
-    --radius: 12px; --radius-sm: 6px;
-    --shadow: 0 1px 4px rgba(0,0,0,.05);
+    --bg: #F7F6F7; --surface: #FFFFFF; --error: #d93025; --error-bg: #fce8e6; --amber: #f9ab00; --amber-bg: #fef7e0; --amber-ink: #b06000;
+    --radius: 12px; --radius-sm: 6px; --radius-lg: 18px;
+    --shadow-xs: 0 1px 2px rgba(20,20,20,.05);
+    --shadow: 0 1px 4px rgba(20,20,20,.05);
+    --shadow-md: 0 6px 18px rgba(20,20,20,.09), 0 1px 3px rgba(20,20,20,.06);
+    --shadow-lg: 0 16px 36px rgba(15,15,15,.18), 0 3px 10px rgba(15,15,15,.08);
+    --ease: cubic-bezier(.32,.72,.35,1); --ease-out: cubic-bezier(.16,1,.3,1);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --green: #3FCB7C; --green-bg: #143824; --green-700: #57DA92; --teal: #52D2DB; --teal-br: #5FD9E1;
+      --navy: #E9EFF4; --ink: #EEF1F0; --label: #9CA6A2; --border: #2C3934;
+      --seg: #354039; --mut: #93A19C; --lime: #B7CC33; --lime-border: #3A4530; --lime-check: #C6D94A;
+      --bg: #101512; --surface: #1A211D; --error: #FF6B5E; --error-bg: #3A1D19; --amber: #F5B95A; --amber-bg: #3A2D14; --amber-ink: #F5B95A;
+      --shadow-xs: 0 1px 2px rgba(0,0,0,.35);
+      --shadow: 0 1px 4px rgba(0,0,0,.35);
+      --shadow-md: 0 6px 18px rgba(0,0,0,.45);
+      --shadow-lg: 0 16px 36px rgba(0,0,0,.55);
+    }
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; }
   body {
     font-family: 'Inter', 'Google Sans', Roboto, Arial, sans-serif; color: var(--ink); margin: 0;
-    font-size: 13px; background: linear-gradient(180deg,#EFEDF0,#FAF9FA 45%,#F5F4F6);
+    font-size: 13px; background: var(--bg);
     display: flex; flex-direction: column; min-height: 100vh;
   }
+  @media (prefers-color-scheme: light) {
+    body { background: linear-gradient(180deg,#EFEDF0,#FAF9FA 45%,#F5F4F6); }
+  }
+  button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; border-radius: 4px; }
+  svg { display: block; }
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-thumb { background: #C6AEB6; border-radius: 4px; }
 
   /* ---------- Compact header: logo + tabs + gear, all one row ---------- */
   .mini-header { display: flex; align-items: center; gap: 8px; padding: 10px 10px 8px 10px; flex-shrink: 0; }
   .brand-mark-small {
-    width: 22px; height: 22px; border-radius: 6px; background: var(--green); color: #fff;
-    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; flex-shrink: 0;
-    position: relative;
+    width: 24px; height: 24px; border-radius: 7px; background: linear-gradient(155deg, var(--green), var(--green-700)); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11.5px; flex-shrink: 0;
+    position: relative; box-shadow: var(--shadow-xs), inset 0 1px 0 rgba(255,255,255,.25); letter-spacing: -.02em;
   }
   .active-sheet-badge {
     position: absolute; bottom: -2px; right: -2px; width: 8px; height: 8px; border-radius: 50%;
-    background: var(--green); border: 1.5px solid #fff;
+    background: var(--green); border: 1.5px solid var(--surface);
   }
   .icon-btn {
-    width: 20px; height: 20px; border: none; background: none; color: var(--navy);
+    width: 22px; height: 22px; border: none; background: none; color: var(--navy); border-radius: 6px;
     cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; padding: 0; flex-shrink: 0;
-    transition: transform .25s;
+    transition: transform .25s var(--ease), background .15s var(--ease);
   }
-  .icon-btn.open { transform: rotate(75deg); }
+  .icon-btn:hover { background: var(--bg); }
+  .icon-btn.open { transform: rotate(75deg); background: var(--green-bg); color: var(--green); }
 
   /* ---------- Quick settings drawer ---------- */
-  .drawer { max-height: 0; overflow: hidden; transition: max-height .25s ease, margin .25s ease; background: #fff; margin: 0 13px; flex-shrink: 0; }
-  .drawer.open { max-height: 340px; margin-bottom: 10px; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); }
+  .drawer { max-height: 0; overflow: hidden; transition: max-height .25s var(--ease), margin .25s var(--ease); background: var(--surface); margin: 0 13px; flex-shrink: 0; }
+  .drawer.open { max-height: 340px; margin-bottom: 10px; border-radius: var(--radius); box-shadow: var(--shadow-md); border: 1px solid var(--border); }
   .drawer-inner { padding: 12px; }
   .drawer-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; font-size: 12px; }
   .drawer-row .key-status { color: var(--mut); }
   .drawer-row .key-status.set::before { content: '●'; color: var(--green); margin-right: 4px; }
   .drawer-row .key-status.unset::before { content: '●'; color: var(--error); margin-right: 4px; }
   .chk-row { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; }
+  .chk-row input[type="checkbox"] { accent-color: var(--green); width: 15px; height: 15px; margin-top: 1px; flex-shrink: 0; }
   .chk-row label { font-weight: 500; font-size: 12px; cursor: pointer; }
   .chk-row .chk-hint { color: var(--mut); font-size: 10.5px; display: block; margin-top: 1px; }
   .drawer-link { color: var(--green); font-weight: 600; font-size: 11.5px; cursor: pointer; text-decoration: none; }
@@ -54,9 +79,9 @@
     display: flex; flex: 1; min-width: 0; box-shadow: 0 1px 2px rgba(0,0,0,.04); flex-shrink: 1;
   }
   .top-tab {
-    flex: 1; text-align: center; padding: 7px 0; background: #fff; color: var(--green);
+    flex: 1; text-align: center; padding: 7px 0; background: var(--surface); color: var(--green);
     font-weight: 700; font-size: 12.5px; border: none; border-top: 3px solid transparent; cursor: pointer;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: border-color .18s var(--ease);
   }
   .top-tab.active { border-top-color: var(--green); }
 
@@ -77,10 +102,11 @@
   .hint { color: var(--mut); font-size: 10.5px; margin-top: 4px; }
 
   input[type="text"], input[type="number"], input[type="date"] {
-    padding: 0 9px; border: 1px solid #DADADA; border-radius: var(--radius-sm);
-    font-family: inherit; font-size: 11.5px; font-weight: 700; color: #1C1C1C; background: #fff; height: 27px;
+    padding: 0 9px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-family: inherit; font-size: 11.5px; font-weight: 700; color: var(--ink); background: var(--surface); height: 27px;
+    transition: border-color .15s var(--ease), box-shadow .15s var(--ease);
   }
-  input:focus { outline: none; border-color: var(--teal); }
+  input:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(47,185,193,.16); }
 
   .field-grid-2 { display: flex; gap: 9px; margin: 0 8px 12px 8px; }
   .field-grid-2 > div { flex: 1; }
@@ -91,17 +117,17 @@
   .seg { display: inline-flex; background: var(--seg); border-radius: 8px; padding: 2px; gap: 2px; }
   .seg button {
     border: 1px solid transparent; background: none; border-radius: 6px; padding: 5px 12px;
-    font-size: 11px; font-weight: 600; color: #4A4A4A; cursor: pointer;
+    font-size: 11px; font-weight: 600; color: var(--mut); cursor: pointer; transition: all .15s var(--ease);
   }
-  .seg button.active { background: #fff; border-color: #909095; color: #1F1F1F; }
+  .seg button.active { background: var(--surface); border-color: var(--border); color: var(--ink); box-shadow: var(--shadow-xs); }
   .seg-row { margin: 0 8px 4px 8px; }
 
   /* ---------- Custom checkboxes (native inputs can't do a two-tone border/fill, these can) ---------- */
   .ccheck { display: flex; align-items: center; gap: 9px; cursor: pointer; }
   .ccheck input { position: absolute; opacity: 0; width: 0; height: 0; }
   .ccheck-box {
-    width: 20px; height: 20px; border-radius: 6px; background: #fff; border: 2px solid var(--teal-br);
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    width: 20px; height: 20px; border-radius: 6px; background: var(--surface); border: 2px solid var(--teal-br);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: border-color .15s var(--ease);
   }
   .ccheck input:checked ~ .ccheck-box { border: 1.5px solid var(--lime-border); }
   .ccheck-tick { opacity: 0; }
@@ -113,10 +139,10 @@
 
   .controls-row { display: flex; justify-content: space-between; align-items: center; margin: 12px 8px 0; }
   .stepper {
-    display: flex; align-items: center; gap: 12px; border: 1px solid #DCDCDC; background: #FCFCFC;
-    border-radius: 8px; height: 26px; padding: 0 11px; color: #8A8A8A; font-size: 13px;
+    display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); background: var(--bg);
+    border-radius: 8px; height: 26px; padding: 0 11px; color: var(--mut); font-size: 13px;
   }
-  .stepper b { font-size: 12px; color: #1F1F1F; font-weight: 700; }
+  .stepper b { font-size: 12px; color: var(--ink); font-weight: 700; }
   .stepper button { background: none; border: none; color: inherit; font: inherit; cursor: pointer; padding: 0; }
 
   .vlabel { color: var(--teal); font-weight: 700; font-size: 12px; margin: 13px 12px 8px; }
@@ -125,81 +151,86 @@
   .filters .filter-label.lime { color: var(--lime); }
   .minmax { display: flex; gap: 8px; }
   .minmax input {
-    width: 42px; height: 22px; border: 1px solid #D2D2D2; border-radius: 5px; background: #fff;
-    font-size: 10px; font-weight: 400; color: #8A8A8A; text-align: center; padding: 0;
+    width: 42px; height: 22px; border: 1px solid var(--border); border-radius: 5px; background: var(--surface);
+    font-size: 10px; font-weight: 400; color: var(--mut); text-align: center; padding: 0;
   }
 
   .progress-track { width: 100%; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; margin: 10px 8px 6px 8px; width: calc(100% - 16px); }
   .progress-fill { height: 100%; background: var(--green); width: 0%; transition: width .25s ease; }
   .progress-chips { display: flex; gap: 6px; margin: 0 8px 10px 8px; flex-wrap: wrap; }
   .chip { font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
-  .chip.idle { background: #fff; color: var(--mut); border: 1px solid var(--border); }
+  .chip.idle { background: var(--surface); color: var(--mut); border: 1px solid var(--border); }
   .chip.ok { background: var(--green-bg); color: var(--green); }
-  .chip.skip { background: #fef7e0; color: #b06000; }
-  .chip.err { background: #fce8e6; color: var(--error); }
+  .chip.skip { background: var(--amber-bg); color: var(--amber-ink); }
+  .chip.err { background: var(--error-bg); color: var(--error); }
 
   .results {
-    position: relative; margin: 3px 8px 14px; background: #fff; border: 1px solid var(--border);
+    position: relative; margin: 3px 8px 14px; background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius); box-shadow: var(--shadow); max-height: 200px; overflow-y: auto;
   }
   .results.tall { max-height: 320px; }
-  .result-row { display: flex; align-items: flex-start; gap: 8px; padding: 9px 10px; border-bottom: 1px solid #EDEBED; font-size: 11.5px; animation: fadeIn .2s ease; }
+  .result-row { display: flex; align-items: flex-start; gap: 8px; padding: 9px 10px; border-bottom: 1px solid var(--border); font-size: 11.5px; animation: fadeIn .2s ease; }
   .result-row:last-child { border-bottom: none; }
-  .result-icon { flex-shrink: 0; font-weight: 700; }
-  .ok .result-icon { color: var(--green); } .skip .result-icon { color: var(--amber); } .err .result-icon { color: var(--error); }
+  .result-icon { flex-shrink: 0; font-weight: 700; display: flex; align-items: center; margin-top: 1px; }
+  .ok .result-icon { color: var(--green); } .skip .result-icon { color: var(--amber-ink); } .err .result-icon { color: var(--error); }
   .result-msg { color: var(--mut); }
   .empty-state { text-align: center; padding: 30px 16px; color: var(--mut); font-size: 12px; }
   .empty-state .empty-icon {
     font-size: 20px; display: flex; align-items: center; justify-content: center;
     width: 40px; height: 40px; margin: 0 auto 10px auto; border-radius: 50%; background: var(--bg);
   }
-  .discover-note { background: var(--green-bg); border: 1px solid #D8E8DA; border-radius: 10px; padding: 9px 12px; font-size: 11px; color: var(--green); margin: 8px 8px 4px 8px; }
-  .plain-hint { font-size: 10.5px; font-style: italic; color: #8E8E8E; margin: 10px 12px; line-height: 1.55; }
+  .discover-note { background: var(--green-bg); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; font-size: 11px; color: var(--green); margin: 8px 8px 4px 8px; }
+  .plain-hint { font-size: 10.5px; font-style: italic; color: var(--mut); margin: 10px 12px; line-height: 1.55; }
   .bottom-spacer { height: 6px; flex-shrink: 0; }
 
   /* ---------- Composer (bottom bar) — one card holding input + toggle + send, per the reference ---------- */
   .bottom-bar { flex-shrink: 0; padding: 6px 6px 10px 6px; }
   .composer {
-    background: #FDFDFD; border: 1px solid #E5E3E5; border-radius: 16px; padding: 9px 9px 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 9px 9px 8px;
+    box-shadow: var(--shadow-md); transition: box-shadow .2s var(--ease);
   }
+  .composer:focus-within { box-shadow: var(--shadow-lg); }
   .composer textarea {
     width: 100%; border: none; background: none; resize: none; min-height: 20px; max-height: 70px;
-    font-family: inherit; font-size: 10.5px; font-style: italic; color: #A2A09E; padding: 2px; margin-bottom: 12px;
+    font-family: inherit; font-size: 10.5px; font-style: italic; color: var(--mut); padding: 2px; margin-bottom: 12px;
   }
   .composer textarea:focus { outline: none; font-style: normal; color: var(--ink); }
   .composer-row { display: flex; justify-content: space-between; align-items: center; }
   .send-wrap {
-    display: flex; align-items: center; gap: 6px; background: #fff; border: 1px solid #E0E0E0;
-    border-radius: 999px; height: 30px; padding: 0 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); position: relative;
+    display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 999px; height: 30px; padding: 0 12px; box-shadow: var(--shadow-xs); position: relative;
   }
-  .send-btn { background: none; border: none; padding: 0; cursor: pointer; color: var(--navy); display: flex; align-items: center; }
+  .send-btn { background: none; border: none; padding: 0; cursor: pointer; color: var(--navy); display: flex; align-items: center; transition: transform .15s var(--ease); }
+  .send-btn:hover { transform: scale(1.08); }
   .send-btn.stopping { color: var(--error); }
   .send-caret { background: none; border: none; padding: 0; margin-left: 2px; cursor: pointer; color: inherit; display: flex; align-items: center; }
 
   .koli-banner {
     display: flex; align-items: center; gap: 10px; margin: 12px 8px 0; background: var(--green-bg);
-    border: 1px solid #D8E8DA; border-radius: 10px; padding: 9px 12px;
+    border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px;
   }
   .koli-banner .icon { width: 26px; height: 26px; flex: none; border-radius: 50%; background: var(--green); display: flex; align-items: center; justify-content: center; }
-  .koli-banner b { display: block; font-size: 12.5px; color: #171717; }
-  .koli-banner span { display: block; font-size: 10px; color: #7C8B7F; margin-top: 2px; }
+  .koli-banner b { display: block; font-size: 12.5px; color: var(--ink); }
+  .koli-banner span { display: block; font-size: 10px; color: var(--mut); margin-top: 2px; }
 
   .ask-prompt { margin-top: 30px; text-align: center; padding: 0 34px; }
-  .ask-prompt b { display: block; font-size: 14px; color: #191919; margin-top: 12px; }
-  .ask-prompt p { font-size: 10.5px; color: #8E8E8E; line-height: 1.55; margin-top: 7px; }
+  .ask-prompt b { display: block; font-size: 14px; color: var(--ink); margin-top: 12px; }
+  .ask-prompt p { font-size: 10.5px; color: var(--mut); line-height: 1.55; margin-top: 7px; }
 
   .dd-menu {
-    position: absolute; right: 20px; bottom: 66px; width: 148px; background: #fff; border: 1px solid #EFEFEF;
-    border-radius: 12px; box-shadow: 0 10px 26px rgba(0,0,0,.16); padding: 5px 0; z-index: 5;
+    position: absolute; right: 20px; bottom: 66px; width: 168px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; box-shadow: var(--shadow-lg); padding: 5px 0; z-index: 5; animation: modalIn .16s var(--ease-out);
   }
-  .dd-row { display: flex; align-items: center; gap: 9px; padding: 8px 12px; font-size: 11.5px; font-weight: 600; color: #333; cursor: pointer; }
+  @keyframes modalIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  .dd-row { display: flex; align-items: center; gap: 9px; padding: 8px 12px; font-size: 11.5px; font-weight: 600; color: var(--ink); cursor: pointer; transition: background .12s var(--ease); }
+  .dd-row svg { flex-shrink: 0; color: var(--mut); }
   .dd-row:hover { background: var(--bg); }
-  .dd-row .dd-check { margin-left: auto; opacity: 0; }
+  .dd-row .dd-check { margin-left: auto; opacity: 0; color: var(--green); }
   .dd-row.selected .dd-check { opacity: 1; }
   .toast {
-    position: absolute; bottom: 66px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff;
-    font-size: 11px; padding: 7px 14px; border-radius: 8px; z-index: 6; white-space: nowrap;
+    position: absolute; bottom: 66px; left: 50%; transform: translateX(-50%); background: var(--navy); color: var(--bg);
+    font-size: 11px; padding: 7px 14px; border-radius: 8px; z-index: 6; white-space: nowrap; box-shadow: var(--shadow-md);
+    animation: modalIn .16s var(--ease-out);
   }
   .link-btn { background: none; border: none; color: var(--green); font-weight: 600; cursor: pointer; padding: 0; font-size: 11px; margin: 6px 0 0 4px; display: inline-block; }
 </style>
@@ -210,7 +241,7 @@
     <button class="top-tab active" data-toptab="profile">Profile</button>
     <button class="top-tab" data-toptab="discover">Discover</button>
   </div>
-  <button class="icon-btn" id="settingsToggle" title="Quick settings">⚙</button>
+  <button class="icon-btn" id="settingsToggle" title="Quick settings"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 0 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 0 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1-1.55V3a2 2 0 0 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9a1.7 1.7 0 0 0 1.55 1H21a2 2 0 0 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg></button>
 </div>
 
 <div class="drawer" id="settingsDrawer">
@@ -251,7 +282,7 @@
     <label class="output-label">Output</label>
     <div class="progress-track"><div class="progress-fill" id="profile-progressFill"></div></div>
     <div class="progress-chips" id="profile-chips"><span class="chip idle">Idle</span></div>
-    <div class="results" id="profile-results"><div class="empty-state"><span class="empty-icon">👤</span>One row per video will be written to the Profile tab.</div></div>
+    <div class="results" id="profile-results"><div class="empty-state"><span class="empty-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>One row per video will be written to the Profile tab.</div></div>
 
     <label class="ccheck track-row">
       <input type="checkbox" id="profile-track" />
@@ -278,7 +309,7 @@
     <label class="output-label">Output</label>
     <div class="progress-track"><div class="progress-fill" id="discover-progressFill"></div></div>
     <div class="progress-chips" id="discover-chips"><span class="chip idle">Idle</span></div>
-    <div class="results" id="discover-results"><div class="empty-state"><span class="empty-icon">🔍</span>Matches will appear here and in the Discover Results tab.</div></div>
+    <div class="results" id="discover-results"><div class="empty-state"><span class="empty-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>Matches will appear here and in the Discover Results tab.</div></div>
 
     <label class="vlabel">Views range</label>
     <div class="filters">
@@ -329,10 +360,10 @@
           <svg width="11" height="11" viewBox="0 0 24 24"><path fill="currentColor" d="M6.5 9.5l5.5 5.5 5.5-5.5z"/></svg>
         </button>
         <div class="dd-menu" id="ddMenu" style="display:none">
-          <div class="dd-row" data-inputmode="voice">🎤 Voice note</div>
-          <div class="dd-row selected" data-inputmode="text">⌨ Text<svg class="dd-check" width="13" height="13" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M4.5 13l5 5L19.5 7"/></svg></div>
-          <div class="dd-row" data-inputmode="attachment">📎 Attachment</div>
-          <div class="dd-row" data-inputmode="readaloud">🔊 Read aloud</div>
+          <div class="dd-row" data-inputmode="voice"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v4M9 21h6"/></svg>Voice note</div>
+          <div class="dd-row selected" data-inputmode="text"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2.5"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg>Text<svg class="dd-check" width="13" height="13" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M4.5 13l5 5L19.5 7"/></svg></div>
+          <div class="dd-row" data-inputmode="attachment"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5l-8.9 8.9a4.5 4.5 0 0 1-6.4-6.4l8.9-8.9a3 3 0 0 1 4.2 4.2l-8.9 8.9a1.5 1.5 0 0 1-2.1-2.1l7.8-7.8"/></svg>Attachment</div>
+          <div class="dd-row" data-inputmode="readaloud"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19.5 5.5a9 9 0 0 1 0 13"/></svg>Read aloud</div>
         </div>
       </div>
     </div>
@@ -522,12 +553,16 @@
     };
   }
 
+  const STATUS_ICONS = {
+    ok: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 13l5 5L19.5 7"/></svg>',
+    skip: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h13M12 6l6 6-6 6"/></svg>',
+    err: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+  };
   function addResult(resultsEl, status, label, message) {
     if (resultsEl.querySelector('.empty-state')) resultsEl.innerHTML = '';
     const row = document.createElement('div');
     row.className = 'result-row ' + status;
-    const icon = status === 'ok' ? '✓' : status === 'skip' ? '⤳' : '✕';
-    row.innerHTML = '<span class="result-icon">' + icon + '</span><span><strong>' + escapeHtml(label) + '</strong>' +
+    row.innerHTML = '<span class="result-icon">' + STATUS_ICONS[status] + '</span><span><strong>' + escapeHtml(label) + '</strong>' +
       (message ? '<br><span class="result-msg">' + escapeHtml(message) + '</span>' : '') + '</span>';
     resultsEl.prepend(row);
   }
@@ -601,13 +636,12 @@
       .withSuccessHandler((result) => {
         assistantRunning = false; setRunBtnState(false);
         const cls = result.ok ? 'ok' : 'err';
-        const icon = result.ok ? '✓' : '✕';
-        resultsEl.innerHTML = '<div class="result-row ' + cls + '"><span class="result-icon">' + icon +
+        resultsEl.innerHTML = '<div class="result-row ' + cls + '"><span class="result-icon">' + STATUS_ICONS[cls] +
           '</span><span>' + escapeHtml(result.summary || result.message || '') + '</span></div>';
       })
       .withFailureHandler((err) => {
         assistantRunning = false; setRunBtnState(false);
-        resultsEl.innerHTML = '<div class="result-row err"><span class="result-icon">✕</span><span>' +
+        resultsEl.innerHTML = '<div class="result-row err"><span class="result-icon">' + STATUS_ICONS.err + '</span><span>' +
           escapeHtml(err.message || String(err)) + '</span></div>';
       })
       .runAssistantCommand(text);
@@ -672,7 +706,7 @@
             input.value = (input.value ? input.value + ' ' : '') + transcript.trim();
           };
           recognition.onerror = () => showToast('Microphone access failed or was blocked.');
-          try { recognition.start(); showToast('🎤 Listening…'); }
+          try { recognition.start(); showToast('Listening…'); }
           catch (err) { showToast('Could not start voice note: ' + err.message); }
 
         } else if (mode === 'attachment') {

@@ -16,6 +16,19 @@ let activeOtherProfileId = null;
 let logPage = 0;
 const LOG_PAGE_SIZE = 5;
 
+// Inline SVG icon set — kept as raw markup strings (not emoji) so the
+// popup renders crisply and consistently across every OS/browser font,
+// and so icon color can follow the CSS theme (incl. dark mode) instead
+// of being baked into a glyph.
+const ICONS = {
+  lockOpen: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 7.3-2.3"/></svg>',
+  lockClosed: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+  trash: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/></svg>',
+  eye: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>',
+  checkCircle: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.3 2.3L16 10"/></svg>',
+  errorCircle: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5l5 5M14.5 9.5l-5 5"/></svg>'
+};
+
 async function loadState() {
   const { locks } = await chrome.storage.sync.get('locks');
   state.locks = locks || { youtube: null, other: [] };
@@ -78,7 +91,7 @@ function renderColumnGrid(gridEl, columns, opts) {
 
     const bin = document.createElement('button');
     bin.className = 'bin';
-    bin.innerHTML = '🗑';
+    bin.innerHTML = ICONS.trash;
     bin.onclick = (e) => {
       e.stopPropagation();
       columns.splice(i, 1);
@@ -169,10 +182,10 @@ function updateLockPill(pillEl, lock, defaultLabel) {
   const label = pillEl.querySelector('.lock-label');
   pillEl.classList.toggle('locked', !!lock.locked);
   if (lock.locked) {
-    icon.textContent = '🔒';
+    icon.innerHTML = ICONS.lockClosed;
     label.textContent = (lock.name ? lock.name + ': ' : '') + (lock.tab || defaultLabel || 'Prospects');
   } else {
-    icon.textContent = '🔓';
+    icon.innerHTML = ICONS.lockOpen;
     label.textContent = 'Choose worksheet';
   }
 }
@@ -390,16 +403,17 @@ async function renderLogTab() {
     const name = entry.resolvedName || entry.pageTitle || entry.value || 'Untitled';
     const sub = (entry.profileLabel || entry.type || '') + ' · ' + timeAgo(entry.timestamp);
     const rowClass = entry.success ? '' : 'err';
-    const viewBtn = (entry.success && entry.link) ? '<button class="log-view" data-idx="' + globalIndex + '" title="Open">👁</button>' : '';
+    const viewBtn = (entry.success && entry.link) ? '<button class="log-view" data-idx="' + globalIndex + '" title="Open">' + ICONS.eye + '</button>' : '';
     const errorLine = (!entry.success && entry.message)
       ? '<div style="font-size:10.5px;color:var(--error);margin-top:2px;">' + escapeHtml(entry.message) + '</div>'
       : (!entry.success ? '<div style="font-size:10.5px;color:var(--error);margin-top:2px;font-style:italic;">No error message was returned</div>' : '');
+    const statusIcon = '<span class="lrow-status ' + (entry.success ? 'ok' : 'err') + '">' + (entry.success ? ICONS.checkCircle : ICONS.errorCircle) + '</span>';
     return '<div class="lrow ' + rowClass + '">' +
       '<div class="lrow-l" style="flex-direction:column;align-items:flex-start;">' +
-      '<div><span>' + (entry.success ? '✅' : '❌') + '</span> <b>' + escapeHtml(name) + '</b><span> ' + escapeHtml(sub) + '</span></div>' +
+      '<div style="display:flex;align-items:center;gap:6px;">' + statusIcon + '<b>' + escapeHtml(name) + '</b><span> ' + escapeHtml(sub) + '</span></div>' +
       errorLine +
       '</div>' +
-      '<div class="lrow-r">' + viewBtn + '<button class="log-del" data-idx="' + globalIndex + '" title="Delete">🗑</button></div>' +
+      '<div class="lrow-r">' + viewBtn + '<button class="log-del" data-idx="' + globalIndex + '" title="Delete">' + ICONS.trash + '</button></div>' +
       '</div>';
   }).join('');
 
