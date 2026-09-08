@@ -1,0 +1,160 @@
+<style>
+  :root { --green: #188038; --green-dark: #0d652d; --border: #dadce0; --text: #202124; --text-muted: #5f6368; --bg: #f8f9fa; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Google Sans', Roboto, Arial, sans-serif; color: var(--text); padding: 22px; font-size: 13px; }
+  h2 { font-size: 18px; margin: 0 0 4px 0; }
+  .subtitle { color: var(--text-muted); font-size: 11.5px; margin-bottom: 18px; }
+  label { font-weight: 600; display: block; margin: 14px 0 6px 0; font-size: 12.5px; }
+  .hint { color: var(--text-muted); font-size: 11px; margin-top: 4px; }
+  input[type="text"], input[type="password"], input[type="number"] {
+    width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: 10px; font-size: 13px;
+  }
+  input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px #e6f4ea; }
+  .masked { color: var(--text-muted); font-size: 11.5px; margin-top: 4px; }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+  .section { background: var(--bg); border-radius: 14px; padding: 14px 16px; margin-top: 16px; }
+  .section-title { font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: var(--text-muted); margin-bottom: 4px; }
+  .chk-row { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; }
+  .chk-row input[type="checkbox"] { width: 16px; height: 16px; margin-top: 1px; accent-color: var(--green); cursor: pointer; }
+  .chk-row label { margin: 0; font-weight: 500; cursor: pointer; }
+  .chk-row .chk-hint { color: var(--text-muted); font-size: 11px; display: block; margin-top: 1px; font-weight: 400; }
+  .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+  button { padding: 9px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px; border: none; }
+  .btn-secondary { background: #fff; border: 1px solid var(--border) !important; color: var(--text); }
+  .btn-primary { background: var(--green); color: #fff; }
+  .btn-primary:hover { background: var(--green-dark); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .status { font-size: 12px; margin-top: 10px; display: none; }
+  .status.ok { color: var(--green); } .status.err { color: #d93025; }
+</style>
+
+<h2>Settings</h2>
+<div class="subtitle" id="versionLabel" style="color:#5f6368;font-size:11px;margin:-2px 0 14px 0;">Koli v…</div>
+<div class="subtitle">Same settings whether you get here from the sidebar's gear icon or this menu.</div>
+
+<label for="youtubeKey">YouTube Data API v3 key</label>
+<input type="password" id="youtubeKey" placeholder="Paste key to replace" />
+<div class="masked" id="youtubeMasked"></div>
+
+<label for="geminiKey">Gemini API key</label>
+<input type="password" id="geminiKey" placeholder="Paste key to replace" />
+<div class="masked" id="geminiMasked"></div>
+<div class="hint">Used for niche, About summaries, comment authenticity, audience estimates, and sponsor detection.</div>
+
+<div class="section">
+  <div class="section-title">Fallback providers (optional)</div>
+  <div class="hint" style="margin-bottom:10px;">Tried in order — Mistral, then Groq — only when Gemini's own retries are exhausted (e.g. free-tier rate limits). Leave blank to skip either.</div>
+
+  <label for="mistralKey">Mistral API key</label>
+  <input type="password" id="mistralKey" placeholder="Paste key to replace" />
+  <div class="masked" id="mistralMasked"></div>
+
+  <label for="groqKey">Groq API key</label>
+  <input type="password" id="groqKey" placeholder="Paste key to replace" />
+  <div class="masked" id="groqMasked"></div>
+</div>
+
+<div class="row" style="margin-top:14px">
+  <div>
+    <label for="lookback">Lookback window (days)</label>
+    <input type="number" id="lookback" min="7" max="365" />
+    <div class="hint">Used for Avg Posts/Month.</div>
+  </div>
+  <div>
+    <label for="sampleSize">Comment sample size</label>
+    <input type="number" id="sampleSize" min="5" max="100" />
+    <div class="hint">Per video, for authenticity scoring.</div>
+  </div>
+</div>
+
+<label for="timezone">Timezone</label>
+<input type="text" id="timezone" placeholder="e.g. America/New_York, Europe/London, Etc/UTC" />
+<div class="hint">Used for all dates/times Koli writes. Any IANA timezone name (Wikipedia has the full list) — defaults to UTC, never assumed from anything else.</div>
+
+<div class="section">
+  <div class="section-title">Sponsor detection</div>
+  <div class="chk-row">
+    <input type="checkbox" id="scanSponsors" />
+    <div><label for="scanSponsors">Scan recent videos for sponsors during Channel analysis</label></div>
+  </div>
+  <div class="chk-row">
+    <input type="checkbox" id="logMentions" />
+    <div><label for="logMentions">Log individual sponsor mentions</label><span class="chk-hint">Adds rows to the Sponsor Mentions tab, not just the Sponsors rollup</span></div>
+  </div>
+  <div class="chk-row">
+    <input type="checkbox" id="attemptTimestamp" />
+    <div><label for="attemptTimestamp">Attempt in-video timestamp for mentions</label><span class="chk-hint">Best-effort — uses auto-captions when available, adds a small delay per mention found</span></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Browser extension ("Send to Koli")</div>
+  <label for="inboxSecret">Shared secret</label>
+  <input type="password" id="inboxSecret" placeholder="Set a secret, then paste the same one into the extension" />
+  <div class="masked" id="inboxSecretStatus"></div>
+  <div class="hint">Prevents anyone who finds your Web App URL from posting into your sheet. Set once here, paste the same value into the extension's settings.</div>
+</div>
+
+<div class="status" id="status"></div>
+
+<div class="actions">
+  <button class="btn-secondary" onclick="google.script.host.close()">Cancel</button>
+  <button class="btn-primary" id="saveBtn">Save</button>
+</div>
+
+<script>
+  function load() {
+    google.script.run.withSuccessHandler((s) => {
+      document.getElementById('versionLabel').textContent = 'Koli v' + s.version;
+      document.getElementById('youtubeMasked').textContent = s.youtubeKeySet ? 'Currently set: ' + s.youtubeKeyMasked : 'Not set';
+      document.getElementById('geminiMasked').textContent = s.geminiKeySet ? 'Currently set: ' + s.geminiKeyMasked : 'Not set';
+      document.getElementById('mistralMasked').textContent = s.mistralKeySet ? 'Currently set: ' + s.mistralKeyMasked : 'Not set';
+      document.getElementById('groqMasked').textContent = s.groqKeySet ? 'Currently set: ' + s.groqKeyMasked : 'Not set';
+      document.getElementById('lookback').value = s.lookbackDays;
+      document.getElementById('sampleSize').value = s.commentSampleSize;
+      document.getElementById('scanSponsors').checked = !!s.scanChannelSponsors;
+      document.getElementById('logMentions').checked = !!s.logSponsorMentions;
+      document.getElementById('attemptTimestamp').checked = !!s.attemptSponsorTimestamp;
+      document.getElementById('inboxSecretStatus').textContent = s.inboxSecretSet ? 'Currently set.' : 'Not set.';
+      document.getElementById('timezone').value = s.timezone;
+    }).getSettings();
+  }
+  load();
+
+  document.getElementById('saveBtn').onclick = () => {
+    const btn = document.getElementById('saveBtn');
+    btn.disabled = true;
+    const status = document.getElementById('status');
+
+    google.script.run
+      .withSuccessHandler(() => {
+        status.className = 'status ok'; status.textContent = 'Saved.'; status.style.display = 'block';
+        btn.disabled = false;
+        document.getElementById('youtubeKey').value = '';
+        document.getElementById('geminiKey').value = '';
+        document.getElementById('mistralKey').value = '';
+        document.getElementById('groqKey').value = '';
+        document.getElementById('inboxSecret').value = '';
+        load();
+        setTimeout(() => google.script.host.close(), 900);
+      })
+      .withFailureHandler((err) => {
+        status.className = 'status err'; status.textContent = err.message || String(err); status.style.display = 'block';
+        btn.disabled = false;
+      })
+      .saveSettings({
+        youtubeApiKey: document.getElementById('youtubeKey').value.trim(),
+        geminiApiKey: document.getElementById('geminiKey').value.trim(),
+        mistralApiKey: document.getElementById('mistralKey').value.trim(),
+        groqApiKey: document.getElementById('groqKey').value.trim(),
+        lookbackDays: Number(document.getElementById('lookback').value),
+        commentSampleSize: Number(document.getElementById('sampleSize').value),
+        inboxSecret: document.getElementById('inboxSecret').value.trim(),
+        timezone: document.getElementById('timezone').value.trim(),
+        scanChannelSponsors: document.getElementById('scanSponsors').checked,
+        logSponsorMentions: document.getElementById('logMentions').checked,
+        attemptSponsorTimestamp: document.getElementById('attemptTimestamp').checked
+      });
+  };
+</script>

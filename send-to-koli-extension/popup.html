@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #1E8A4C; --green-bg: #ECF5EF; --teal: #1CA0B0; --navy: #132A35;
+    --border: #DADCE0; --text: #1F2D36; --text-muted: #5E6B72; --error: #d93025;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', 'Google Sans', Roboto, Arial, sans-serif; color: var(--text); width: 380px; font-size: 13px; background: #fff; }
+
+  /* ---------- Header ---------- */
+  .hdr { display: flex; align-items: center; justify-content: center; gap: 9px; padding: 15px 14px 12px; background: linear-gradient(180deg,#DFF0E6,#F7FBF8); }
+  .hdr .brand-mark { width: 26px; height: 26px; border-radius: 50%; background: var(--green); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
+  .hdr h1 { font-size: 17px; font-weight: 700; color: var(--navy); }
+
+  /* ---------- Top tabs ---------- */
+  .tabs { display: flex; justify-content: center; gap: 26px; padding-top: 9px; border-bottom: 1px solid #EEF1F2; }
+  .tab { position: relative; font-size: 12.5px; font-weight: 600; color: #97A3AB; padding: 4px 2px 10px; cursor: pointer; background: none; border: none; }
+  .tab.active { color: var(--text); }
+  .tab.active::after { content: ''; position: absolute; left: 50%; transform: translateX(-50%); bottom: 0; width: 40px; height: 3px; border-radius: 2px; background: var(--teal); }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ---------- Lock pill ---------- */
+  .panelwrap { padding: 16px 18px 0; max-height: 380px; overflow-y: auto; }
+  .panel { position: relative; background: var(--green-bg); border-radius: 10px; padding: 26px 14px 14px; }
+  .lock-pill {
+    position: absolute; top: -14px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px;
+    background: #fff; border-radius: 99px; padding: 6px 12px; box-shadow: 0 1px 5px rgba(16,42,54,.14);
+    font-size: 12px; font-weight: 700; color: var(--text); white-space: nowrap; max-width: 300px; cursor: pointer; border: none;
+  }
+  .lock-pill .lock-icon { font-size: 12px; flex-shrink: 0; }
+  .lock-pill .lock-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lock-pill.locked { color: var(--green); }
+
+  .copy { font-size: 11.5px; line-height: 1.5; color: #2A3B44; margin-bottom: 12px; }
+  .copy b { color: var(--teal); font-weight: 600; }
+
+  /* ---------- Column grid (drag-reorderable) ---------- */
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px 10px; }
+  .col-item {
+    position: relative; background: #fff; border: 1px solid #D6D6D6; border-radius: 6px; height: 30px;
+    display: flex; align-items: center; gap: 5px; padding: 0 9px; font-size: 11.5px; color: #22333C;
+    min-width: 0; overflow: hidden; cursor: grab; user-select: none;
+  }
+  .col-item.dragging { opacity: 0.4; }
+  .col-item.drag-over { border-color: var(--teal); border-width: 2px; }
+  .col-item b { font-weight: 700; margin-right: 2px; color: var(--navy); flex-shrink: 0; }
+  .col-item span, .col-item input { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .col-item input { border: 0; outline: 0; font: inherit; color: #22333C; background: none; }
+  .col-item input::placeholder { color: #A9B6BD; }
+  .col-item .bin {
+    display: none; position: absolute; right: 0; top: 0; height: 100%; align-items: center;
+    padding: 0 8px 0 20px; background: linear-gradient(90deg, rgba(255,255,255,0), #fff 40%); border: none; cursor: pointer;
+  }
+  .col-item:hover .bin { display: flex; }
+
+  .addrow {
+    margin-top: 14px; display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1.5px solid #33525F; padding: 0 2px 7px; cursor: pointer; background: none; border-top: none; border-left: none; border-right: none; width: 100%;
+  }
+  .addrow span { font-size: 13px; color: #7E8F98; }
+
+  .foot { display: flex; justify-content: space-between; align-items: flex-end; padding: 9px 18px 14px; }
+  .flinks { display: flex; flex-direction: column; gap: 5px; font-size: 11px; }
+  .flinks a { color: var(--text); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+  .save-btn { background: var(--green-bg); color: var(--green); font-size: 13px; font-weight: 600; padding: 8px 20px; border-radius: 8px; border: 0; cursor: pointer; }
+  .primary-btn {
+    background: var(--green); color: #fff; font-size: 13px; font-weight: 700; padding: 9px 22px;
+    border-radius: 8px; border: 0; cursor: pointer; box-shadow: 0 1px 3px rgba(30,138,76,.3);
+  }
+  .primary-btn:hover { background: #166b3a; }
+  .foot-single { align-items: center; }
+  .autosave-indicator {
+    color: var(--green); font-weight: 600; opacity: 0; transition: opacity .3s; margin-left: 6px; font-size: 11px;
+  }
+  .autosave-indicator.show { opacity: 1; }
+
+  /* ---------- Other Platforms: profile picker ---------- */
+  .profile-row { display: flex; gap: 8px; padding: 14px 18px 0; flex-wrap: wrap; }
+  .profile-chip {
+    background: #fff; border: 1px solid var(--border); border-radius: 99px; padding: 6px 13px; font-size: 11.5px;
+    font-weight: 600; color: var(--text-muted); cursor: pointer;
+  }
+  .profile-chip.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .profile-chip.add-new { color: var(--teal); border-color: var(--teal); border-style: dashed; }
+  .no-profiles { padding: 20px 18px; text-align: center; color: var(--text-muted); font-size: 12px; }
+  .no-profiles button { margin-top: 10px; background: var(--teal); color: #fff; border: none; border-radius: 8px; padding: 8px 18px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+
+  /* ---------- Log ---------- */
+  .logwrap { display: flex; flex-direction: column; gap: 9px; padding: 14px 18px 0; max-height: 300px; overflow-y: auto; }
+  .lrow { display: flex; justify-content: space-between; align-items: center; background: #EFF7F2; border: 1px solid #DCE9E1; border-radius: 8px; padding: 9px 10px; }
+  .lrow.err { background: #FCE8E6; border-color: #F5C6C2; }
+  .lrow-l { display: flex; align-items: center; gap: 7px; min-width: 0; }
+  .lrow-l b { font-size: 12px; font-weight: 600; color: var(--navy); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+  .lrow-l span { font-size: 11px; color: #2A3B44; flex-shrink: 0; }
+  .lrow-r { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+  .lrow-r button { background: none; border: none; cursor: pointer; padding: 2px; color: var(--text-muted); font-size: 13px; }
+  .lrow-r button:hover { color: var(--text); }
+  .log-empty { text-align: center; padding: 30px 16px; color: var(--text-muted); font-size: 12px; }
+  .pager { display: flex; justify-content: center; align-items: center; gap: 10px; padding: 11px 0 14px; font-size: 12px; color: #2A3B44; }
+  .pager span { cursor: pointer; padding: 3px 6px; }
+  .pager span.pge-disabled { color: #C7CDD0; cursor: default; }
+  .pager span.pga { background: #D6EBDF; border-radius: 7px; padding: 4px 10px; font-weight: 600; color: var(--navy); cursor: default; }
+
+  /* ---------- Settings screen ---------- */
+  .settings-body { padding: 16px 18px; }
+  .settings-section { margin-bottom: 18px; }
+  .settings-section h3 { font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+  .lock-summary-row { display: flex; align-items: center; justify-content: space-between; background: #F7F9FA; border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px; margin-bottom: 6px; font-size: 12px; }
+  .lock-summary-row .name { font-weight: 600; }
+  .lock-summary-row .target { color: var(--text-muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
+  .lock-summary-row button { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; color: var(--text); }
+  .platform-note { background: var(--green-bg); border-radius: 8px; padding: 9px 11px; font-size: 11px; color: var(--green); margin-bottom: 4px; }
+  .platform-note.dim { background: #F7F9FA; color: var(--text-muted); }
+
+  /* ---------- Lock target picker modal ---------- */
+  .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(19,42,53,.35); align-items: center; justify-content: center; z-index: 20; }
+  .modal-backdrop.open { display: flex; }
+  .modal { background: #fff; border-radius: 12px; padding: 18px; width: 320px; }
+  .modal h3 { font-size: 14px; margin-bottom: 4px; }
+  .modal .hint { font-size: 11px; color: var(--text-muted); margin-bottom: 12px; }
+  .modal label { display: block; font-size: 11.5px; font-weight: 600; margin: 10px 0 5px; }
+  .modal input, .modal select { width: 100%; padding: 8px 9px; border: 1px solid var(--border); border-radius: 7px; font-size: 12.5px; font-family: inherit; }
+  .modal .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+  .modal .modal-actions button { padding: 7px 16px; border-radius: 7px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+  .modal .btn-cancel { background: #fff; border: 1px solid var(--border); color: var(--text); }
+  .modal .btn-confirm { background: var(--green); border: none; color: #fff; }
+  .modal .status { font-size: 11px; margin-top: 8px; display: none; }
+  .modal .status.err { color: var(--error); display: block; }
+  .modal .status.ok { color: var(--green); display: block; }
+
+  /* ---------- Bottom nav ---------- */
+  .nav { margin-top: 6px; border-top: 1px solid #E3E9EC; display: flex; padding: 10px 0; background: #fff; gap: 10px; }
+  .nbtn { flex: 1; display: flex; justify-content: center; }
+  .nbtn button {
+    background: #fff; border: 1px solid var(--border); cursor: pointer; border-radius: 10px;
+    padding: 8px 24px; display: flex; align-items: center; justify-content: center;
+    font-size: 15px; box-shadow: 0 1px 2px rgba(19,42,53,.06); transition: background .15s, border-color .15s;
+  }
+  .nbtn button:hover { background: #F7F9FA; border-color: #C7CDD0; }
+  .nbtn button.active { background: var(--green-bg); border-color: #BFE0CB; }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="brand-mark">K</div>
+  <h1>Send to Koli</h1>
+</div>
+
+<!-- ===================== HOME SCREEN ===================== -->
+<div class="screen active" id="screen-home">
+  <div class="tabs" id="mainTabs">
+    <button class="tab active" data-tab="youtube">YouTube</button>
+    <button class="tab" data-tab="other">Other Platforms</button>
+    <button class="tab" data-tab="log">Log</button>
+  </div>
+
+  <!-- YouTube tab -->
+  <div class="tab-panel active" id="panel-youtube">
+    <div class="panelwrap">
+      <div class="panel">
+        <button class="lock-pill" id="youtubeLockPill"><span class="lock-icon">🔓</span><span class="lock-label">Choose worksheet</span></button>
+        <p class="copy">Matches your Channels sheet once a link's analyzed. Drag to reorder, tap 🗑 to remove — changes save automatically. <span class="autosave-indicator" id="youtubeAutosave">Saved</span></p>
+        <div class="grid" id="youtubeColGrid"></div>
+        <button class="addrow" id="youtubeAddColBtn"><span>Add new column</span><span>+</span></button>
+      </div>
+    </div>
+    <div class="foot foot-single">
+      <div class="flinks">
+        <div>📄 Reorder here, then apply it to your real sheet</div>
+      </div>
+      <button class="primary-btn" id="youtubeApplyBtn">Apply to worksheet</button>
+    </div>
+  </div>
+
+  <!-- Other Platforms tab -->
+  <div class="tab-panel" id="panel-other" style="display:none">
+    <div class="profile-row" id="profileRow"></div>
+    <div id="otherEmptyState" class="no-profiles" style="display:none">
+      No platform profiles yet — Instagram, TikTok, wherever else you capture from.
+      <br><button id="addFirstProfileBtn">+ Add a platform</button>
+    </div>
+    <div id="otherProfileBody" style="display:none">
+      <div class="panelwrap">
+        <div class="panel">
+          <button class="lock-pill" id="otherLockPill"><span class="lock-icon">🔓</span><span class="lock-label">Choose worksheet</span></button>
+          <p class="copy">Your own columns for <b id="otherProfileNameLabel">this platform</b> — no analysis pipeline behind these yet, so captures still land as plain Prospects entries. This is a planning reference for now. <span class="autosave-indicator" id="otherAutosave">Saved</span></p>
+          <div class="grid" id="otherColGrid"></div>
+          <button class="addrow" id="otherAddColBtn"><span>Add new column</span><span>+</span></button>
+        </div>
+      </div>
+      <div class="foot">
+        <div class="flinks"><a id="deleteProfileLink">Delete this platform</a></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log tab -->
+  <div class="tab-panel" id="panel-log" style="display:none">
+    <div class="logwrap" id="logList"></div>
+    <div class="pager" id="pager" style="display:none"></div>
+  </div>
+
+  <div class="nav">
+    <div class="nbtn"><button class="active" id="navHome" title="Home">Home</button></div>
+    <div class="nbtn"><button id="navSettings" title="Settings">Settings</button></div>
+  </div>
+</div>
+
+<!-- ===================== SETTINGS SCREEN ===================== -->
+<div class="screen" id="screen-settings">
+  <div class="settings-body">
+    <div class="settings-section">
+      <h3>Worksheet locks</h3>
+      <div class="lock-summary-row">
+        <div><div class="name">YouTube</div><div class="target" id="ytSummaryTarget">Not connected</div></div>
+        <button id="ytSummaryEdit">Edit</button>
+      </div>
+      <div id="otherLocksSummary"></div>
+    </div>
+    <div class="settings-section">
+      <h3>Recognized platforms</h3>
+      <div class="platform-note">🟢 YouTube — channel/video links auto-detected</div>
+      <div class="platform-note dim">⚪ Anything captured under Other Platforms is sent as-is — auto-detection is YouTube-specific for now.</div>
+    </div>
+    <div class="settings-section">
+      <h3>Quick setup</h3>
+      <p style="font-size:11px;color:var(--text-muted);line-height:1.6">
+        1. In Koli's Apps Script editor: Deploy → New deployment → Web app → Execute as "Me" → Who has access "Anyone."<br>
+        2. Copy the URL it gives you.<br>
+        3. Tap a lock above, paste the URL and your Koli shared secret, then lock it.
+      </p>
+    </div>
+  </div>
+  <div class="nav">
+    <div class="nbtn"><button id="navHome2" title="Home">Home</button></div>
+    <div class="nbtn"><button class="active" id="navSettings2" title="Settings">Settings</button></div>
+  </div>
+</div>
+
+<!-- ===================== LOCK TARGET MODAL ===================== -->
+<div class="modal-backdrop" id="lockModal">
+  <div class="modal">
+    <h3 id="lockModalTitle">Choose worksheet</h3>
+    <div class="hint">This connects one Koli spreadsheet — sends from this profile always go here until you unlock it.</div>
+    <label>Web App URL</label>
+    <input type="text" id="lockUrl" placeholder="https://script.google.com/macros/s/.../exec" />
+    <label>Shared secret</label>
+    <input type="password" id="lockSecret" placeholder="Same value set in Koli's Settings" />
+    <label>Destination tab</label>
+    <select id="lockTabSelect"><option value="">Prospects (default)</option></select>
+    <div class="hint" id="lockTabHint" style="margin-top:4px;"></div>
+    <div class="status" id="lockModalStatus"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="lockModalCancel">Cancel</button>
+      <button class="btn-confirm" id="lockModalConfirm">Test &amp; Lock</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== APPLY COLUMNS CONFIRM MODAL ===================== -->
+<div class="modal-backdrop" id="applyColumnsModal">
+  <div class="modal">
+    <h3>Apply to worksheet?</h3>
+    <div class="hint">This reorders your real Channels sheet's columns to match what's shown here, and hides any column you removed (nothing is deleted — hidden columns can be unhidden anytime in Sheets). Anyone else viewing this sheet will see the new layout too.</div>
+    <div class="status" id="applyColumnsStatus"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="applyColumnsCancel">Cancel</button>
+      <button class="btn-confirm" id="applyColumnsConfirm">Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== ADD PLATFORM MODAL ===================== -->
+<div class="modal-backdrop" id="addPlatformModal">
+  <div class="modal">
+    <h3>Add a platform</h3>
+    <div class="hint">A name to tell it apart — Instagram, TikTok, whatever fits.</div>
+    <label>Platform name</label>
+    <input type="text" id="newPlatformName" placeholder="e.g. Instagram" />
+    <div class="status" id="addPlatformStatus"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="addPlatformCancel">Cancel</button>
+      <button class="btn-confirm" id="addPlatformConfirm">Add</button>
+    </div>
+  </div>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>

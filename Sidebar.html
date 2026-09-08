@@ -1,0 +1,693 @@
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #1B7F3B; --green-bg: #EAF3EB; --teal: #2FB9C1; --teal-br: #3BC3CC;
+    --navy: #15243C; --ink: #141414; --label: #9A8F82; --border: #E4E2E4;
+    --seg: #C9C8CC; --mut: #6E6A62; --lime: #7F8F33; --lime-border: #DCE1C6; --lime-check: #B7CC33;
+    --bg: #F7F6F7; --error: #d93025; --amber: #f9ab00;
+    --radius: 12px; --radius-sm: 6px;
+    --shadow: 0 1px 4px rgba(0,0,0,.05);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Inter', 'Google Sans', Roboto, Arial, sans-serif; color: var(--ink); margin: 0;
+    font-size: 13px; background: linear-gradient(180deg,#EFEDF0,#FAF9FA 45%,#F5F4F6);
+    display: flex; flex-direction: column; min-height: 100vh;
+  }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-thumb { background: #C6AEB6; border-radius: 4px; }
+
+  /* ---------- Compact header: logo + tabs + gear, all one row ---------- */
+  .mini-header { display: flex; align-items: center; gap: 8px; padding: 10px 10px 8px 10px; flex-shrink: 0; }
+  .brand-mark-small {
+    width: 22px; height: 22px; border-radius: 6px; background: var(--green); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; flex-shrink: 0;
+    position: relative;
+  }
+  .active-sheet-badge {
+    position: absolute; bottom: -2px; right: -2px; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green); border: 1.5px solid #fff;
+  }
+  .icon-btn {
+    width: 20px; height: 20px; border: none; background: none; color: var(--navy);
+    cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; padding: 0; flex-shrink: 0;
+    transition: transform .25s;
+  }
+  .icon-btn.open { transform: rotate(75deg); }
+
+  /* ---------- Quick settings drawer ---------- */
+  .drawer { max-height: 0; overflow: hidden; transition: max-height .25s ease, margin .25s ease; background: #fff; margin: 0 13px; flex-shrink: 0; }
+  .drawer.open { max-height: 340px; margin-bottom: 10px; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); }
+  .drawer-inner { padding: 12px; }
+  .drawer-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; font-size: 12px; }
+  .drawer-row .key-status { color: var(--mut); }
+  .drawer-row .key-status.set::before { content: '●'; color: var(--green); margin-right: 4px; }
+  .drawer-row .key-status.unset::before { content: '●'; color: var(--error); margin-right: 4px; }
+  .chk-row { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; }
+  .chk-row label { font-weight: 500; font-size: 12px; cursor: pointer; }
+  .chk-row .chk-hint { color: var(--mut); font-size: 10.5px; display: block; margin-top: 1px; }
+  .drawer-link { color: var(--green); font-weight: 600; font-size: 11.5px; cursor: pointer; text-decoration: none; }
+
+  /* ---------- Top tabs: now share the header row — fills the space between logo and gear ---------- */
+  .top-tabs {
+    display: flex; flex: 1; min-width: 0; box-shadow: 0 1px 2px rgba(0,0,0,.04); flex-shrink: 1;
+  }
+  .top-tab {
+    flex: 1; text-align: center; padding: 7px 0; background: #fff; color: var(--green);
+    font-weight: 700; font-size: 12.5px; border: none; border-top: 3px solid transparent; cursor: pointer;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .top-tab.active { border-top-color: var(--green); }
+
+  /* Assistant mode: tabs go bare (no white card), matching the reference's plain state */
+  .top-tabs.bare { width: auto; gap: 36px; box-shadow: none; justify-content: center; }
+  .top-tabs.bare .top-tab { background: none; padding: 2px 0; border-top: none; }
+
+  /* ---------- Scrollable content area ---------- */
+  .content-scroll { flex: 1; overflow-y: auto; padding: 0 8px; }
+  .top-panel { display: none; }
+  .top-panel.active { display: block; animation: fadeIn .2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+
+  label.field-label, .output-label {
+    font-size: 10px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; color: var(--label);
+    display: block; margin: 14px 10px 7px;
+  }
+  .hint { color: var(--mut); font-size: 10.5px; margin-top: 4px; }
+
+  input[type="text"], input[type="number"], input[type="date"] {
+    padding: 0 9px; border: 1px solid #DADADA; border-radius: var(--radius-sm);
+    font-family: inherit; font-size: 11.5px; font-weight: 700; color: #1C1C1C; background: #fff; height: 27px;
+  }
+  input:focus { outline: none; border-color: var(--teal); }
+
+  .field-grid-2 { display: flex; gap: 9px; margin: 0 8px 12px 8px; }
+  .field-grid-2 > div { flex: 1; }
+  .field-grid-2 input { width: 100%; }
+  .field-block { margin-bottom: 4px; }
+
+  /* ---------- One unified segmented-toggle style for Append/Replace, Channels/Video, Search/Assistant ---------- */
+  .seg { display: inline-flex; background: var(--seg); border-radius: 8px; padding: 2px; gap: 2px; }
+  .seg button {
+    border: 1px solid transparent; background: none; border-radius: 6px; padding: 5px 12px;
+    font-size: 11px; font-weight: 600; color: #4A4A4A; cursor: pointer;
+  }
+  .seg button.active { background: #fff; border-color: #909095; color: #1F1F1F; }
+  .seg-row { margin: 0 8px 4px 8px; }
+
+  /* ---------- Custom checkboxes (native inputs can't do a two-tone border/fill, these can) ---------- */
+  .ccheck { display: flex; align-items: center; gap: 9px; cursor: pointer; }
+  .ccheck input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .ccheck-box {
+    width: 20px; height: 20px; border-radius: 6px; background: #fff; border: 2px solid var(--teal-br);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .ccheck input:checked ~ .ccheck-box { border: 1.5px solid var(--lime-border); }
+  .ccheck-tick { opacity: 0; }
+  .ccheck input:checked ~ .ccheck-box .ccheck-tick { opacity: 1; }
+
+  .track-row { display: flex; gap: 11px; margin: 14px 12px 0; align-items: flex-start; }
+  .track-row .ccheck-box { margin-top: 1px; }
+  .track-row p { color: var(--teal); font-weight: 700; font-size: 11.5px; line-height: 1.5; margin: 0; }
+
+  .controls-row { display: flex; justify-content: space-between; align-items: center; margin: 12px 8px 0; }
+  .stepper {
+    display: flex; align-items: center; gap: 12px; border: 1px solid #DCDCDC; background: #FCFCFC;
+    border-radius: 8px; height: 26px; padding: 0 11px; color: #8A8A8A; font-size: 13px;
+  }
+  .stepper b { font-size: 12px; color: #1F1F1F; font-weight: 700; }
+  .stepper button { background: none; border: none; color: inherit; font: inherit; cursor: pointer; padding: 0; }
+
+  .vlabel { color: var(--teal); font-weight: 700; font-size: 12px; margin: 13px 12px 8px; }
+  .filters { display: grid; grid-template-columns: 1fr 1.2fr; row-gap: 11px; column-gap: 4px; margin: 0 12px; align-items: center; }
+  .filters .filter-label { font-size: 11.5px; font-weight: 700; color: var(--mut); }
+  .filters .filter-label.lime { color: var(--lime); }
+  .minmax { display: flex; gap: 8px; }
+  .minmax input {
+    width: 42px; height: 22px; border: 1px solid #D2D2D2; border-radius: 5px; background: #fff;
+    font-size: 10px; font-weight: 400; color: #8A8A8A; text-align: center; padding: 0;
+  }
+
+  .progress-track { width: 100%; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; margin: 10px 8px 6px 8px; width: calc(100% - 16px); }
+  .progress-fill { height: 100%; background: var(--green); width: 0%; transition: width .25s ease; }
+  .progress-chips { display: flex; gap: 6px; margin: 0 8px 10px 8px; flex-wrap: wrap; }
+  .chip { font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+  .chip.idle { background: #fff; color: var(--mut); border: 1px solid var(--border); }
+  .chip.ok { background: var(--green-bg); color: var(--green); }
+  .chip.skip { background: #fef7e0; color: #b06000; }
+  .chip.err { background: #fce8e6; color: var(--error); }
+
+  .results {
+    position: relative; margin: 3px 8px 14px; background: #fff; border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow); max-height: 200px; overflow-y: auto;
+  }
+  .results.tall { max-height: 320px; }
+  .result-row { display: flex; align-items: flex-start; gap: 8px; padding: 9px 10px; border-bottom: 1px solid #EDEBED; font-size: 11.5px; animation: fadeIn .2s ease; }
+  .result-row:last-child { border-bottom: none; }
+  .result-icon { flex-shrink: 0; font-weight: 700; }
+  .ok .result-icon { color: var(--green); } .skip .result-icon { color: var(--amber); } .err .result-icon { color: var(--error); }
+  .result-msg { color: var(--mut); }
+  .empty-state { text-align: center; padding: 30px 16px; color: var(--mut); font-size: 12px; }
+  .empty-state .empty-icon {
+    font-size: 20px; display: flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; margin: 0 auto 10px auto; border-radius: 50%; background: var(--bg);
+  }
+  .discover-note { background: var(--green-bg); border: 1px solid #D8E8DA; border-radius: 10px; padding: 9px 12px; font-size: 11px; color: var(--green); margin: 8px 8px 4px 8px; }
+  .plain-hint { font-size: 10.5px; font-style: italic; color: #8E8E8E; margin: 10px 12px; line-height: 1.55; }
+  .bottom-spacer { height: 6px; flex-shrink: 0; }
+
+  /* ---------- Composer (bottom bar) — one card holding input + toggle + send, per the reference ---------- */
+  .bottom-bar { flex-shrink: 0; padding: 6px 6px 10px 6px; }
+  .composer {
+    background: #FDFDFD; border: 1px solid #E5E3E5; border-radius: 16px; padding: 9px 9px 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  }
+  .composer textarea {
+    width: 100%; border: none; background: none; resize: none; min-height: 20px; max-height: 70px;
+    font-family: inherit; font-size: 10.5px; font-style: italic; color: #A2A09E; padding: 2px; margin-bottom: 12px;
+  }
+  .composer textarea:focus { outline: none; font-style: normal; color: var(--ink); }
+  .composer-row { display: flex; justify-content: space-between; align-items: center; }
+  .send-wrap {
+    display: flex; align-items: center; gap: 6px; background: #fff; border: 1px solid #E0E0E0;
+    border-radius: 999px; height: 30px; padding: 0 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); position: relative;
+  }
+  .send-btn { background: none; border: none; padding: 0; cursor: pointer; color: var(--navy); display: flex; align-items: center; }
+  .send-btn.stopping { color: var(--error); }
+  .send-caret { background: none; border: none; padding: 0; margin-left: 2px; cursor: pointer; color: inherit; display: flex; align-items: center; }
+
+  .koli-banner {
+    display: flex; align-items: center; gap: 10px; margin: 12px 8px 0; background: var(--green-bg);
+    border: 1px solid #D8E8DA; border-radius: 10px; padding: 9px 12px;
+  }
+  .koli-banner .icon { width: 26px; height: 26px; flex: none; border-radius: 50%; background: var(--green); display: flex; align-items: center; justify-content: center; }
+  .koli-banner b { display: block; font-size: 12.5px; color: #171717; }
+  .koli-banner span { display: block; font-size: 10px; color: #7C8B7F; margin-top: 2px; }
+
+  .ask-prompt { margin-top: 30px; text-align: center; padding: 0 34px; }
+  .ask-prompt b { display: block; font-size: 14px; color: #191919; margin-top: 12px; }
+  .ask-prompt p { font-size: 10.5px; color: #8E8E8E; line-height: 1.55; margin-top: 7px; }
+
+  .dd-menu {
+    position: absolute; right: 20px; bottom: 66px; width: 148px; background: #fff; border: 1px solid #EFEFEF;
+    border-radius: 12px; box-shadow: 0 10px 26px rgba(0,0,0,.16); padding: 5px 0; z-index: 5;
+  }
+  .dd-row { display: flex; align-items: center; gap: 9px; padding: 8px 12px; font-size: 11.5px; font-weight: 600; color: #333; cursor: pointer; }
+  .dd-row:hover { background: var(--bg); }
+  .dd-row .dd-check { margin-left: auto; opacity: 0; }
+  .dd-row.selected .dd-check { opacity: 1; }
+  .toast {
+    position: absolute; bottom: 66px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff;
+    font-size: 11px; padding: 7px 14px; border-radius: 8px; z-index: 6; white-space: nowrap;
+  }
+  .link-btn { background: none; border: none; color: var(--green); font-weight: 600; cursor: pointer; padding: 0; font-size: 11px; margin: 6px 0 0 4px; display: inline-block; }
+</style>
+
+<div class="mini-header">
+  <div class="brand-mark-small">K<span class="active-sheet-badge" id="activeSheetBadge" title="—"></span></div>
+  <div class="top-tabs" id="topTabsBar">
+    <button class="top-tab active" data-toptab="profile">Profile</button>
+    <button class="top-tab" data-toptab="discover">Discover</button>
+  </div>
+  <button class="icon-btn" id="settingsToggle" title="Quick settings">⚙</button>
+</div>
+
+<div class="drawer" id="settingsDrawer">
+  <div class="drawer-inner">
+    <div class="drawer-row"><span>YouTube API key</span><span class="key-status" id="ytKeyStatus">checking…</span></div>
+    <div class="drawer-row"><span>Gemini API key</span><span class="key-status" id="geminiKeyStatus">checking…</span></div>
+    <div class="chk-row">
+      <input type="checkbox" id="qsScanSponsors" />
+      <div><label for="qsScanSponsors">Scan recent videos for sponsors during Channel analysis</label></div>
+    </div>
+    <div class="chk-row">
+      <input type="checkbox" id="qsLogMentions" />
+      <div><label for="qsLogMentions">Log individual sponsor mentions</label><span class="chk-hint">Adds rows to the Sponsor Mentions tab, not just the rollup</span></div>
+    </div>
+    <div class="chk-row">
+      <input type="checkbox" id="qsAttemptTimestamp" />
+      <div><label for="qsAttemptTimestamp">Attempt in-video timestamp for mentions</label><span class="chk-hint">Best-effort, uses auto-captions when available</span></div>
+    </div>
+    <a class="drawer-link" id="openFullSettings">Edit API keys & full settings →</a>
+  </div>
+</div>
+
+<div class="content-scroll">
+
+  <!-- ===================== PROFILE ===================== -->
+  <div class="top-panel active" id="toppanel-profile">
+    <div class="seg-row" style="margin-top:13px;">
+      <div class="seg">
+        <button type="button" class="active" data-mode="append" id="profile-mode-append">Append</button>
+        <button type="button" data-mode="replace" id="profile-mode-replace">Replace</button>
+      </div>
+    </div>
+    <label class="field-label">Rerunning this channel</label>
+    <div class="field-grid-2">
+      <div><input type="date" id="profile-start" /></div>
+      <div><input type="date" id="profile-end" /></div>
+    </div>
+    <label class="output-label">Output</label>
+    <div class="progress-track"><div class="progress-fill" id="profile-progressFill"></div></div>
+    <div class="progress-chips" id="profile-chips"><span class="chip idle">Idle</span></div>
+    <div class="results" id="profile-results"><div class="empty-state"><span class="empty-icon">👤</span>One row per video will be written to the Profile tab.</div></div>
+
+    <label class="ccheck track-row">
+      <input type="checkbox" id="profile-track" />
+      <span class="ccheck-box"><svg class="ccheck-tick" width="12" height="12" viewBox="0 0 24 24"><path d="M4.5 13l5 5L19.5 7" fill="none" stroke="var(--teal-br)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <p>Track this channel going forward (enables "Refresh Tracked Profiles" from the menu)</p>
+    </label>
+  </div>
+
+  <!-- ===================== DISCOVER ===================== -->
+  <div class="top-panel" id="toppanel-discover">
+    <div class="discover-note">Finds up to 5 similar channels or videos. Filters use a margin, not an exact match — think "close to," not "identical."</div>
+    <div class="controls-row">
+      <div class="seg">
+        <button type="button" class="active" data-type="channel" id="discover-type-channel">Channels</button>
+        <button type="button" data-type="video" id="discover-type-video">Videos</button>
+      </div>
+      <div class="stepper">
+        <button type="button" id="discover-count-minus">−</button>
+        <b id="discover-count-display">5</b>
+        <button type="button" id="discover-count-plus">+</button>
+      </div>
+    </div>
+
+    <label class="output-label">Output</label>
+    <div class="progress-track"><div class="progress-fill" id="discover-progressFill"></div></div>
+    <div class="progress-chips" id="discover-chips"><span class="chip idle">Idle</span></div>
+    <div class="results" id="discover-results"><div class="empty-state"><span class="empty-icon">🔍</span>Matches will appear here and in the Discover Results tab.</div></div>
+
+    <label class="vlabel">Views range</label>
+    <div class="filters">
+      <label class="ccheck"><input type="checkbox" id="discover-f-keywords" checked /><span class="ccheck-box"><svg class="ccheck-tick" width="12" height="12" viewBox="0 0 24 24"><path d="M4.5 13l5 5L19.5 7" fill="none" stroke="var(--lime-check)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="filter-label lime">Keywords</span></label>
+      <label class="ccheck"><input type="checkbox" id="discover-f-engagement" /><span class="ccheck-box"><svg class="ccheck-tick" width="12" height="12" viewBox="0 0 24 24"><path d="M4.5 13l5 5L19.5 7" fill="none" stroke="var(--teal-br)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="filter-label">Engagement Rate</span></label>
+      <label class="ccheck"><input type="checkbox" id="discover-f-niche" /><span class="ccheck-box"><svg class="ccheck-tick" width="12" height="12" viewBox="0 0 24 24"><path d="M4.5 13l5 5L19.5 7" fill="none" stroke="var(--teal-br)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="filter-label">Niche</span></label>
+      <label class="ccheck" id="discover-postsrow"><input type="checkbox" id="discover-f-posts" /><span class="ccheck-box"><svg class="ccheck-tick" width="12" height="12" viewBox="0 0 24 24"><path d="M4.5 13l5 5L19.5 7" fill="none" stroke="var(--teal-br)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="filter-label">Post per Month</span></label>
+      <label class="ccheck"><input type="checkbox" id="discover-f-views" /><span class="ccheck-box"><svg class="ccheck-tick" width="12" height="12" viewBox="0 0 24 24"><path d="M4.5 13l5 5L19.5 7" fill="none" stroke="var(--teal-br)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="filter-label">View range</span></label>
+      <div class="minmax"><input type="number" id="discover-views-min" placeholder="min" /><input type="number" id="discover-views-max" placeholder="max" /></div>
+    </div>
+  </div>
+
+  <!-- ===================== ASSISTANT RESULT (shown when bottom mode = Assistant, replaces whichever top-panel was active) ===================== -->
+  <div class="top-panel" id="toppanel-assistant-result">
+    <div class="koli-banner">
+      <div class="icon"><svg width="12" height="12" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg></div>
+      <div><b>Koli</b><span>Your AI assistant for this channel.</span></div>
+    </div>
+    <div class="ask-prompt" id="assistant-empty-prompt">
+      <svg width="46" height="46" viewBox="0 0 48 48"><path d="M24 6.5c10.2 0 18.5 7.4 18.5 16.5S34.2 39.5 24 39.5c-2.5 0-4.9-.4-7.1-1.2L9 41.5l2.3-6.2C7.9 32.1 5.5 28 5.5 23 5.5 13.9 13.8 6.5 24 6.5z" fill="#EAF4EC" stroke="#1E8A4C" stroke-width="2.4" stroke-linejoin="round"/><path d="M24 14.5l2.4 6.1 6.1 2.4-6.1 2.4L24 31.5l-2.4-6.1-6.1-2.4 6.1-2.4 2.4-6.1z" fill="#1E8A4C"/></svg>
+      <b>Ask Koli anything</b>
+      <p>Get insights, summaries, ideas,<br>and more from this channel.</p>
+    </div>
+    <div id="assistant-result-area" style="display:none">
+      <label class="output-label">Result</label>
+      <div class="results" id="assistant-results"></div>
+      <div class="plain-hint">Ask in plain English — e.g. "analyze this channel: youtube.com/@handle", "find 3 channels similar to this one", or "check brand safety on Acme Tools." Restricted to Koli's own actions only — not a general web agent.</div>
+    </div>
+  </div>
+
+  <div class="bottom-spacer"></div>
+</div>
+
+<!-- ===================== PERSISTENT BOTTOM BAR ===================== -->
+<div class="bottom-bar">
+  <div class="composer">
+    <textarea id="universal-input" placeholder="Add Channel or Video Link"></textarea>
+    <div class="composer-row">
+      <div class="seg" id="mode-toggle">
+        <button class="active" data-mode="search" id="mode-search">Search</button>
+        <button data-mode="assistant" id="mode-assistant">Assistant</button>
+      </div>
+      <div class="send-wrap">
+        <button class="send-btn" id="run-btn" title="Run">
+          <svg width="13" height="13" viewBox="0 0 24 24"><path fill="currentColor" d="M7 4.5l13 7.5-13 7.5z"/></svg>
+        </button>
+        <button class="send-caret" id="dd-toggle" title="Input options">
+          <svg width="11" height="11" viewBox="0 0 24 24"><path fill="currentColor" d="M6.5 9.5l5.5 5.5 5.5-5.5z"/></svg>
+        </button>
+        <div class="dd-menu" id="ddMenu" style="display:none">
+          <div class="dd-row" data-inputmode="voice">🎤 Voice note</div>
+          <div class="dd-row selected" data-inputmode="text">⌨ Text<svg class="dd-check" width="13" height="13" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M4.5 13l5 5L19.5 7"/></svg></div>
+          <div class="dd-row" data-inputmode="attachment">📎 Attachment</div>
+          <div class="dd-row" data-inputmode="readaloud">🔊 Read aloud</div>
+        </div>
+      </div>
+    </div>
+    <button class="link-btn" id="universal-useRange">Use selected sheet range instead</button>
+  </div>
+</div>
+
+<script>
+  // Each setup block below runs isolated — if one throws (a missing
+  // element, a stale template value, anything), it's logged to the
+  // console and every OTHER block still runs. Without this, one early
+  // error silently kills every click handler registered after it in the
+  // same script — which is exactly the failure mode that made an entire
+  // sidebar look unresponsive from a single bad line.
+  function setup(name, fn) {
+    try { fn(); } catch (e) { console.error('[Koli] setup failed: ' + name, e); }
+  }
+
+  // ---------- Active sheet/tab indicator ----------
+  // Polls every few seconds while the sidebar is open — cheap (just reads
+  // a name, no API calls) but it is a small periodic background call,
+  // worth knowing about even at negligible cost.
+  function refreshActiveSheetName() {
+    google.script.run.withSuccessHandler((name) => {
+      document.getElementById('activeSheetBadge').title = 'Viewing: ' + (name || '—');
+    }).getActiveSheetName();
+  }
+  refreshActiveSheetName();
+  setInterval(refreshActiveSheetName, 4000);
+
+  // ---------- Top tab switching (Profile / Discover) ----------
+  const topTabs = ['profile', 'discover'];
+  let currentTopTab = 'profile';
+  setup('initial mode from template', () => {
+    const templateMode = '<?= mode ?>';
+    if (topTabs.includes(templateMode)) currentTopTab = templateMode;
+  });
+
+  function setActiveTopTab(tab) {
+    currentTopTab = tab;
+    topTabs.forEach(t => {
+      document.querySelector('.top-tab[data-toptab="' + t + '"]').classList.toggle('active', t === tab);
+    });
+    setMode('search'); // switching Profile/Discover always returns to Search mode
+  }
+  setup('top tab click bindings', () => {
+    topTabs.forEach(t => document.querySelector('.top-tab[data-toptab="' + t + '"]').onclick = () => setActiveTopTab(t));
+  });
+
+  // ---------- Search vs. Assistant mode ----------
+  let currentMode = 'search';
+  function setMode(mode) {
+    currentMode = mode;
+    document.getElementById('mode-search').classList.toggle('active', mode === 'search');
+    document.getElementById('mode-assistant').classList.toggle('active', mode === 'assistant');
+    document.getElementById('toppanel-profile').classList.toggle('active', mode === 'search' && currentTopTab === 'profile');
+    document.getElementById('toppanel-discover').classList.toggle('active', mode === 'search' && currentTopTab === 'discover');
+    document.getElementById('toppanel-assistant-result').classList.toggle('active', mode === 'assistant');
+    document.getElementById('topTabsBar').classList.toggle('bare', mode === 'assistant');
+    document.getElementById('universal-input').placeholder = mode === 'assistant' ? 'Ask Koli about this channel...' : 'Add Channel or Video Link';
+    document.getElementById('universal-useRange').style.display = mode === 'assistant' ? 'none' : 'inline-block';
+  }
+  setup('mode toggle click bindings', () => {
+    document.getElementById('mode-search').onclick = () => setMode('search');
+    document.getElementById('mode-assistant').onclick = () => setMode('assistant');
+  });
+  setup('initial tab activation', () => setActiveTopTab(currentTopTab));
+
+  // ---------- Quick settings drawer ----------
+  setup('settings drawer', () => {
+    const drawer = document.getElementById('settingsDrawer');
+    const settingsToggle = document.getElementById('settingsToggle');
+    let drawerLoaded = false;
+    settingsToggle.onclick = () => {
+      const opening = !drawer.classList.contains('open');
+      drawer.classList.toggle('open');
+      settingsToggle.classList.toggle('open', opening);
+      if (opening && !drawerLoaded) loadQuickSettings();
+    };
+    function loadQuickSettings() {
+      google.script.run.withSuccessHandler((s) => {
+        drawerLoaded = true;
+        const yt = document.getElementById('ytKeyStatus');
+        yt.textContent = s.youtubeKeySet ? 'Set (…' + s.youtubeKeyMasked.slice(-4) + ')' : 'Not set';
+        yt.className = 'key-status ' + (s.youtubeKeySet ? 'set' : 'unset');
+        const gm = document.getElementById('geminiKeyStatus');
+        gm.textContent = s.geminiKeySet ? 'Set (…' + s.geminiKeyMasked.slice(-4) + ')' : 'Not set';
+        gm.className = 'key-status ' + (s.geminiKeySet ? 'set' : 'unset');
+        document.getElementById('qsScanSponsors').checked = !!s.scanChannelSponsors;
+        document.getElementById('qsLogMentions').checked = !!s.logSponsorMentions;
+        document.getElementById('qsAttemptTimestamp').checked = !!s.attemptSponsorTimestamp;
+      }).getSettings();
+    }
+    ['qsScanSponsors', 'qsLogMentions', 'qsAttemptTimestamp'].forEach(id => {
+      document.getElementById(id).onchange = () => {
+        google.script.run.saveSettings({
+          scanChannelSponsors: document.getElementById('qsScanSponsors').checked,
+          logSponsorMentions: document.getElementById('qsLogMentions').checked,
+          attemptSponsorTimestamp: document.getElementById('qsAttemptTimestamp').checked
+        });
+      };
+    });
+    document.getElementById('openFullSettings').onclick = () => google.script.run.showSettingsDialog();
+  });
+
+  // ---------- Profile-specific controls ----------
+  let profileMode = 'append';
+  setup('profile controls', () => {
+    const today = new Date();
+    const start = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    document.getElementById('profile-end').value = today.toISOString().slice(0, 10);
+    document.getElementById('profile-start').value = start.toISOString().slice(0, 10);
+    document.getElementById('profile-mode-append').onclick = () => { profileMode = 'append'; document.getElementById('profile-mode-append').classList.add('active'); document.getElementById('profile-mode-replace').classList.remove('active'); };
+    document.getElementById('profile-mode-replace').onclick = () => { profileMode = 'replace'; document.getElementById('profile-mode-replace').classList.add('active'); document.getElementById('profile-mode-append').classList.remove('active'); };
+  });
+
+  // ---------- Discover-specific controls ----------
+  let discoverType = 'channel';
+  let discoverCount = 5;
+  setup('discover controls', () => {
+    document.getElementById('discover-type-channel').onclick = () => {
+      discoverType = 'channel'; document.getElementById('discover-type-channel').classList.add('active');
+      document.getElementById('discover-type-video').classList.remove('active');
+      document.getElementById('discover-postsrow').style.display = '';
+    };
+    document.getElementById('discover-type-video').onclick = () => {
+      discoverType = 'video'; document.getElementById('discover-type-video').classList.add('active');
+      document.getElementById('discover-type-channel').classList.remove('active');
+      document.getElementById('discover-postsrow').style.display = 'none';
+      document.getElementById('discover-f-posts').checked = false;
+    };
+    document.getElementById('discover-count-minus').onclick = () => {
+      discoverCount = Math.max(1, discoverCount - 1);
+      document.getElementById('discover-count-display').textContent = discoverCount;
+    };
+    document.getElementById('discover-count-plus').onclick = () => {
+      discoverCount = Math.min(5, discoverCount + 1);
+      document.getElementById('discover-count-display').textContent = discoverCount;
+    };
+  });
+
+  // ---------- Shared helpers ----------
+  function escapeHtml(s) { return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+  function linesFrom(id) {
+    return document.getElementById(id).value.trim().split('\n').map(s => s.trim()).filter(Boolean);
+  }
+  setup('use-range button', () => {
+    document.getElementById('universal-useRange').onclick = () => {
+      google.script.run.withSuccessHandler(v => { document.getElementById('universal-input').value = v.join('\n'); }).getSelectedRangeValues();
+    };
+  });
+
+  // ---------- Batch runner state, shared by Profile and Discover (whichever top tab is active) ----------
+  const batchState = { items: [], index: 0, running: false, ok: 0, skip: 0, err: 0 };
+
+  function batchConfigFor(tab) {
+    if (tab === 'profile') {
+      return {
+        serverFn: 'runProfileOne',
+        getExtras: () => [
+          document.getElementById('profile-start').value,
+          document.getElementById('profile-end').value,
+          profileMode,
+          document.getElementById('profile-track').checked
+        ],
+        labelFor: (item, result) => (result.name || item) + (result.written !== undefined ? ' — ' + result.written + '/' + result.total + ' video(s) written' : ''),
+        resultsId: 'profile-results', progressId: 'profile-progressFill', chipsId: 'profile-chips'
+      };
+    }
+    return {
+      serverFn: 'runDiscoverOne',
+      getExtras: () => [
+        discoverType,
+        Math.max(1, Math.min(5, discoverCount)),
+        {
+          matchKeywords: document.getElementById('discover-f-keywords').checked,
+          matchNiche: document.getElementById('discover-f-niche').checked,
+          matchEngagement: document.getElementById('discover-f-engagement').checked,
+          matchPostsPerMonth: document.getElementById('discover-f-posts').checked,
+          matchViews: document.getElementById('discover-f-views').checked,
+          viewsMin: Number(document.getElementById('discover-views-min').value) || 0,
+          viewsMax: Number(document.getElementById('discover-views-max').value) || 0
+        }
+      ],
+      labelFor: (item, result) => result.message || item,
+      resultsId: 'discover-results', progressId: 'discover-progressFill', chipsId: 'discover-chips'
+    };
+  }
+
+  function addResult(resultsEl, status, label, message) {
+    if (resultsEl.querySelector('.empty-state')) resultsEl.innerHTML = '';
+    const row = document.createElement('div');
+    row.className = 'result-row ' + status;
+    const icon = status === 'ok' ? '✓' : status === 'skip' ? '⤳' : '✕';
+    row.innerHTML = '<span class="result-icon">' + icon + '</span><span><strong>' + escapeHtml(label) + '</strong>' +
+      (message ? '<br><span class="result-msg">' + escapeHtml(message) + '</span>' : '') + '</span>';
+    resultsEl.prepend(row);
+  }
+
+  const PLAY_ICON = '<svg width="13" height="13" viewBox="0 0 24 24"><path fill="currentColor" d="M7 4.5l13 7.5-13 7.5z"/></svg>';
+  const STOP_ICON = '<svg width="13" height="13" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" fill="currentColor" rx="2"/></svg>';
+  function setRunBtnState(running) {
+    const btn = document.getElementById('run-btn');
+    btn.innerHTML = running ? STOP_ICON : PLAY_ICON;
+    btn.classList.toggle('stopping', running);
+    btn.title = running ? 'Stop' : 'Run';
+  }
+
+  function updateBatchChips(cfg, labelOverride) {
+    document.getElementById(cfg.progressId).style.width = (batchState.items.length ? Math.round(batchState.index / batchState.items.length * 100) : 0) + '%';
+    document.getElementById(cfg.chipsId).innerHTML = labelOverride ||
+      ('<span class="chip ok">✓ ' + batchState.ok + '</span><span class="chip skip">⤳ ' + batchState.skip +
+       '</span><span class="chip err">✕ ' + batchState.err + '</span>');
+  }
+
+  function runBatchNext(cfg) {
+    if (!batchState.running) return;
+    if (batchState.index >= batchState.items.length) {
+      batchState.running = false; setRunBtnState(false);
+      updateBatchChips(cfg, '<span class="chip ok">Done — ' + batchState.ok + ' ok, ' + batchState.skip + ' skipped, ' + batchState.err + ' errors</span>');
+      return;
+    }
+    const item = batchState.items[batchState.index];
+    const resultsEl = document.getElementById(cfg.resultsId);
+    const call = google.script.run.withSuccessHandler((result) => {
+      if (result.ok) { batchState.ok++; addResult(resultsEl, 'ok', cfg.labelFor(item, result), result.message || ''); }
+      else if (result.skipped) { batchState.skip++; addResult(resultsEl, 'skip', item, result.message); }
+      else { batchState.err++; addResult(resultsEl, 'err', item, result.message); }
+      batchState.index++; updateBatchChips(cfg); runBatchNext(cfg);
+    }).withFailureHandler((err) => {
+      batchState.err++; addResult(resultsEl, 'err', item, err.message || String(err));
+      batchState.index++; updateBatchChips(cfg); runBatchNext(cfg);
+    });
+    call[cfg.serverFn].apply(call, [item].concat(batchState.extras));
+  }
+
+  function startBatch() {
+    const cfg = batchConfigFor(currentTopTab);
+    const items = linesFrom('universal-input');
+    if (!items.length) return;
+    batchState.items = items; batchState.index = 0; batchState.ok = 0; batchState.skip = 0; batchState.err = 0;
+    batchState.extras = cfg.getExtras();
+    document.getElementById(cfg.resultsId).innerHTML = '';
+    batchState.running = true; setRunBtnState(true);
+    updateBatchChips(cfg);
+    runBatchNext(cfg);
+  }
+  function stopBatch() {
+    const cfg = batchConfigFor(currentTopTab);
+    batchState.running = false; setRunBtnState(false);
+    updateBatchChips(cfg, '<span class="chip idle">Stopped at ' + batchState.index + ' / ' + batchState.items.length + '</span>');
+  }
+
+  // ---------- Assistant (single-shot) ----------
+  let assistantRunning = false;
+  function startAssistant() {
+    const text = document.getElementById('universal-input').value.trim();
+    if (!text) return;
+    const resultsEl = document.getElementById('assistant-results');
+    document.getElementById('assistant-empty-prompt').style.display = 'none';
+    document.getElementById('assistant-result-area').style.display = 'block';
+    assistantRunning = true; setRunBtnState(true);
+    resultsEl.innerHTML = '<div class="empty-state">Thinking…</div>';
+
+    google.script.run
+      .withSuccessHandler((result) => {
+        assistantRunning = false; setRunBtnState(false);
+        const cls = result.ok ? 'ok' : 'err';
+        const icon = result.ok ? '✓' : '✕';
+        resultsEl.innerHTML = '<div class="result-row ' + cls + '"><span class="result-icon">' + icon +
+          '</span><span>' + escapeHtml(result.summary || result.message || '') + '</span></div>';
+      })
+      .withFailureHandler((err) => {
+        assistantRunning = false; setRunBtnState(false);
+        resultsEl.innerHTML = '<div class="result-row err"><span class="result-icon">✕</span><span>' +
+          escapeHtml(err.message || String(err)) + '</span></div>';
+      })
+      .runAssistantCommand(text);
+  }
+
+  // ---------- Single Run/Stop button, behavior depends on mode ----------
+  setup('run button', () => {
+    document.getElementById('run-btn').onclick = () => {
+      if (currentMode === 'assistant') {
+        if (assistantRunning) return; // no cancel for a single in-flight Assistant call
+        startAssistant();
+      } else {
+        if (batchState.running) stopBatch();
+        else startBatch();
+      }
+    };
+  });
+
+  // ---------- Input options dropdown (Voice note / Text / Attachment / Read aloud) ----------
+  function showToast(msg) {
+    const existing = document.querySelector('.toast');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = msg;
+    document.querySelector('.composer').appendChild(toast);
+    setTimeout(() => toast.remove(), 2600);
+  }
+  setup('input options dropdown', () => {
+    const ddMenu = document.getElementById('ddMenu');
+    document.getElementById('dd-toggle').onclick = (e) => {
+      e.stopPropagation();
+      ddMenu.style.display = ddMenu.style.display === 'none' ? 'block' : 'none';
+    };
+    document.addEventListener('click', () => { ddMenu.style.display = 'none'; });
+
+    let recognition = null;
+    function stopVoiceNote() { if (recognition) { recognition.stop(); recognition = null; } }
+
+    ddMenu.querySelectorAll('.dd-row').forEach((row) => {
+      row.onclick = (e) => {
+        e.stopPropagation();
+        ddMenu.querySelectorAll('.dd-row').forEach(r => r.classList.remove('selected'));
+        const mode = row.dataset.inputmode;
+
+        if (mode === 'text') {
+          row.classList.add('selected');
+          stopVoiceNote();
+          ddMenu.style.display = 'none';
+
+        } else if (mode === 'voice') {
+          row.classList.add('selected');
+          ddMenu.style.display = 'none';
+          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+          if (!SpeechRecognition) { showToast('Voice input isn\'t available in this browser.'); return; }
+          recognition = new SpeechRecognition();
+          recognition.continuous = true;
+          recognition.interimResults = false;
+          recognition.onresult = (ev) => {
+            const input = document.getElementById('universal-input');
+            const transcript = ev.results[ev.results.length - 1][0].transcript;
+            input.value = (input.value ? input.value + ' ' : '') + transcript.trim();
+          };
+          recognition.onerror = () => showToast('Microphone access failed or was blocked.');
+          try { recognition.start(); showToast('🎤 Listening…'); }
+          catch (err) { showToast('Could not start voice note: ' + err.message); }
+
+        } else if (mode === 'attachment') {
+          ddMenu.style.display = 'none';
+          showToast('Attachments aren\'t supported yet.');
+
+        } else if (mode === 'readaloud') {
+          ddMenu.style.display = 'none';
+          const resultsEl = document.getElementById('assistant-results');
+          const text = resultsEl ? resultsEl.textContent.trim() : '';
+          if (!text || !window.speechSynthesis) { showToast('Nothing to read yet.'); return; }
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+        }
+      };
+    });
+  });
+</script>
