@@ -17,6 +17,7 @@ const SHEET_NAMES = {
   BRAND_TARGETS: 'Brand Targets',
   GAP_ANALYSIS: 'Gap Analysis',
   OUTREACH_DRAFTS: 'Outreach Drafts',
+  BRAND_FIT_SCORES: 'Brand Fit Scores',
   SNAPSHOTS: '_SubscriberSnapshots',       // hidden — sub-count log for New Subscribers diffing
   TRACKED_PROFILES: '_TrackedProfiles'      // hidden — control sheet for Profile tracking
 };
@@ -35,6 +36,11 @@ const CAMPAIGN_STAGES = ['Briefed', 'In Production', 'Delivered', 'Payment Pendi
 // time) should add a new attempt rather than overwrite the last one.
 const OUTREACH_DRAFT_HEADERS = ['Channel', 'Channel ID', 'Video Referenced', 'Subject', 'Email Body', 'Chars', 'Status', 'Generated'];
 const OUTREACH_DRAFT_STATUSES = ['Draft', 'Reviewed', 'Sent'];
+
+// One row per (channel, brand) scoring event, not one row per channel —
+// the same channel scored against two different brands are two different
+// answers, both worth keeping (same reasoning as Outreach Drafts).
+const BRAND_FIT_HEADERS = ['Channel', 'Channel ID', 'Brand', 'Score', 'Grade', 'Notes', 'Scored'];
 
 // Column index (1-based) of the hidden ID key column, per sheet — used by
 // findRowByKey_ and by hideColumns() calls in sheetWriter.gs.
@@ -67,6 +73,29 @@ const GRADE_BANDS = [
   { min: 85, letter: 'A' }, { min: 70, letter: 'B' }, { min: 55, letter: 'C' },
   { min: 40, letter: 'D' }, { min: 0, letter: 'F' }
 ];
+
+// Brand Fit Score — the "not a Grade rewrite" item from ROADMAP.md's queued
+// list: Grade is channel-intrinsic (same for every brand); this is
+// channel-vs-a-specific-campaign-brief. It exists specifically to replace
+// two things Grade's own comments already flag as placeholders once a real
+// target exists — see channelMetricsService.gs's computeGrade_: contentFit
+// was a flat neutral 50 ("inherently relative to a specific target niche/
+// campaign... genuinely meaningless to fake a real number here"), and
+// audienceFit was a binary Tier-1-country check, not a real audience match.
+// The other 4 components are reused as-is from Grade — momentum,
+// engagement quality, and reliability don't change per brief, so
+// recomputing a second opinion on them would be noise, not signal.
+// budgetFit is new: brief's stated per-video budget vs. this channel's
+// estimated CPM cost (cpmService.gs) at its typical view count. risk here
+// uses a live checkBrandSafety() Reddit check instead of Grade's
+// authenticity-only proxy — worth the extra API call when you're about to
+// make a real spend decision on one specific creator, not worth running on
+// every bulk Channel analysis pass. Weights are Koli's own judgment call,
+// same as GRADE_WEIGHTS — tune here once real outcomes justify it.
+const BRAND_FIT_WEIGHTS = {
+  contentFit: 0.20, audienceFit: 0.20, engagementQuality: 0.15, momentum: 0.15,
+  budgetFit: 0.15, reliability: 0.10, risk: 0.05
+};
 // Rank is Koli's own relative ranking across channels you've analyzed, not
 // a global YouTube figure — no public API exposes that. Grows more useful
 // as more channels get analyzed, by design.

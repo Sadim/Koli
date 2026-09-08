@@ -23,12 +23,34 @@ const vm = require('vm');
 const assert = require('assert');
 
 function loadGs(relPath) {
-  const code = fs.readFileSync(path.join(__dirname, '..', relPath), 'utf8');
-  const sandbox = {};
+  return loadGsMulti([relPath]);
+}
+
+/**
+ * Loads several .gs files into ONE shared sandbox, in order — mirrors how
+ * Apps Script actually runs (every .gs file in a project shares one
+ * global scope), needed whenever the function under test calls a
+ * top-level const/function defined in a different file (e.g.
+ * brandFitService.gs's BRAND_FIT_WEIGHTS lives in constants.gs).
+ */
+function loadGsMulti(relPaths, extraGlobals) {
+  const sandbox = Object.assign({}, extraGlobals);
   vm.createContext(sandbox);
-  vm.runInContext(code, sandbox, { filename: relPath });
+  relPaths.forEach((relPath) => {
+    const code = fs.readFileSync(path.join(__dirname, '..', relPath), 'utf8');
+    vm.runInContext(code, sandbox, { filename: relPath });
+  });
   return sandbox;
 }
+
+// Minimal stub for Apps Script's PropertiesService — enough for getProp_
+// (constants.gs) to resolve to its fallback, simulating "no override
+// configured," the normal case for anything gated behind a Settings toggle.
+const NO_PROPERTIES_STUB = {
+  PropertiesService: {
+    getDocumentProperties: () => ({ getProperty: () => null, setProperty: () => {} })
+  }
+};
 
 let passed = 0, failed = 0;
 function test(name, fn) {
@@ -189,6 +211,73 @@ console.log('youtubeService.gs');
   });
   test('computeAvgPostsPerMonth_: zero videos in window returns 0, not NaN/Infinity', () => {
     assert.strictEqual(m.computeAvgPostsPerMonth_([], 30), 0);
+  });
+}
+
+// ---------- brandFitService.gs ----------
+console.log('brandFitService.gs');
+{
+  const m = loadGsMulti(['constants.gs', 'brandFitService.gs']);
+
+  test('clampScore0to100_: in-range passes through, rounds fractional', () => {
+    assert.strictEqual(m.clampScore0to100_(72), 72);
+    assert.strictEqual(m.clampScore0to100_(71.6), 72);
+  });
+  test('clampScore0to100_: out-of-range clamps to 0/100', () => {
+    assert.strictEqual(m.clampScore0to100_(150), 100);
+    assert.strictEqual(m.clampScore0to100_(-20), 0);
+  });
+  test('clampScore0to100_: non-numeric defaults to neutral 50, not null/NaN', () => {
+    // Different rule than clampAuthenticityScore_ on purpose — every
+    // Brand Fit component must contribute a real number to the weighted
+    // composite, there's no "n/a" cell to fall back to display-wise.
+    assert.strictEqual(m.clampScore0to100_('nonsense'), 50);
+    assert.strictEqual(m.clampScore0to100_(undefined), 50);
+  });
+
+  test('computeBudgetFitScore_: no budget entered is neutral, not a penalty', () => {
+    assert.strictEqual(m.computeBudgetFitScore_(20, 100000, 0), 50);
+    assert.strictEqual(m.computeBudgetFitScore_(20, 100000, null), 50);
+  });
+  test('computeBudgetFitScore_: budget comfortably covers estimated cost scores at/near 100', () => {
+    // CPM $20, 100k avg views -> estimated cost $2000. Budget $5000 covers it 2.5x over.
+    const score = m.computeBudgetFitScore_(20, 100000, 5000);
+    assert.strictEqual(score, 100); // clamped ceiling, ratio was 2.5
+  });
+  test('computeBudgetFitScore_: budget well under estimated cost scores low proportionally', () => {
+    // Estimated cost $2000, budget only $500 -> ratio 0.25 -> score 25.
+    const score = m.computeBudgetFitScore_(20, 100000, 500);
+    assert.strictEqual(score, 25);
+  });
+
+  test('computeBrandFitComposite_: weights sum to 1 (constants.gs BRAND_FIT_WEIGHTS)', () => {
+    const weights = { contentFit: 0.20, audienceFit: 0.20, engagementQuality: 0.15, momentum: 0.15, budgetFit: 0.15, reliability: 0.10, risk: 0.05 };
+    const total = Object.values(weights).reduce((a, b) => a + b, 0);
+    assert.ok(Math.abs(total - 1) < 1e-9, 'weights must sum to 1, got ' + total);
+  });
+  test('computeBrandFitComposite_: all-100 components composite to 100', () => {
+    const all100 = { contentFit: 100, audienceFit: 100, engagementQuality: 100, momentum: 100, budgetFit: 100, reliability: 100, risk: 100 };
+    assert.strictEqual(m.computeBrandFitComposite_(all100), 100);
+  });
+  test('computeBrandFitComposite_: all-zero components composite to 0', () => {
+    const allZero = { contentFit: 0, audienceFit: 0, engagementQuality: 0, momentum: 0, budgetFit: 0, reliability: 0, risk: 0 };
+    assert.strictEqual(m.computeBrandFitComposite_(allZero), 0);
+  });
+}
+
+// ---------- cpmService.gs ----------
+console.log('cpmService.gs');
+{
+  const m = loadGsMulti(['constants.gs', 'cpmService.gs'], NO_PROPERTIES_STUB);
+
+  test('estimateCPM and estimateCPMRaw_ agree (the string version is just the raw numbers formatted)', () => {
+    const raw = m.estimateCPMRaw_('maker', 50000, 3);
+    const formatted = m.estimateCPM('maker', 50000, 3);
+    assert.strictEqual(formatted, '$' + raw.low + '-$' + raw.high + ' CPM (est.)');
+  });
+  test('estimateCPMRaw_: low is always <= high', () => {
+    const raw = m.estimateCPMRaw_('finance', 2000000, 8);
+    assert.ok(raw.low <= raw.high, 'low (' + raw.low + ') should be <= high (' + raw.high + ')');
   });
 }
 

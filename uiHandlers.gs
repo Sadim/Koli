@@ -16,6 +16,7 @@ function onOpen() {
       .addItem('Brand Targets', 'showBrandTargets')
       .addItem('Add Brand Target...', 'showAddBrandTargetDialog')
       .addItem('Run Gap Analysis (selected Channels row)', 'runGapAnalysisForActiveRow')
+      .addItem('Brand Fit Score (selected Channels row(s))', 'showBrandFitScoreDialog')
       .addItem('Normalize Sponsor Names', 'normalizeExistingSponsors'))
     .addSeparator()
     .addSubMenu(SpreadsheetApp.getUi().createMenu('Export')
@@ -110,6 +111,8 @@ function showHelp() {
     'Export > Creator One-Pager — pitch-ready PDF for the selected Channels row.\n' +
     'Export > Draft Outreach Email — personalized cold-email draft hooked on a specific ' +
     'detail from the creator\'s last 3 videos, editable in the Outreach Drafts sheet.\n' +
+    'Brand Intelligence > Brand Fit Score — score one or more selected Channels rows against ' +
+    'a specific brand brief (niche, audience, budget), not just Grade\'s general quality score.\n' +
     'Assistant — plain-English command box, restricted to Koli\'s own actions.\n' +
     'Run Diagnostics — checks your API keys and Drive permissions in one click.\n' +
     'Set your YouTube and Gemini API keys first under Settings.',

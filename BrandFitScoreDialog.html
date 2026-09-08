@@ -1,0 +1,122 @@
+<style>
+  :root { --green: #188038; --green-dark: #0d652d; --border: #dadce0; --text: #202124; --text-muted: #5f6368; --error: #d93025; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Google Sans', Roboto, Arial, sans-serif; color: var(--text); padding: 22px; font-size: 13px; }
+  h2 { font-size: 18px; margin: 0 0 4px 0; }
+  .subtitle { color: var(--text-muted); font-size: 11.5px; margin-bottom: 16px; }
+  label { font-weight: 600; display: block; margin: 12px 0 6px 0; font-size: 12.5px; }
+  input[type="text"], input[type="number"], textarea {
+    width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-family: inherit;
+  }
+  textarea { min-height: 44px; resize: vertical; }
+  input:focus, textarea:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px #e6f4ea; }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+  .hint { font-size: 10.5px; color: var(--text-muted); margin-top: 4px; line-height: 1.4; }
+  .chk-row { display: flex; align-items: flex-start; gap: 8px; margin-top: 14px; }
+  .chk-row label { margin: 0; font-size: 12px; font-weight: 500; cursor: pointer; }
+  .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+  button { padding: 9px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; border: none; }
+  .btn-secondary { background: #fff; border: 1px solid var(--border) !important; color: var(--text); }
+  .btn-primary { background: var(--green); color: #fff; }
+  .btn-primary:hover { background: var(--green-dark); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .status { font-size: 12px; margin-top: 10px; display: none; }
+  .status.err { color: var(--error); display: block; }
+  .results { margin-top: 14px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; display: none; }
+  .result-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 11px; font-size: 12px; border-bottom: 1px solid var(--border); }
+  .result-row:last-child { border-bottom: none; }
+  .result-row .score { font-weight: 700; }
+  .result-row.err .score { color: var(--error); font-weight: 400; font-size: 11px; }
+  .sheet-link { display: block; margin-top: 10px; font-size: 12px; color: var(--green); font-weight: 600; }
+</style>
+
+<h2>Brand Fit Score</h2>
+<div class="subtitle"><?= rows.length ?> channel(s) selected — scored against one brief below, written to the Brand Fit Scores sheet.</div>
+
+<label for="brand">Brand / campaign name *</label>
+<input type="text" id="brand" placeholder="e.g. Acme Tools — Q4 launch" />
+
+<label for="targetNiche">Target niche</label>
+<input type="text" id="targetNiche" placeholder="e.g. home fitness equipment" />
+
+<label for="targetAudience">Target audience</label>
+<input type="text" id="targetAudience" placeholder="e.g. US/UK, 25-40, skews female" />
+<div class="hint">Leave niche/audience blank to skip that check (scores neutral, not penalized).</div>
+
+<div class="row">
+  <div>
+    <label for="budgetPerVideo">Budget per video ($)</label>
+    <input type="number" id="budgetPerVideo" placeholder="e.g. 2500" min="0" />
+  </div>
+</div>
+
+<div class="chk-row">
+  <input type="checkbox" id="includeSafetyCheck" checked />
+  <label for="includeSafetyCheck">Include a live brand-safety check (free Reddit signal) — slower, one extra check per channel</label>
+</div>
+
+<div class="status" id="status"></div>
+<div class="results" id="results"></div>
+<a class="sheet-link" id="sheetLink" href="#" target="_blank" rel="noopener" style="display:none">Open Brand Fit Scores sheet →</a>
+
+<div class="actions">
+  <button class="btn-secondary" id="closeBtn" onclick="google.script.host.close()">Close</button>
+  <button class="btn-primary" id="scoreBtn">Score</button>
+</div>
+
+<script>
+  const ROWS = '<?= rows.join(",") ?>';
+
+  document.getElementById('scoreBtn').onclick = () => {
+    const brand = document.getElementById('brand').value.trim();
+    const status = document.getElementById('status');
+    status.className = 'status'; status.style.display = 'none';
+    if (!brand) {
+      status.className = 'status err'; status.textContent = 'Brand/campaign name is required.'; status.style.display = 'block';
+      return;
+    }
+    const btn = document.getElementById('scoreBtn');
+    btn.disabled = true; btn.textContent = 'Scoring…';
+    document.getElementById('results').style.display = 'none';
+    document.getElementById('results').innerHTML = '';
+    document.getElementById('sheetLink').style.display = 'none';
+
+    const brief = {
+      brand: brand,
+      targetNiche: document.getElementById('targetNiche').value.trim(),
+      targetAudience: document.getElementById('targetAudience').value.trim(),
+      budgetPerVideo: document.getElementById('budgetPerVideo').value.trim(),
+      includeSafetyCheck: document.getElementById('includeSafetyCheck').checked
+    };
+
+    google.script.run
+      .withSuccessHandler((resp) => {
+        btn.disabled = false; btn.textContent = 'Score';
+        if (!resp.ok) {
+          status.className = 'status err'; status.textContent = resp.message || 'Something went wrong.'; status.style.display = 'block';
+          return;
+        }
+        const resultsEl = document.getElementById('results');
+        resultsEl.style.display = 'block';
+        resultsEl.innerHTML = resp.results
+          .slice()
+          .sort((a, b) => (b.score || -1) - (a.score || -1))
+          .map((r) => {
+            if (!r.ok) {
+              return '<div class="result-row err"><span>' + escapeHtml(r.name) + '</span><span class="score">' + escapeHtml(r.message) + '</span></div>';
+            }
+            return '<div class="result-row"><span>' + escapeHtml(r.name) + '</span><span class="score">' + r.score + '/100 (' + r.letter + ')</span></div>';
+          }).join('');
+        const linkEl = document.getElementById('sheetLink');
+        linkEl.href = resp.link; linkEl.style.display = 'block';
+      })
+      .withFailureHandler((err) => {
+        btn.disabled = false; btn.textContent = 'Score';
+        status.className = 'status err'; status.textContent = err.message || String(err); status.style.display = 'block';
+      })
+      .runBrandFitScores(ROWS, brief);
+  };
+
+  function escapeHtml(s) { return String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
+</script>

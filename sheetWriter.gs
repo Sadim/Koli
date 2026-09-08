@@ -12,6 +12,7 @@ HIDDEN_COLS[SHEET_NAMES.SPONSORS] = [2];
 HIDDEN_COLS[SHEET_NAMES.PROFILE] = [3, 4];
 HIDDEN_COLS[SHEET_NAMES.CAMPAIGNS] = [2];
 HIDDEN_COLS[SHEET_NAMES.OUTREACH_DRAFTS] = [2];
+HIDDEN_COLS[SHEET_NAMES.BRAND_FIT_SCORES] = [2];
 
 function getOrCreateSheet_(name, headers) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -336,6 +337,28 @@ function getActiveChannelRow_() {
   const row = range.getRow();
   if (row < 2) return null;
   return row;
+}
+
+/**
+ * Multi-row variant of getActiveChannelRow_ — every distinct data row
+ * (row >= 2) touched by the current selection on the Channels sheet, in
+ * sheet order. Selecting several rows (e.g. for a multi-creator Brand Fit
+ * Score comparison) works the same way selecting one row always has;
+ * a single-cell selection just returns that one row, same as before.
+ */
+function getActiveChannelRows_() {
+  const sheet = SpreadsheetApp.getActiveSheet();
+  if (sheet.getName() !== SHEET_NAMES.CHANNELS) return [];
+  const ranges = SpreadsheetApp.getActiveRangeList() ? SpreadsheetApp.getActiveRangeList().getRanges() : [SpreadsheetApp.getActiveRange()];
+  const rows = new Set();
+  ranges.forEach(function (range) {
+    if (!range) return;
+    const startRow = range.getRow();
+    for (let r = startRow; r < startRow + range.getNumRows(); r++) {
+      if (r >= 2) rows.add(r);
+    }
+  });
+  return [...rows].sort(function (a, b) { return a - b; });
 }
 
 /**

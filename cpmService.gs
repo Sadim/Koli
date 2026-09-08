@@ -7,14 +7,19 @@
  */
 
 function estimateCPM(niche, subCount, engagementRatioPct) {
+  const raw = estimateCPMRaw_(niche, subCount, engagementRatioPct);
+  return '$' + raw.low + '-$' + raw.high + ' CPM (est.)';
+}
+
+/** Same estimate as estimateCPM, as numbers rather than a formatted string — for math (e.g. Brand Fit Score's budget-fit check), not display. */
+function estimateCPMRaw_(niche, subCount, engagementRatioPct) {
   const range = lookupNicheRange_(niche);
   const subMult = subCountMultiplier_(subCount);
   const engMult = engagementMultiplier_(engagementRatioPct);
-
-  const low = Math.round(range[0] * subMult * engMult * 10) / 10;
-  const high = Math.round(range[1] * subMult * engMult * 10) / 10;
-
-  return '$' + low + '-$' + high + ' CPM (est.)';
+  return {
+    low: Math.round(range[0] * subMult * engMult * 10) / 10,
+    high: Math.round(range[1] * subMult * engMult * 10) / 10
+  };
 }
 
 function lookupNicheRange_(niche) {

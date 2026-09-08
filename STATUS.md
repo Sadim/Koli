@@ -35,6 +35,10 @@ browser extension and a natural-language command tab layered on top.
   Do Not Contact.
 - **Brand safety check** — free Reddit signal (no API key) for
   controversy/reputational red flags, Gemini-classified.
+- **Brand Fit Score** — scores one or more selected channels against a
+  specific campaign brief (target niche, target audience, budget/video),
+  distinct from Grade's channel-intrinsic score. 7 weighted components,
+  live in a Brand Fit Scores sheet with full breakdown per row.
 
 ### Sponsor intelligence
 - **SponsorBlock integration** — checks the free, crowdsourced, human-
@@ -117,7 +121,10 @@ JSON field names, the Web App `doPost`/`doGet` deployment flow end to
 end, the browser extension's full context-menu → POST → Inbox loop, and
 the outreach draft generator end to end (caption sampling, the Gemini
 prompt's actual output shape, the 500-char enforcement against a real
-response). None of these are guesses — they're built to documented
+response), and Brand Fit Score end to end (the brief-fit Gemini prompt's
+actual output shape, and whether the 7-component composite feels right
+against real channels/briefs — the math itself is unit-tested, the
+judgment calls behind the weights aren't). None of these are guesses — they're built to documented
 behavior — but "documented" and "tested against a live response" aren't
 the same thing, and I want that distinction visible rather than implied
 away.
@@ -132,6 +139,10 @@ not something the test suite closes.
 
 ## Recent changelog
 
+- Brand Fit Score (channel-vs-campaign-brief, 7 components — see
+  constants.gs's BRAND_FIT_WEIGHTS for full reasoning) + a visual
+  redesign of both the extension popup and the Sidebar (dark mode,
+  shared SVG icon system, refined motion/shadows)
 - Outreach draft generator (last-3-videos hook, 500-char cap, editable
   Outreach Drafts sheet) + fixed "Send to Koli" extension mislabeling its
   destination as "Prospects" on the YouTube tab (it's Channels/Videos)

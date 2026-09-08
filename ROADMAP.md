@@ -294,10 +294,8 @@ entirely, no YouTube angle. Not folded into this roadmap.
 
 ## Queued next — everything else from the Sept 7 planning session, in order
 
-1. **7-component scoring framework** (from the strategy PDF) — not a
-   Grade rewrite; Grade stays the intrinsic per-channel score. This
-   becomes a new **Brand Fit Score**, computed channel-vs-a-specific-
-   campaign-brief, pairing naturally with multi-creator comparison.
+1. ✅ **Brand Fit Score — shipped, round 10** (see below). Channel-vs-
+   campaign-brief scoring, not a Grade rewrite.
 2. **Batch 2 remainder**: sponsor intelligence report, multi-creator
    comparison doc, brand strategy deconstruction (awareness vs.
    conversion), brand-kit ingestion (OCR)
@@ -441,6 +439,41 @@ run, leads converted) has enough volume to make automating it worthwhile.
     coming out "Adidas," contradicting its own stated intent. Narrowed
     the reshape to ALL-CAPS-only input, matching what the comment always
     claimed it did.
+
+## Just shipped, round 10 — Brand Fit Score, UI redesign
+
+- **Brand Fit Score, live** (queued-next item 1, the "7-component scoring
+  framework" from the Sept 7 session). `brandFitService.gs` + Brand
+  Intelligence > Brand Fit Score (selected Channels row(s), multi-row
+  supported for side-by-side comparison). Not a Grade rewrite — Grade
+  stays the channel-intrinsic score, same for every brand. Brand Fit
+  Score is channel-vs-one-specific-campaign-brief (brand, target niche,
+  target audience, budget/video), and specifically replaces two things
+  Grade's own code comments already flagged as placeholders once a real
+  target exists: contentFit (was a flat neutral 50) and audienceFit
+  (was a binary Tier-1-country check). The other 4 components —
+  engagement quality, momentum, reliability — are reused as-is from
+  Grade (they don't change per brief); risk uses a live
+  `checkBrandSafety()` Reddit check instead of Grade's authenticity-only
+  proxy, worth the extra API call for a real spend decision on one
+  creator, not worth it on every bulk Channel analysis pass. New
+  budgetFit component: brief's stated per-video budget vs. the channel's
+  estimated CPM cost at its typical view count. Full weights and
+  reasoning documented in constants.gs (BRAND_FIT_WEIGHTS) — this is
+  Koli's own framework, not sourced from the referenced strategy PDF
+  (not available in this session), stated plainly rather than implied
+  otherwise. Results land in a new **Brand Fit Scores** sheet, one row
+  per (channel, brand) scoring event, full component breakdown in a
+  cell note (same pattern as Grade's).
+- **UI redesign, both surfaces**: refined design tokens (shadow/radius
+  scale, consistent motion easing), a shared inline-SVG icon system
+  replacing emoji throughout, dark-mode support via
+  `prefers-color-scheme` on both the extension popup and the Sidebar,
+  and matching brand-mark treatment across both. Every element
+  id/class the existing JS depends on was verified unchanged; every
+  screen/state was exercised through a local static-preview harness
+  (mocked `chrome.storage` / `google.script.run`) in both color schemes
+  before shipping.
 
 ## On Groq / Mistral / HF Serverless / Cloudflare Workers AI
 
