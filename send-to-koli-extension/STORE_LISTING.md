@@ -66,7 +66,14 @@ permission is inert until the user actively right-clicks and chooses
 a Koli menu item; no data is read or transmitted passively or in the
 background.
 
-## Screenshots needed (not yet created)
-1. Context menu open on a YouTube video page showing "Send to Worksheet → Video"
-2. The popup's YouTube tab (Channels/Videos switcher + worksheet lock + column list)
-3. A Koli Channels or Videos tab showing captured entries
+## Screenshots
+
+`store-screenshots/` has 4 ready to upload — real renders of the actual popup UI (running the production HTML/CSS/JS against sample data), not mockups:
+1. `1-popup-channels.png` — YouTube tab, Channels column editor
+2. `2-popup-videos.png` — YouTube tab, Videos column editor (shows the Channels/Videos switcher)
+3. `3-popup-log.png` — Log tab with sample sent/failed entries
+4. `4-popup-settings.png` — Settings screen
+
+**Still needed, and these two can't be generated the same way** — both require something outside a static render:
+- **Context menu open**, showing "Send to Worksheet → Channel/Video" — a real right-click context menu is drawn by the OS/browser chrome, not the page itself, so it can only come from an actual browser with the extension loaded. To get it: load the extension unpacked (see README), open any YouTube video page, right-click a link, and screenshot the open menu before it closes.
+- **A Koli sheet showing captured entries** — needs a real Google Sheet with real Koli data in it; there's no live spreadsheet available to render this from here. Analyze a few channels for real, then screenshot the Channels tab.
