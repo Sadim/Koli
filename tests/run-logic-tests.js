@@ -74,6 +74,75 @@ function test(name, fn) {
   }
 }
 
+// ---------- heatmapService.gs ----------
+console.log('heatmapService.gs');
+{
+  const m = loadGs('heatmapService.gs');
+
+  test('findHeatmapPeak_: skips the first (intro) marker by default and picks the true max', () => {
+    const markers = [
+      { startMillis: 0, intensity: 1 },
+      { startMillis: 2140, intensity: 0.4 },
+      { startMillis: 50000, intensity: 0.9 },
+      { startMillis: 90000, intensity: 0.3 }
+    ];
+    const peak = m.findHeatmapPeak_(markers);
+    assert.strictEqual(peak.startMillis, 50000, 'should skip the always-highest intro marker and return the real spike');
+  });
+  test('findHeatmapPeak_: skipIntroMarkers:0 includes the first marker if explicitly asked', () => {
+    const markers = [{ startMillis: 0, intensity: 1 }, { startMillis: 50000, intensity: 0.9 }];
+    const peak = m.findHeatmapPeak_(markers, 0);
+    assert.strictEqual(peak.startMillis, 0);
+  });
+  test('findHeatmapPeak_: empty or fully-skipped input returns null, not a crash', () => {
+    assert.strictEqual(m.findHeatmapPeak_([]), null);
+    assert.strictEqual(m.findHeatmapPeak_([{ startMillis: 0, intensity: 1 }]), null); // only the skipped intro marker exists
+  });
+}
+
+// ---------- captionsService.gs ----------
+console.log('captionsService.gs');
+{
+  const m = loadGs('captionsService.gs');
+
+  test('excerptAroundTimestamp_: picks only lines inside the time window', () => {
+    const lines = [
+      { startSeconds: 0, text: 'intro stuff' },
+      { startSeconds: 100, text: 'the actual moment' },
+      { startSeconds: 105, text: 'continues here' },
+      { startSeconds: 500, text: 'much later unrelated' }
+    ];
+    const out = m.excerptAroundTimestamp_(lines, 102, 20, 900);
+    assert.ok(out.indexOf('the actual moment') !== -1 && out.indexOf('continues here') !== -1, 'expected both nearby lines, got: ' + out);
+    assert.ok(out.indexOf('unrelated') === -1, 'should not include a line far outside the window, got: ' + out);
+  });
+  test('excerptAroundTimestamp_: falls back to the 5 nearest lines when nothing falls inside the window (caption drift)', () => {
+    // Nothing within 2s of centerSeconds=150 — falls back to whichever
+    // lines are closest overall, capped at 5, ordered nearest-first, so
+    // the single farthest of these 6 lines must be excluded.
+    const lines = [
+      { startSeconds: 149, text: 'a' }, { startSeconds: 200, text: 'b' }, { startSeconds: 100, text: 'c' },
+      { startSeconds: 300, text: 'd' }, { startSeconds: 50, text: 'e' }, { startSeconds: 5000, text: 'farthest' }
+    ];
+    const out = m.excerptAroundTimestamp_(lines, 150, 0.5, 900); // window narrow enough that nothing qualifies (closest is 1s away)
+    assert.strictEqual(out, 'a b c e d', 'expected the 5 nearest lines only, nearest first — farthest excluded');
+  });
+  test('excerptAroundTimestamp_: respects maxChars', () => {
+    const lines = [{ startSeconds: 0, text: 'a'.repeat(50) }];
+    assert.strictEqual(m.excerptAroundTimestamp_(lines, 0, 20, 10).length, 10);
+  });
+  test('excerptAroundTimestamp_: empty lines returns empty string, not a crash', () => {
+    assert.strictEqual(m.excerptAroundTimestamp_([], 10, 20, 900), '');
+  });
+
+  test('formatSeconds_: under an hour formats as m:ss', () => {
+    assert.strictEqual(m.formatSeconds_(125), '2:05');
+  });
+  test('formatSeconds_: an hour or more formats as h:mm:ss', () => {
+    assert.strictEqual(m.formatSeconds_(3665), '1:01:05');
+  });
+}
+
 // ---------- outreachDraftService.gs ----------
 console.log('outreachDraftService.gs');
 {

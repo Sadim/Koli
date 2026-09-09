@@ -64,6 +64,25 @@ function findSponsorTimestamp_(videoId, evidenceText) {
   return formatSeconds_(bestLine.startSeconds);
 }
 
+/**
+ * Caption text from around one specific moment, not a generic sample of
+ * the whole video — used to build an outreach hook on the exact segment a
+ * heatmap identified as a replay spike (heatmapService.gs), where the
+ * point is "what happens right here," not "what's this video about."
+ * Falls back to the nearest available lines if nothing falls inside the
+ * window (auto-caption timing can drift a few seconds from the real
+ * heatmap timestamp).
+ */
+function excerptAroundTimestamp_(lines, centerSeconds, windowSeconds, maxChars) {
+  if (!lines.length) return '';
+  const nearby = lines.filter(function (l) { return Math.abs(l.startSeconds - centerSeconds) <= windowSeconds; });
+  const chosen = nearby.length ? nearby : lines.slice().sort(function (a, b) {
+    return Math.abs(a.startSeconds - centerSeconds) - Math.abs(b.startSeconds - centerSeconds);
+  }).slice(0, 5);
+  const text = chosen.map(function (l) { return l.text; }).join(' ').replace(/\s+/g, ' ').trim();
+  return text.slice(0, maxChars);
+}
+
 function normalizeWords_(text) {
   return (text || '').toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/)
     .filter(function (w) { return w.length > 3; }); // skip short/common words

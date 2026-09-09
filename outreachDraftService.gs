@@ -33,6 +33,14 @@
  * video has no captions available; a missing transcript never blocks a
  * draft, same fail-soft rule as everywhere else caption-fetching is used.
  *
+ * Where available, the hook is pulled from around the exact timestamp the
+ * video's own "Most Replayed" heatmap identifies as a real rewatch spike
+ * (heatmapService.gs) rather than an evenly-sampled guess at the
+ * transcript — a spike is proof something specific landed with viewers,
+ * not just Koli's own sampling. Most videos don't have one (YouTube only
+ * draws it past a view floor), so this silently falls back to the
+ * existing sampled-excerpt approach when it's not available.
+ *
  * Output lands in a new "Outreach Drafts" sheet, not a Doc — cells are
  * natively editable (the whole point: these are drafts, not a locked
  * export), and the Chars column is a live LEN() formula so it keeps
@@ -76,10 +84,26 @@ function buildOutreachDraft_(row) {
   const aboutSummary = getChannelAboutSummaryCached_(rowData.channelId, channel.description, channel.recentVideos);
   const videoExcerpts = topVideos.map(function (v) {
     const lines = fetchCaptionLines_(v.videoId);
-    const excerpt = lines.length
-      ? sampleTranscriptExcerpt_(lines, OUTREACH_TRANSCRIPT_SAMPLE_CHARS)
-      : (v.description || '').replace(/\s+/g, ' ').trim().slice(0, 400);
-    return { videoId: v.videoId, title: v.title, excerpt: excerpt, fromCaptions: lines.length > 0, views: v.views };
+
+    // Prefer the exact moment the "Most Replayed" heatmap identifies as a
+    // real rewatch spike over an evenly-sampled guess at what's worth
+    // referencing — a spike is proof something specific landed, not just
+    // Koli's own sampling. Falls back to the old sampling when a video
+    // has no heatmap (most don't — it only shows up past a view floor).
+    const heatmap = fetchVideoHeatmap_(v.videoId);
+    const peak = heatmap.length ? findHeatmapPeak_(heatmap) : null;
+    const usingPeak = !!(peak && lines.length);
+
+    const excerpt = usingPeak
+      ? excerptAroundTimestamp_(lines, peak.startMillis / 1000, 20, OUTREACH_TRANSCRIPT_SAMPLE_CHARS)
+      : lines.length
+        ? sampleTranscriptExcerpt_(lines, OUTREACH_TRANSCRIPT_SAMPLE_CHARS)
+        : (v.description || '').replace(/\s+/g, ' ').trim().slice(0, 400);
+
+    return {
+      videoId: v.videoId, title: v.title, excerpt: excerpt, fromCaptions: lines.length > 0, views: v.views,
+      fromHeatmapPeak: usingPeak, peakTimestamp: usingPeak ? formatSeconds_(peak.startMillis / 1000) : null
+    };
   });
 
   const draft = draftOutreachEmailCopy_(rowData, aboutSummary, videoExcerpts);
@@ -147,9 +171,12 @@ function pickBestPerformingVideos_(recentVideos, count) {
 function draftOutreachEmailCopy_(rowData, aboutSummary, videoExcerpts) {
   const videoBlock = videoExcerpts.map(function (v, i) {
     const performanceNote = typeof v.views === 'number' ? ' — one of their best-performing recent uploads' : '';
-    return (i + 1) + '. "' + v.title + '"' + performanceNote + ' (' +
-      (v.fromCaptions ? 'transcript excerpt' : 'description only, no captions available') + '):\n' + v.excerpt;
+    const sourceNote = v.fromHeatmapPeak
+      ? 'the exact moment (' + v.peakTimestamp + ') their own audience rewatched most — a real engagement spike, not a guess'
+      : (v.fromCaptions ? 'transcript excerpt, evenly sampled — no rewatch-spike data available for this one' : 'description only, no captions available');
+    return (i + 1) + '. "' + v.title + '"' + performanceNote + ' (' + sourceNote + '):\n' + v.excerpt;
   }).join('\n\n');
+  const anyHeatmapPeaks = videoExcerpts.some(function (v) { return v.fromHeatmapPeak; });
 
   const prompt =
     'You work at a boutique creator-partnerships agency. Draft a short outreach email to a YouTube ' +
@@ -188,20 +215,28 @@ function draftOutreachEmailCopy_(rowData, aboutSummary, videoExcerpts) {
     'About: ' + (aboutSummary || 'n/a') + '\n\n' +
     'Below are excerpts from ' + videoExcerpts.length + ' of this creator\'s best-performing RECENT videos ' +
     '(by views, not just whichever is newest). Pick exactly ONE specific, concrete detail — a moment, ' +
-    'technique, opinion, choice, or result — from ONE excerpt to build the email around. Ignore generic ' +
-    'intro greetings and generic subscribe/outro requests. If an excerpt is description-only (no ' +
-    'transcript), you may reference its stated topic, just don\'t claim to quote a specific line from it. ' +
-    'Never state or imply a view count or any statistic in the email itself — knowing it performed well is ' +
-    'context for you to pick a good hook, not something to mention; stating it would read as a research ' +
-    'report, not familiarity.\n\n' +
+    'technique, opinion, choice, or result — from ONE excerpt to build the email around.' +
+    (anyHeatmapPeaks
+      ? ' At least one excerpt below is the exact moment that video\'s own audience rewatched most (a real ' +
+        'engagement spike, not a sample) — strongly prefer building the email around one of those over an ' +
+        'evenly-sampled excerpt when you have the choice; a real spike is proof something specific landed, ' +
+        'an even sample is just Koli\'s guess.'
+      : '') +
+    ' Ignore generic intro greetings and generic subscribe/outro requests. If an excerpt is description-' +
+    'only (no transcript), you may reference its stated topic, just don\'t claim to quote a specific line ' +
+    'from it. Never state or imply a view count, a rewatch spike, or any statistic in the email itself — ' +
+    'knowing it performed well (or got rewatched) is context for you to pick a good hook, not something to ' +
+    'mention; stating it would read as a research report, not familiarity.\n\n' +
     videoBlock + '\n\n' +
     'Respond as JSON: {"subject": "...", "body": "...", "referencedVideoIndex": <0-based index into the ' +
     'excerpts above>}\n' +
-    '- "subject": references the specific detail, understated. Under 70 characters. Reads like a real ' +
-    'subject line from a person, not a pitch headline.\n' +
-    '- "body": opens on the specific detail (no "I noticed" framing), one beat naming the pain point and ' +
-    'what you\'re offering to solve it (well-matched, long-term sponsor opportunities you\'d bring and ' +
-    'manage — not "we want to sponsor you"), closes without an explicit ask for a reply. Signs off with ' +
+    '- "subject": must be built from the same specific detail as the body — never a generic line about ' +
+    'sponsorship or opportunity. Understated. Under 70 characters. Reads like a real subject line from a ' +
+    'person, not a pitch headline.\n' +
+    '- "body": opens on the specific detail (no "I noticed" framing), then in one sentence connects that ' +
+    'detail to the pain point and what you\'re offering to solve it (well-matched, long-term sponsor ' +
+    'opportunities you\'d bring and manage — not "we want to sponsor you") — the connection should feel ' +
+    'earned by the detail, not bolted on after it. Closes without an explicit ask for a reply. Signs off with ' +
     '"[Your name]" on its own line. HARD LIMIT ' + OUTREACH_EMAIL_MAX_CHARS + ' characters total, no ' +
     'exceptions — count as you write and stop well under the limit rather than padding to it.\n' +
     '- "referencedVideoIndex": which excerpt the hook came from.';
