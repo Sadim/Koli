@@ -793,6 +793,24 @@ version to take effect. Real Google Sign-In (`chrome.identity`,
 replacing the shared secret) is still the deferred long-term item; the
 extension isn't actually open-sourced yet either, just staged for it.
 
+## Affiliate program — decided to hold off, reference model recorded
+
+Asked directly whether Koli should have an affiliate program, modeled on
+TalentSheets' own (talentsheets.com/affiliates). Decided to hold off
+entirely, for the same reason payment collection itself was held off:
+an affiliate program tracks commission against real revenue, and there
+is none to track yet. Building the tracking scaffolding now would be a
+shell with nothing real to attach to.
+
+**Reference model, recorded for when payments exist**: 20% of net
+revenue per referred customer, paid monthly, for a full year following
+the initial purchase — no cap on referral volume, no tier to unlock. A
+90-day click-attribution window. $50 minimum payout, monthly via Stripe
+or PayPal. Partners get both a link and a standalone discount code (the
+code works at checkout even without a link click). ~2-minute application,
+most approved within a business day. Referred customers get 20% off
+their first 3 months. Partners must disclose with "#ad."
+
 ## Payment collection — decided, not yet built (round 17 follow-up)
 
 Asked directly: does Koli need a way to actually collect payment for
