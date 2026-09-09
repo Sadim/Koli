@@ -85,6 +85,14 @@
 </div>
 
 <div class="section">
+  <div class="section-title">Premium access</div>
+  <label for="accessCode">Access code</label>
+  <input type="password" id="accessCode" placeholder="Paste your access code" />
+  <div class="masked" id="accessCodeStatus"></div>
+  <div class="hint">Unlocks Gap Analysis, Brand Fit Score, Draft Outreach Email, every Export (One-Pager, Deal Memo, Performance Report), Campaigns, and Brand View. Everything else stays free.</div>
+</div>
+
+<div class="section">
   <div class="section-title">Browser extension ("Send to Koli")</div>
   <label for="inboxSecret">Shared secret</label>
   <input type="password" id="inboxSecret" placeholder="Set a secret, then paste the same one into the extension" />
@@ -113,6 +121,8 @@
       document.getElementById('attemptTimestamp').checked = !!s.attemptSponsorTimestamp;
       document.getElementById('inboxSecretStatus').textContent = s.inboxSecretSet ? 'Currently set.' : 'Not set.';
       document.getElementById('timezone').value = s.timezone;
+      document.getElementById('accessCodeStatus').textContent = s.premiumUnlocked ? '✓ Premium unlocked.' : (s.accessCodeSet ? 'Code set, but not valid.' : 'Not set — free tier.');
+      document.getElementById('accessCodeStatus').style.color = s.premiumUnlocked ? 'var(--green)' : 'var(--text-muted)';
     }).getSettings();
   }
   load();
@@ -131,6 +141,7 @@
         document.getElementById('mistralKey').value = '';
         document.getElementById('groqKey').value = '';
         document.getElementById('inboxSecret').value = '';
+        document.getElementById('accessCode').value = '';
         load();
         setTimeout(() => google.script.host.close(), 900);
       })
@@ -146,6 +157,7 @@
         lookbackDays: Number(document.getElementById('lookback').value),
         commentSampleSize: Number(document.getElementById('sampleSize').value),
         inboxSecret: document.getElementById('inboxSecret').value.trim(),
+        accessCode: document.getElementById('accessCode').value.trim(),
         timezone: document.getElementById('timezone').value.trim(),
         scanChannelSponsors: document.getElementById('scanSponsors').checked,
         attemptSponsorTimestamp: document.getElementById('attemptTimestamp').checked

@@ -144,6 +144,16 @@ not something the test suite closes.
 
 ## Recent changelog
 
+- **Premium-tier access-code gate live** (licenseService.gs) — Gap
+  Analysis, Brand Fit Score, Draft Outreach Email, every Export,
+  Campaigns, Brand View, and the new **Profile View** (Koli > Export >
+  Send Selected Profile Rows — same Looker Studio idea as Brand View,
+  but a snapshot of your current Profile selection, not a live formula)
+  now require a valid access code, set in Settings. Free tier stays:
+  Channel/Video/Profile analysis, Discover, Sponsors, Attention, Brand
+  Targets. Stated honestly: this is a local check, not real DRM — see
+  ROADMAP.md round 15 for the real fix (an API gateway) and the
+  business-strategy reasoning behind all of this.
 - **Assistant tab removed entirely** — every action it could invoke
   already had a faster, more certain direct path, and it worked against
   the actual goal (a tight task loop, not an open-ended chat). Cut, not

@@ -9,6 +9,7 @@
  */
 
 function showBrandFitScoreDialog() {
+  if (!hasPremiumAccess_()) { showUpgradeAlert_('Brand Fit Score'); return; }
   const rows = getActiveChannelRows_();
   if (!rows.length) {
     SpreadsheetApp.getUi().alert('Select one or more rows on the Channels sheet first (click a cell, or drag/ctrl-click across several rows), then run this again.');

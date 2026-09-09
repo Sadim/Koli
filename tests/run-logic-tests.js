@@ -373,5 +373,75 @@ console.log('attentionService.gs');
   });
 }
 
+// ---------- licenseService.gs ----------
+console.log('licenseService.gs');
+{
+  const nodeCrypto = require('crypto');
+  const sha256Hex = (s) => nodeCrypto.createHash('sha256').update(s).digest('hex');
+
+  // Mimics Apps Script's Utilities.computeDigest: returns SIGNED bytes
+  // (-128..127), not the 0..255 unsigned bytes Node's crypto gives you —
+  // hashAccessCode_'s "b < 0 ? b + 256 : b" conversion only matters
+  // because of that mismatch, so the stub has to reproduce it faithfully
+  // or the test would pass without actually exercising that line.
+  function utilitiesStub() {
+    return {
+      computeDigest: (_algo, str) => {
+        const buf = nodeCrypto.createHash('sha256').update(String(str)).digest();
+        return Array.from(buf).map((b) => (b > 127 ? b - 256 : b));
+      },
+      DigestAlgorithm: { SHA_256: 'SHA_256' }
+    };
+  }
+  function propertiesServiceStub(stored) {
+    return {
+      getDocumentProperties: () => ({
+        getProperty: (key) => (key in stored ? stored[key] : null),
+        setProperty: (key, val) => { stored[key] = val; }
+      })
+    };
+  }
+  // Can't just do loadGsMulti(...).PREMIUM_ACCESS_CODE_HASHES.push(...) —
+  // top-level `const` isn't exposed as a property on the returned object
+  // (same vm quirk noted earlier in this file), only visible to code
+  // that runs INSIDE the same sandbox. So a valid-hashes list gets
+  // injected as one more script run in that same context, not as an
+  // external mutation of the returned object.
+  function loadLicense(storedAccessCode, validHashes) {
+    const stored = storedAccessCode === undefined ? {} : { ACCESS_CODE: storedAccessCode };
+    const sandbox = { Utilities: utilitiesStub(), PropertiesService: propertiesServiceStub(stored) };
+    vm.createContext(sandbox);
+    ['constants.gs', 'licenseService.gs'].forEach((relPath) => {
+      vm.runInContext(fs.readFileSync(path.join(__dirname, '..', relPath), 'utf8'), sandbox, { filename: relPath });
+    });
+    if (validHashes && validHashes.length) {
+      vm.runInContext('PREMIUM_ACCESS_CODE_HASHES.push(' + validHashes.map((h) => JSON.stringify(h)).join(',') + ');', sandbox);
+    }
+    return sandbox;
+  }
+
+  test('hashAccessCode_: matches a real SHA-256 hex digest (byte-sign conversion is correct)', () => {
+    const m = loadLicense();
+    assert.strictEqual(m.hashAccessCode_('koli-test-code'), sha256Hex('koli-test-code'));
+  });
+  test('hashAccessCode_: trims whitespace before hashing, so a pasted code with stray spaces still matches', () => {
+    const m = loadLicense();
+    assert.strictEqual(m.hashAccessCode_('  koli-test-code  '), sha256Hex('koli-test-code'));
+  });
+
+  test('hasPremiumAccess_: no code stored at all -> false (free tier, not an error)', () => {
+    const m = loadLicense(undefined, [sha256Hex('real-code')]);
+    assert.strictEqual(m.hasPremiumAccess_(), false);
+  });
+  test('hasPremiumAccess_: a stored code that hashes to a known-valid entry -> true', () => {
+    const m = loadLicense('real-code', [sha256Hex('real-code')]);
+    assert.strictEqual(m.hasPremiumAccess_(), true);
+  });
+  test('hasPremiumAccess_: a stored code that does NOT match any valid hash -> false', () => {
+    const m = loadLicense('made-up-code', [sha256Hex('real-code')]);
+    assert.strictEqual(m.hasPremiumAccess_(), false);
+  });
+}
+
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

@@ -208,6 +208,7 @@ function runGapAnalysis(channelId) {
 }
 
 function runGapAnalysisForActiveRow() {
+  if (!hasPremiumAccess_()) { showUpgradeAlert_('Gap Analysis'); return; }
   const ui = SpreadsheetApp.getUi();
   const row = getActiveChannelRow_();
   if (!row) { ui.alert('Select a row on the Channels sheet first, then run this again.'); return; }

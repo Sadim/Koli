@@ -27,7 +27,8 @@ function onOpen() {
       .addItem('Performance Report (Channels or Profile row)', 'exportPerformanceReport')
       .addItem('New Campaign (selected Channels row)', 'showCreateCampaignDialog')
       .addItem('Draft Outreach Email (selected Channels row)', 'showDraftOutreachEmail')
-      .addItem('Set Up Brand View (for Looker Studio)', 'showBrandView'))
+      .addItem('Set Up Brand View (for Looker Studio)', 'showBrandView')
+      .addItem('Send Selected Profile Rows to Profile View (for Looker Studio)', 'sendProfileSelectionToView'))
     .addItem('Refresh Tracked Profiles', 'runRefreshTrackedProfiles')
     .addItem('Process Prospects', 'processInbox')
     .addSeparator()
@@ -120,6 +121,8 @@ function showHelp() {
     'a specific brand brief (niche, audience, budget), not just Grade\'s general quality score.\n' +
     'Export > Set Up Brand View — a live, brand-safe Channels view for connecting Looker Studio ' +
     'and sharing a presentation link with a brand, without giving them access to this spreadsheet.\n' +
+    'Export > Send Selected Profile Rows to Profile View — same idea, for whichever Profile rows ' +
+    'you\'ve selected.\n' +
     'Run Diagnostics — checks your API keys and Drive permissions in one click.\n' +
     'Set your YouTube and Gemini API keys first under Settings.',
     SpreadsheetApp.getUi().ButtonSet.OK
@@ -159,6 +162,8 @@ function getSettings() {
     scanChannelSponsors: getBoolProp_(PROP_KEYS.SCAN_CHANNEL_SPONSORS, true),
     attemptSponsorTimestamp: getBoolProp_(PROP_KEYS.ATTEMPT_SPONSOR_TIMESTAMP, false),
     inboxSecretSet: !!props.getProperty(PROP_KEYS.INBOX_SHARED_SECRET),
+    accessCodeSet: !!props.getProperty(PROP_KEYS.ACCESS_CODE),
+    premiumUnlocked: hasPremiumAccess_(),
     timezone: getTimezone_()
   };
 }
@@ -172,6 +177,7 @@ function saveSettings(settings) {
   if (settings.lookbackDays) props.setProperty(PROP_KEYS.LOOKBACK_DAYS, String(settings.lookbackDays));
   if (settings.commentSampleSize) props.setProperty(PROP_KEYS.COMMENT_SAMPLE_SIZE, String(settings.commentSampleSize));
   if (settings.inboxSecret) props.setProperty(PROP_KEYS.INBOX_SHARED_SECRET, settings.inboxSecret.trim());
+  if (settings.accessCode) props.setProperty(PROP_KEYS.ACCESS_CODE, settings.accessCode.trim());
   if (settings.timezone) props.setProperty(PROP_KEYS.TIMEZONE, settings.timezone.trim());
   props.setProperty(PROP_KEYS.SCAN_CHANNEL_SPONSORS, String(!!settings.scanChannelSponsors));
   props.setProperty(PROP_KEYS.ATTEMPT_SPONSOR_TIMESTAMP, String(!!settings.attemptSponsorTimestamp));

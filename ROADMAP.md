@@ -652,6 +652,102 @@ inviting open-ended chat next to what's otherwise a tight task loop.
   setup nudge when API keys are missing.
 - 6 new logic tests (findStaleOutreach_, findUnclaimedHighGrade_), 39/39 passing.
 
+## Just shipped, round 15 — Profile View, premium-tier gate, business strategy pass
+
+Triggered by a real business-strategy conversation (who's this for, is
+there a market, can it make money, is this YC-shaped, how does it
+survive if Google moves against it). Grounded in actual research, not
+just internal reasoning — see below.
+
+- **Profile View** (brandViewService.gs, Koli > Export > Send Selected
+  Profile Rows to Profile View). Same purpose as Brand View — a
+  brand-safe Looker Studio source — but a script-triggered snapshot of
+  whatever Profile rows are currently selected, not a live formula:
+  Sheets has no concept of "current selection" a QUERY() can reference,
+  so "these specific rows" has to be captured on demand. Re-run it any
+  time the selection should change. Excludes Status/Video ID/Channel ID
+  (internal row-matching plumbing), keeps everything else.
+- **Premium-tier access-code gate** (licenseService.gs). First real
+  monetization mechanism, and stated honestly for what it is: a local
+  code-vs-hash check, not real DRM — Koli has no backend yet to verify a
+  code server-side, so a technical user could read their own copy's
+  source and bypass it. Codes are stored as SHA-256 hashes so the file
+  itself doesn't leak a working code. Gates: Gap Analysis, Brand Fit
+  Score, Draft Outreach Email, every Export (Creator One-Pager, Draft
+  Deal Memo, Performance Report), Campaigns, Brand View, and Profile
+  View. Stays free: Channel/Video/Profile analysis, Discover, Sponsors,
+  Attention, Brand Targets — the core loop and the retention hook.
+  Gated menu items stay **visible**, not hidden — an invisible premium
+  feature can't make anyone want to upgrade. Deliberately **one codebase
+  with a gate, not two forked templates** — a free/paid fork would mean
+  applying every future bug fix twice, forever, for no real benefit over
+  a single codebase that just checks a flag.
+- **Competitive research, done for real** (web search, not assumed):
+  **TalentSheets is the one direct architectural peer** — also Google
+  Sheets-native, also a Chrome extension for capture, $39-249/mo tiered
+  by creator-volume caps, multi-platform (YouTube+Instagram+TikTok vs.
+  Koli's YouTube-only), does contracts/UTM/shipment-tracking Koli
+  doesn't. No evidence anywhere in its own marketing of AI scoring,
+  sponsor-history detection, or gap analysis — that's the real,
+  confirmed gap Koli's Gap Analysis + Brand Fit Score fill. Wider
+  landscape (Grin, CreatorIQ, Aspire, Modash, HypeAuditor, Upfluence,
+  Captiv8, InfluData, The Cirqle) is exclusively $10K-200K+/year
+  enterprise SaaS, none of it spreadsheet-native — confirms Koli/
+  TalentSheets share a real, distinct, underserved niche rather than
+  competing head-on with the funded players. One concrete finding worth
+  keeping visible: **Captiv8 sells "competitor intelligence: identify
+  influencers working with competitors" at $25,000+/year** — that's
+  functionally the same idea as Gap Analysis, which Koli does for free.
+- **Proposed (not built): a lightweight Koli API gateway.** The single
+  highest-leverage next architecture decision, because it's the answer
+  to four separate questions at once (BYOK friction, real monetization,
+  real license enforcement, and a natural collection point for the
+  opt-in sponsor-intelligence data below) instead of four separate
+  fixes. Concept: a small serverless proxy (Cloudflare Worker or
+  similar) holding Koli's own YouTube/Gemini keys; each install
+  authenticates with a token instead of pasting API keys; Koli meters
+  usage and charges a markup over API cost. This does NOT require
+  abandoning the Sheets-native architecture — Apps Script's
+  `UrlFetchApp` calls the proxy instead of Google's APIs directly, same
+  shape as today's calls, different destination. Real engineering work,
+  not started — a deliberate proposal for the next phase, not a
+  quick add.
+- **Opt-in sponsor market-intelligence data gathering — added to the
+  roadmap, not built.** The idea: with explicit per-user consent,
+  aggregate anonymized sponsor-detection data (brand, niche, rough
+  channel-size tier — NOT contact info, NOT anything channel-identifying
+  beyond what's already public) across every opted-in Koli install into
+  a shared dataset, so "which brands are actively sponsoring in niche X
+  right now" gets more accurate as more people opt in. This is the
+  closest thing to a real, defensible moat anything in this project has
+  — genuinely hard to replicate without the install base — but it's
+  real infrastructure (needs the API gateway above, or an equivalent
+  central store, since today's architecture has zero cross-install
+  communication) and real consent/privacy design, not a menu item.
+  Open questions before this gets built: exact data fields (favor
+  collecting less, not more), granularity (does channel-size need to be
+  exact or bucketed — bucketed is safer and likely just as useful),
+  where consent lives (a Settings toggle, opt-out by default), how
+  results get surfaced back to contributors (the actual value exchange
+  — "you contribute anonymized signal, you get back aggregate market
+  intelligence no single install could see alone"), and retention/
+  deletion policy. Don't build this from a guess — it needs its own
+  design pass when the API gateway groundwork exists.
+- **Standalone-web-app path, if ever pursued**: [Univer](https://github.com/dream-num/univer)
+  (Apache-2.0, browser-native spreadsheet engine — the same one
+  [GenOffice](https://github.com/shnoh-cs/genoffice-byok) builds its
+  desktop office suite on top of) is a legitimate foundation if "still
+  feels like a spreadsheet" matters to the brand promise. A plainer
+  React-dashboard rebuild (no spreadsheet metaphor at all) is the lower-
+  risk default otherwise — most of Koli's actual logic
+  (channelMetricsService.gs, brandIntelligenceService.gs, cpmService.gs,
+  the scoring/gating logic) is already close to plain, portable JS with
+  a relatively thin SpreadsheetApp/DriveApp-specific layer around it, so
+  either path reuses more of the existing codebase than starting over
+  would suggest. Not started, not scoped in detail — a real pivot
+  decision, not a sprint.
+- 5 new logic tests (hashAccessCode_, hasPremiumAccess_), 44/44 passing.
+
 ## On Groq / Mistral / HF Serverless / Cloudflare Workers AI
 
 - **Mistral** — adding as a Gemini fallback for rate-limit failures (Batch 3, next up)

@@ -8,6 +8,7 @@
  */
 
 function showCreateCampaignDialog() {
+  if (!hasPremiumAccess_()) { showUpgradeAlert_('Campaigns'); return; }
   const row = getActiveChannelRow_();
   if (!row) {
     SpreadsheetApp.getUi().alert('Select a row on the Channels sheet first, then run this again.');
@@ -49,6 +50,7 @@ function ensureCampaignStageColumn_(sheet) {
 }
 
 function showCampaigns() {
+  if (!hasPremiumAccess_()) { showUpgradeAlert_('Campaigns'); return; }
   const sheet = getOrCreateSheet_(SHEET_NAMES.CAMPAIGNS, CAMPAIGN_HEADERS);
   ensureCampaignStageColumn_(sheet);
   SpreadsheetApp.getActiveSpreadsheet().setActiveSheet(sheet);

@@ -33,6 +33,7 @@ const OUTREACH_EMAIL_MAX_CHARS = 500; // hard cap on the body — the part a rec
 const OUTREACH_TRANSCRIPT_SAMPLE_CHARS = 900; // per video, prompt budget
 
 function showDraftOutreachEmail() {
+  if (!hasPremiumAccess_()) { showUpgradeAlert_('Draft Outreach Email'); return; }
   const row = getActiveChannelRow_();
   if (!row) {
     SpreadsheetApp.getUi().alert('Select a row on the Channels sheet first (click any cell in that row), then run this again.');

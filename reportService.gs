@@ -29,6 +29,7 @@
  */
 
 function exportCreatorOnePager() {
+  if (!hasPremiumAccess_()) { showUpgradeAlert_('Creator One-Pager export'); return; }
   const row = getActiveChannelRow_();
   if (!row) {
     SpreadsheetApp.getUi().alert('Select a row on the Channels sheet first (click any cell in that row), then run this again.');
@@ -107,6 +108,7 @@ function buildCreatorOnePager_(row) {
 }
 
 function exportDealMemo() {
+  if (!hasPremiumAccess_()) { showUpgradeAlert_('Draft Deal Memo export'); return; }
   const row = getActiveChannelRow_();
   if (!row) {
     SpreadsheetApp.getUi().alert('Select a row on the Channels sheet first (click any cell in that row), then run this again.');
@@ -266,6 +268,7 @@ function showLinkDialog_(title, message, url, buttonLabel) {
  * either the Channels row or a Profile row for that channel.
  */
 function exportPerformanceReport() {
+  if (!hasPremiumAccess_()) { showUpgradeAlert_('Performance Report export'); return; }
   const ui = SpreadsheetApp.getUi();
   const sheet = SpreadsheetApp.getActiveSheet();
   let channelId, channelName;

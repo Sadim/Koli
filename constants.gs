@@ -23,6 +23,7 @@ const SHEET_NAMES = {
   OUTREACH_DRAFTS: 'Outreach Drafts',
   BRAND_FIT_SCORES: 'Brand Fit Scores',
   BRAND_VIEW: 'Brand View',
+  PROFILE_VIEW: 'Profile View',
   ATTENTION: 'Attention',
   SNAPSHOTS: '_SubscriberSnapshots',       // hidden — sub-count log for New Subscribers diffing
   TRACKED_PROFILES: '_TrackedProfiles'      // hidden — control sheet for Profile tracking
@@ -169,7 +170,8 @@ const PROP_KEYS = {
   REPORTS_FOLDER_ID: 'REPORTS_FOLDER_ID', // remembered once created — avoids needing to search Drive (see reportService.gs)
   MISTRAL_API_KEY: 'MISTRAL_API_KEY', // optional fallback when Gemini's own retries are exhausted
   GROQ_API_KEY: 'GROQ_API_KEY', // optional fallback, tried after Mistral
-  TIMEZONE: 'TIMEZONE' // e.g. 'America/New_York', 'Etc/UTC' — user-set, never assumed
+  TIMEZONE: 'TIMEZONE', // e.g. 'America/New_York', 'Etc/UTC' — user-set, never assumed
+  ACCESS_CODE: 'ACCESS_CODE' // premium-tier unlock — see licenseService.gs
 };
 
 // Bump with every shipped round — matches ROADMAP.md's "round N" numbering.
