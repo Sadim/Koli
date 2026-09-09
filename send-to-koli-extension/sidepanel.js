@@ -158,6 +158,10 @@ async function refreshCurrentPageCard() {
   badgeEl.innerHTML = ICONS[kind] + '<span>' + (kind === 'channel' ? 'YouTube channel' : kind === 'video' ? 'YouTube video' : 'Not auto-detected') + '</span>';
 
   const lock = state.locks.youtube;
+  const chipStatus = document.getElementById('brandChipStatus');
+  chipStatus.textContent = (lock && lock.locked) ? 'locked' : 'not locked';
+  chipStatus.classList.toggle('locked', !!(lock && lock.locked));
+
   actionsEl.innerHTML = '';
   if (!lock || !lock.locked) {
     notConnectedEl.hidden = false;

@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     color-scheme: light;
@@ -20,6 +20,7 @@
     --shadow-lg: 0 20px 44px rgba(11,20,16,.22), 0 4px 12px rgba(11,20,16,.10);
     --ease: cubic-bezier(.32,.72,.35,1);
     --ease-out: cubic-bezier(.16,1,.3,1);
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -45,6 +46,12 @@
     display: flex; flex-direction: column;
   }
   button, input, select, textarea { font-family: inherit; }
+  /* Mild tap feedback — short and subtle on purpose, just enough to
+     confirm a press registered. .lock-pill and .primary-btn override this
+     with their own transform below since they already use transform for
+     centering/hover and need scale layered on top, not replacing it. */
+  button { transition: transform .12s var(--ease); }
+  button:active:not(:disabled) { transform: scale(0.96); }
   button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible {
     outline: 2px solid var(--teal); outline-offset: 2px; border-radius: 4px;
   }
@@ -86,6 +93,30 @@
   .tab-panel.active { display: block; }
 
   /* ---------- Home: current-page card ---------- */
+  /* Brand chip — reinforces "this came from Koli" right where the action
+     happens (Home tab), not just in the header above the tab bar. Doubles
+     as an at-a-glance lock status so the person doesn't have to scan the
+     page card's smaller print to know if a send will actually go anywhere. */
+  .brand-chip {
+    display: inline-flex; align-items: center; gap: 7px; margin: 15px 16px 0; padding: 5px 12px 5px 5px;
+    /* Fixed brand navy, not the adaptive --navy token — this chip is a
+       constant accent (like a badge), not UI chrome that should invert in
+       dark mode; --navy itself flips to near-white there for text-on-
+       surface contrast, which would make white chip text disappear. */
+    background: #132A35; border-radius: var(--radius-pill); width: fit-content;
+    font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; letter-spacing: .01em;
+    box-shadow: var(--shadow-xs);
+  }
+  .brand-chip-mark {
+    width: 17px; height: 17px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(155deg, var(--green-500), var(--green-600));
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Inter', sans-serif; font-weight: 800; font-size: 9.5px; color: #fff;
+  }
+  .brand-chip-text { color: #fff; }
+  .brand-chip-sep { color: #fff; opacity: .35; }
+  .brand-chip-status { color: #fff; opacity: .7; }
+  .brand-chip-status.locked { color: var(--green-500); opacity: 1; }
   .page-card {
     margin: 16px 16px 0; padding: 14px 15px; border-radius: var(--radius-lg); background: var(--surface-sunken);
     border: 1px solid var(--border-soft);
@@ -151,6 +182,7 @@
     display: flex; align-items: center; justify-content: center; gap: 7px; transition: transform .15s var(--ease);
   }
   .run-btn:hover { transform: translateY(-1px); }
+  .run-btn:active:not(:disabled) { transform: translateY(0) scale(0.97); }
   .run-btn:disabled { opacity: .55; cursor: default; transform: none; }
   .result-card { margin-top: 10px; padding: 10px 11px; border-radius: var(--radius-sm); font-size: 11.5px; line-height: 1.5; display: none; }
   .result-card.ok { display: block; background: var(--green-50); color: var(--green-700); }
@@ -169,6 +201,7 @@
     border: 1px solid var(--border-soft); transition: box-shadow .18s var(--ease), transform .18s var(--ease);
   }
   .lock-pill:hover { box-shadow: var(--shadow-md); transform: translateX(-50%) translateY(-1px); }
+  .lock-pill:active { transform: translateX(-50%) scale(0.97); }
   .lock-pill .lock-icon { flex-shrink: 0; display: flex; color: var(--ink-300); }
   .lock-pill.locked .lock-icon { color: var(--green-500); }
   .lock-pill .lock-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -217,7 +250,7 @@
     border-radius: var(--radius-sm); border: 0; cursor: pointer; box-shadow: var(--shadow-sm); transition: transform .15s var(--ease), box-shadow .15s var(--ease);
   }
   .primary-btn:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
-  .primary-btn:active { transform: translateY(0); box-shadow: var(--shadow-xs); }
+  .primary-btn:active { transform: translateY(0) scale(0.97); box-shadow: var(--shadow-xs); }
   .foot-single { align-items: center; }
   .autosave-indicator {
     display: inline-flex; align-items: center; gap: 4px; color: var(--green-600); font-weight: 600; opacity: 0;
@@ -227,6 +260,7 @@
 
   /* ---------- Other Platforms / type toggle ---------- */
   .profile-row { display: flex; gap: 8px; padding: 15px 18px 0; flex-wrap: wrap; }
+  #youtubeTypeToggle { justify-content: center; }
   .type-toggle-hint { font-size: 10.5px; color: var(--ink-300); padding: 14px 18px 0; line-height: 1.5; }
   .profile-chip {
     background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 7px 13px; font-size: 11.5px;
@@ -295,7 +329,7 @@
     width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 12.5px;
     font-family: inherit; background: var(--surface); color: var(--ink-900); transition: border-color .15s var(--ease), box-shadow .15s var(--ease);
   }
-  .modal textarea { font-family: monospace; font-size: 11px; resize: none; }
+  .modal textarea { font-family: var(--font-mono); font-size: 11px; resize: none; }
   .modal input:focus, .modal select:focus, .modal textarea:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 18%, transparent); }
   .modal .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
   .modal .modal-actions button { padding: 8px 16px; border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all .15s var(--ease); }
@@ -344,6 +378,12 @@
 
   <!-- Home tab: current page + quick send + Profile/Discover -->
   <div class="tab-panel active" id="panel-home">
+    <div class="brand-chip">
+      <span class="brand-chip-mark">K</span>
+      <span class="brand-chip-text">Send to Koli</span>
+      <span class="brand-chip-sep">·</span>
+      <span class="brand-chip-status" id="brandChipStatus">not locked</span>
+    </div>
     <div class="page-card" id="pageCard">
       <div class="kicker">Current page</div>
       <div class="title" id="pageTitle">Checking…</div>
@@ -484,6 +524,13 @@
       <h3>Recognized platforms</h3>
       <div class="status-note"><span class="status-dot"></span>YouTube — channel/video links auto-detected</div>
       <div class="status-note dim"><span class="status-dot dim"></span>Anything captured under Other Platforms is sent as-is — auto-detection is YouTube-specific for now.</div>
+    </div>
+    <div class="settings-section">
+      <h3>Privacy</h3>
+      <div class="status-note dim" style="line-height:1.6;align-items:flex-start;">
+        <span class="status-dot dim" style="margin-top:5px;"></span>
+        <span>This extension talks only to the Web App URL you connect above — a script you deploy and control with your own Google account. Nothing is sent to Koli's developer or any third party, no usage analytics are collected, and your locks/columns/activity log stay in this browser (<code style="font-family:var(--font-mono);">chrome.storage</code>), never elsewhere. Source will be published under the MIT license so this can be checked, not just taken on faith.</span>
+      </div>
     </div>
     <div class="settings-section">
       <h3>Quick setup</h3>

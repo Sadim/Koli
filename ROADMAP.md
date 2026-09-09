@@ -753,6 +753,46 @@ just internal reasoning — see below.
   manual 25-file copy-paste for this instance. Distribute via that
   Sheet's `/copy` URL, per round 13.
 
+## Just shipped, round 17 — extension side panel, connection codes, trust pass
+
+- **Connection code** (uiHandlers.gs's `generateConnectionCode`,
+  SettingsDialog.html). One base64-encoded paste (Web App URL + shared
+  secret, built server-side via `ScriptApp.getService().getUrl()`)
+  replaces copying two separate values by hand into the extension.
+- **Extension rebuilt as a Chrome side panel** (sidepanel.html/.js,
+  replacing popup.html/.js). Persistent instead of closing on every
+  focus change; unifies Channel/Video/Profile/Discover in one place — a
+  Home tab shows the current page with a one-click send plus free-tier
+  Profile and Discover mini-forms (reusing the Web App's existing
+  `profile`/`discover` actions), and the column editor is a 4-way
+  switcher. Styled on Koli's own tokens, explicitly not the violet
+  "AI SDR" reference the panel layout was modeled on. A `.preview/`
+  dev harness (gitignored — chrome-shim.js + a zero-dep static server)
+  was built alongside it, since a side panel needs real `chrome.*` APIs
+  to do anything and can't be exercised from a plain `file://` open.
+- **Trust pass**: a "Send to Koli" brand chip on the Home tab doubles as
+  a lock-status indicator; a plain-language Privacy note in Settings
+  (talks only to your own Web App URL, no telemetry, storage stays in
+  `chrome.storage`); an MIT `LICENSE` staged in the extension folder
+  ahead of actually publishing the source publicly — see the
+  extension's README "Trust & transparency" section for the full
+  commitment, including what the eventual real-sign-in flow will
+  disclose before requesting any permission.
+- **JetBrains Mono** added alongside Inter, reserved for genuinely
+  code-like content (the connection code field, the brand chip) rather
+  than applied everywhere — a deliberate accent, not a full swap.
+- Fixed a real bug found via the new `.preview/` harness: Profile/
+  Discover result cards set an inline `style.display:none` on reset that
+  outranked the `.err`/`.ok` class's `display:block`, so the result
+  never actually became visible even though the DOM update happened.
+
+**Still open from this round**: `clasp push` hasn't happened yet, so
+none of the connection-code/profile/discover backend changes are live
+on the real template Sheet — needs a push plus a new Web App deployment
+version to take effect. Real Google Sign-In (`chrome.identity`,
+replacing the shared secret) is still the deferred long-term item; the
+extension isn't actually open-sourced yet either, just staged for it.
+
 ## Vision backlog — from the founder, round 16
 
 Captured in one pass, deliberately not built yet — recorded now so

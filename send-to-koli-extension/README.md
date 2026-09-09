@@ -95,6 +95,30 @@ The activity log is separate, in `chrome.storage.local` under `koliLog`
 (capped at 500 entries — that's a real recent-activity view with genuine
 pagination now, not just a short scrolling list).
 
+## Trust & transparency
+
+Said plainly, not just claimed:
+- **No telemetry.** This extension makes exactly one kind of outbound
+  request: to the Web App URL *you* deploy and control. There's no
+  Koli-operated server it phones home to, and no analytics SDK in it.
+- **Nothing leaves your browser except what you send.** Locks, columns,
+  and the activity log all live in `chrome.storage` (see above) — never
+  synced anywhere Koli's developer can read.
+- **Minimal permissions, and each one is justified in
+  [STORE_LISTING.md](STORE_LISTING.md)'s "Permission justifications"
+  section** — worth reading before trusting any extension with
+  `<all_urls>`, this one included.
+- **MIT-licensed** (see [LICENSE](LICENSE)) — staged ahead of actually
+  publishing the source publicly, so the license is settled before
+  anyone's asked to trust "we'll open it up eventually." Once it's public,
+  the permission list, the network calls, and the storage model above are
+  all independently checkable, not just asserted here.
+- **The planned real Google Sign-In** (`chrome.identity`, replacing the
+  shared-secret model — see Known limitations below) will ship with its
+  own plain-language screen at first sign-in stating exactly what scope is
+  requested and why, before any permission prompt — not buried in a
+  privacy policy nobody reads.
+
 ## Known limitations, stated plainly
 
 - **Sign-in-based worksheet discovery isn't built.** You still lock a
