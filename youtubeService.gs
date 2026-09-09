@@ -169,7 +169,8 @@ function prefetchChannels(rawInputs) {
     const channelData = {
       channelId: id, name: item.snippet.title, description: item.snippet.description || '',
       subCount: item.statistics.hiddenSubscriberCount ? null : Number(item.statistics.subscriberCount || 0),
-      videoCount: Number(item.statistics.videoCount || 0), recentVideos: uploadsByChannel[id] || []
+      videoCount: Number(item.statistics.videoCount || 0), recentVideos: uploadsByChannel[id] || [],
+      country: item.snippet.country || '' // self-declared by the channel owner, often unset — free from the same part=snippet call, no extra API cost
     };
     cachePut_(cacheKey_('channel', id), channelData, DEFAULTS.CACHE_TTL_SECONDS);
   });
@@ -193,7 +194,8 @@ function getChannelData(channelId) {
     return {
       channelId: channelId, name: item.snippet.title, description: item.snippet.description || '',
       subCount: item.statistics.hiddenSubscriberCount ? null : Number(item.statistics.subscriberCount || 0),
-      videoCount: Number(item.statistics.videoCount || 0), recentVideos: recentVideos
+      videoCount: Number(item.statistics.videoCount || 0), recentVideos: recentVideos,
+      country: item.snippet.country || '' // self-declared by the channel owner, often unset — free from the same part=snippet call, no extra API cost
     };
   }, DEFAULTS.CACHE_TTL_SECONDS);
 }

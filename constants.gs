@@ -186,7 +186,8 @@ const PROP_KEYS = {
   MISTRAL_API_KEY: 'MISTRAL_API_KEY', // optional fallback when Gemini's own retries are exhausted
   GROQ_API_KEY: 'GROQ_API_KEY', // optional fallback, tried after Mistral
   TIMEZONE: 'TIMEZONE', // e.g. 'America/New_York', 'Etc/UTC' — user-set, never assumed
-  ACCESS_CODE: 'ACCESS_CODE' // premium-tier unlock — see licenseService.gs
+  ACCESS_CODE: 'ACCESS_CODE', // premium-tier unlock — see licenseService.gs
+  DEFAULT_TARGET_REGIONS: 'DEFAULT_TARGET_REGIONS' // comma-joined ISO 3166-1 alpha-2 codes (e.g. "US,GB,CA,AU") — see discoverService.gs
 };
 
 // Bump with every shipped round — matches ROADMAP.md's "round N" numbering.

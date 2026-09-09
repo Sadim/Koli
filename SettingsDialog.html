@@ -85,6 +85,18 @@
 </div>
 
 <div class="section">
+  <div class="section-title">Discover — default target regions</div>
+  <div class="hint" style="margin-bottom:8px;">Steers Discover results toward these countries whenever a channel has one declared — most don't, and those are treated as neutral, not penalized. Leave everything unchecked/blank to turn this off.</div>
+  <div class="chk-row"><input type="checkbox" id="regionUS" /><label for="regionUS">United States</label></div>
+  <div class="chk-row"><input type="checkbox" id="regionGB" /><label for="regionGB">United Kingdom</label></div>
+  <div class="chk-row"><input type="checkbox" id="regionCA" /><label for="regionCA">Canada</label></div>
+  <div class="chk-row"><input type="checkbox" id="regionAU" /><label for="regionAU">Australia</label></div>
+  <label for="regionOther" style="margin-top:10px;">Other regions</label>
+  <input type="text" id="regionOther" placeholder="Comma-separated 2-letter codes, e.g. IE, NZ, DE" />
+  <div class="hint">ISO country codes — the same ones YouTube itself uses.</div>
+</div>
+
+<div class="section">
   <div class="section-title">Premium access</div>
   <label for="accessCode">Access code</label>
   <input type="password" id="accessCode" placeholder="Paste your access code" />
@@ -128,6 +140,10 @@
       document.getElementById('sampleSize').value = s.commentSampleSize;
       document.getElementById('scanSponsors').checked = !!s.scanChannelSponsors;
       document.getElementById('attemptTimestamp').checked = !!s.attemptSponsorTimestamp;
+      const regions = (s.defaultTargetRegions || '').split(',').map((r) => r.trim()).filter(Boolean);
+      const knownCodes = ['US', 'GB', 'CA', 'AU'];
+      knownCodes.forEach((code) => { document.getElementById('region' + code).checked = regions.indexOf(code) !== -1; });
+      document.getElementById('regionOther').value = regions.filter((r) => knownCodes.indexOf(r) === -1).join(', ');
       document.getElementById('inboxSecretStatus').textContent = s.inboxSecretSet ? 'Currently set.' : 'Not set.';
       document.getElementById('timezone').value = s.timezone;
       document.getElementById('accessCodeStatus').textContent = s.premiumUnlocked ? '✓ Premium unlocked.' : (s.accessCodeSet ? 'Code set, but not valid.' : 'Not set — free tier.');
@@ -198,7 +214,11 @@
         accessCode: document.getElementById('accessCode').value.trim(),
         timezone: document.getElementById('timezone').value.trim(),
         scanChannelSponsors: document.getElementById('scanSponsors').checked,
-        attemptSponsorTimestamp: document.getElementById('attemptTimestamp').checked
+        attemptSponsorTimestamp: document.getElementById('attemptTimestamp').checked,
+        defaultTargetRegions: ['US', 'GB', 'CA', 'AU']
+          .filter((code) => document.getElementById('region' + code).checked)
+          .concat(document.getElementById('regionOther').value.split(',').map((r) => r.trim()).filter(Boolean))
+          .join(',')
       });
   };
 </script>

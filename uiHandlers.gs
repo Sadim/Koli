@@ -164,7 +164,8 @@ function getSettings() {
     inboxSecretSet: !!props.getProperty(PROP_KEYS.INBOX_SHARED_SECRET),
     accessCodeSet: !!props.getProperty(PROP_KEYS.ACCESS_CODE),
     premiumUnlocked: hasPremiumAccess_(),
-    timezone: getTimezone_()
+    timezone: getTimezone_(),
+    defaultTargetRegions: getProp_(PROP_KEYS.DEFAULT_TARGET_REGIONS, '')
   };
 }
 
@@ -206,6 +207,11 @@ function saveSettings(settings) {
   if (settings.timezone) props.setProperty(PROP_KEYS.TIMEZONE, settings.timezone.trim());
   props.setProperty(PROP_KEYS.SCAN_CHANNEL_SPONSORS, String(!!settings.scanChannelSponsors));
   props.setProperty(PROP_KEYS.ATTEMPT_SPONSOR_TIMESTAMP, String(!!settings.attemptSponsorTimestamp));
+  // Unconditional (unlike the API-key fields above) — this is a normal
+  // editable value, not a write-only masked secret, so clearing every
+  // checkbox and the custom field must actually clear the stored default,
+  // not silently keep whatever was set last time.
+  props.setProperty(PROP_KEYS.DEFAULT_TARGET_REGIONS, String(settings.defaultTargetRegions || '').toUpperCase());
   return { ok: true };
 }
 

@@ -70,9 +70,22 @@ function loadSeed_(seedInput) {
   return { id: channelId, name: c.name, description: c.description, titles: c.recentVideos.map(function (v) { return v.title; }), channel: c };
 }
 
+/** Parses Settings' comma-joined region-code string into an array, e.g. "US,GB,CA,AU" -> ['US','GB','CA','AU']. Empty/unset returns []. */
+function getDefaultTargetRegions_() {
+  const raw = getProp_(PROP_KEYS.DEFAULT_TARGET_REGIONS, '');
+  return raw.split(',').map(function (s) { return s.trim().toUpperCase(); }).filter(Boolean);
+}
+
 function scoreChannelCandidates_(channelIds, seed, filters) {
   const seedChannel = seed.channel || getChannelData(seed.id);
   const seedAvgPosts = computeAvgPostsPerMonth_(seedChannel.recentVideos, Number(getProp_(PROP_KEYS.LOOKBACK_DAYS, DEFAULTS.LOOKBACK_DAYS)));
+
+  // Default target regions (Settings) steer results toward those countries
+  // whenever set — on by default, not a per-run toggle yet, so filters
+  // doesn't need its own matchRegion flag; pass filters.matchRegion:false
+  // to opt out of even the configured default for one run.
+  const targetRegions = getDefaultTargetRegions_();
+  const regionCheckActive = targetRegions.length && filters.matchRegion !== false;
 
   const candidates = channelIds.map(function (id) {
     try { return getChannelData(id); } catch (e) { return null; }
@@ -103,6 +116,7 @@ function scoreChannelCandidates_(channelIds, seed, filters) {
         filters.matchViews && (filters.viewsMin || filters.viewsMax)
           ? { value: avgViews, min: filters.viewsMin, max: filters.viewsMax } : null
       ].filter(Boolean),
+      categoricalChecks: regionCheckActive ? [{ value: c.country, allowedValues: targetRegions }] : [],
       matchKeywords: filters.matchKeywords, matchNiche: filters.matchNiche
     });
 
@@ -114,6 +128,13 @@ function scoreChannelCandidates_(channelIds, seed, filters) {
   });
 }
 
+/**
+ * No default-region steering here (unlike scoreChannelCandidates_) — a
+ * video candidate's channel country isn't in the data this already
+ * fetches (getVideoData's snippet has no country field, only the channel
+ * resource does), and fetching it would mean one more API call per
+ * candidate. Stated plainly rather than silently skipped.
+ */
 function scoreVideoCandidates_(videoIds, seed, filters) {
   const statsById = batchVideoStats_(videoIds);
   const details = {};
@@ -202,6 +223,18 @@ function scoreCandidate_(opts) {
         parts.push(Math.max(0, 1 - diff / DEFAULTS.MATCH_MARGIN));
       }
     }
+  });
+
+  // Categorical (non-numeric) checks — currently just target-region
+  // matching. A candidate with no known value for the field is scored
+  // neutral, not penalized: most YouTube channels never set their
+  // declared country, so "unknown" is the common case, not a red flag.
+  // A KNOWN value outside the allowed list scores low — the whole point
+  // is to actively steer results toward the configured regions, not just
+  // mildly prefer them.
+  (opts.categoricalChecks || []).forEach(function (check) {
+    if (!check.value) { parts.push(0.5); return; }
+    parts.push(check.allowedValues.indexOf(check.value) !== -1 ? 1 : 0.15);
   });
 
   if (!parts.length) return 1; // no filters enabled — everything found is a "match"

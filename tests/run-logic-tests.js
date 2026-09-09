@@ -143,6 +143,28 @@ console.log('captionsService.gs');
   });
 }
 
+// ---------- discoverService.gs ----------
+console.log('discoverService.gs');
+{
+  const m = loadGs('discoverService.gs');
+
+  test('scoreCandidate_: a candidate whose country is in the allowed list scores full credit', () => {
+    const score = m.scoreCandidate_({ numericChecks: [], categoricalChecks: [{ value: 'US', allowedValues: ['US', 'GB'] }] });
+    assert.strictEqual(score, 1);
+  });
+  test('scoreCandidate_: a candidate with a KNOWN country outside the allowed list scores low, not zero', () => {
+    const score = m.scoreCandidate_({ numericChecks: [], categoricalChecks: [{ value: 'FR', allowedValues: ['US', 'GB'] }] });
+    assert.strictEqual(score, 0.15);
+  });
+  test('scoreCandidate_: an unknown/unset country is neutral, not penalized (most channels never declare one)', () => {
+    const score = m.scoreCandidate_({ numericChecks: [], categoricalChecks: [{ value: '', allowedValues: ['US', 'GB'] }] });
+    assert.strictEqual(score, 0.5);
+  });
+  test('scoreCandidate_: no categoricalChecks and no numericChecks (region targeting off) -> full match, unchanged old behavior', () => {
+    assert.strictEqual(m.scoreCandidate_({ numericChecks: [] }), 1);
+  });
+}
+
 // ---------- outreachDraftService.gs ----------
 console.log('outreachDraftService.gs');
 {
