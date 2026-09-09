@@ -31,11 +31,15 @@ function fetchRecentVideoStats_(recentVideos) {
     };
   });
   // Preserve recentVideos' newest-first order, dropping any video stats didn't return (private/deleted).
+  // videoId/title carried through (not just the raw numbers) so callers that
+  // need to identify WHICH video — e.g. outreachDraftService.gs picking a
+  // creator's best-performing recent upload to hook an email on — don't
+  // need a second lookup.
   return sample
     .filter(function (v) { return statsById[v.videoId]; })
     .map(function (v) {
       const s = statsById[v.videoId];
-      return { views: s.views, likes: s.likes, comments: s.comments, publishedAt: v.publishedAt };
+      return { videoId: v.videoId, title: v.title, description: v.description, views: s.views, likes: s.likes, comments: s.comments, publishedAt: v.publishedAt };
     });
 }
 
