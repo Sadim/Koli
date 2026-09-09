@@ -94,6 +94,34 @@ function routeWebAppAction_(action, body) {
       return result;
     }
 
+    case 'profile': {
+      // Same runProfile() the Sidebar's own Profile tab uses — including
+      // its built-in 4.5-minute time budget (PROFILE_TIME_BUDGET_MS,
+      // profileService.gs), safely under the Web App's ~6-minute execution
+      // ceiling. A wide date range on a high-upload-frequency channel can
+      // still come back with stoppedEarly: true — that's not a bug, it's
+      // the same "re-run to continue where it left off" behavior the
+      // Sidebar has always had, just now reachable from one call instead
+      // of a client-side loop.
+      if (!body.channelInput) return { ok: false, error: 'Missing channelInput.' };
+      try {
+        const result = runProfile(body.channelInput, body.startDate, body.endDate, body.mode || 'append', !!body.track);
+        return Object.assign({ ok: true }, result);
+      } catch (e) {
+        return { ok: false, error: e.message };
+      }
+    }
+
+    case 'apply_profile_columns': {
+      if (!Array.isArray(body.columns) || !body.columns.length) return { ok: false, error: 'No column list provided.' };
+      return applyColumnLayout_(SHEET_NAMES.PROFILE, body.columns);
+    }
+
+    case 'apply_discover_columns': {
+      if (!Array.isArray(body.columns) || !body.columns.length) return { ok: false, error: 'No column list provided.' };
+      return applyColumnLayout_(SHEET_NAMES.DISCOVER, body.columns);
+    }
+
     case 'workspace_info':
       // Lets the sidebar label a saved connection with the actual sheet
       // name instead of forcing the user to type their own nickname.

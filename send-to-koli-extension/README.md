@@ -1,7 +1,10 @@
-# Send to Koli — browser extension (v2.0)
+# Send to Koli — browser extension (v2.1)
 
 Right-click a link on any page and send it straight into a Koli worksheet —
 YouTube by default, or any other platform you've set up your own profile for.
+The toolbar icon opens a persistent side panel with the same setup plus
+one-off Profile and Discover runs, so it stays open and live-updates as you
+browse instead of closing every time you click away.
 
 ## Install (unpacked, since this isn't published to the Chrome Web Store)
 
@@ -13,12 +16,15 @@ YouTube by default, or any other platform you've set up your own profile for.
 
 1. In your Koli **Apps Script editor**: Deploy → New deployment → select
    type **Web app** → Execute as "Me" → Who has access "Anyone" → Deploy.
-   Copy the URL it gives you (ends in `/exec`).
-2. Click the extension's toolbar icon → the **YouTube** tab is open by
-   default → tap the **"Choose worksheet"** pill.
-3. Paste the URL, and the shared secret you set in Koli's own Settings
-   dialog (Koli menu → Settings). Pick a destination tab if you don't want
-   the default (Prospects). Tap **Test & Lock**.
+2. In Koli's own **Settings** dialog (Koli menu → Settings), set a shared
+   secret, then click **Generate** next to "Connection code" — it bundles
+   the deployed URL and your secret into one string, so there's nothing to
+   copy from the Deploy dialog by hand.
+3. Click the extension's toolbar icon to open the side panel → **Columns**
+   tab → tap the **"Choose worksheet"** pill → paste the connection code and
+   tap **"Fill in URL & secret from this code"** (or paste the URL/secret
+   separately if you'd rather). Pick a destination tab if you don't want the
+   default (Prospects). Tap **Test & Lock**.
 4. That's it for YouTube. Repeat for any other platform via the
    **Other Platforms** tab → **+ Add platform** — each one gets its own
    independent lock, so an Instagram profile can point at a completely
@@ -38,21 +44,33 @@ YouTube by default, or any other platform you've set up your own profile for.
 - Once you've added an Other-Platforms profile, a matching **"Send to
   [Platform Name]"** item appears in the same right-click menu automatically
   (still a single generic capture — no channel/video split for those yet).
+- Or open the side panel's **Home** tab: it shows whatever page you're on
+  (auto-classified as a YouTube channel/video where recognized) with a
+  one-click send, plus **Profile** (pull one channel over a date range) and
+  **Discover** (find similar channels/videos) — both free, both write
+  straight into your Koli spreadsheet's Profile / Discover Results sheets.
 
-## The popup
+## The side panel
 
-- **YouTube tab**: a **Channels / Videos** switcher at the top — each has
-  its own real column layout (Channels: 14 columns; Videos: 16), edited
-  and applied independently. Drag to reorder or delete what you don't
-  need; this only changes what the popup *shows* you until you tap Apply.
+- **Home tab**: current-page card with a one-click send (updates live as
+  you switch or navigate tabs, since the panel stays open); sent/error
+  counts for today; a **Profile** mini-form (channel, date range, track
+  toggle) and a **Discover** mini-form (seed link, channel/video toggle,
+  result count, match filters) — each posts straight to your Koli Web App
+  and reports back inline.
+- **Columns tab**: a **Channels / Videos / Profile / Discover** switcher —
+  each has its own real column layout, edited and applied independently.
+  Drag to reorder or delete what you don't need; this only changes what
+  the panel *shows* you until you tap Apply.
 - **Other Platforms tab**: one or more named profiles (Instagram, TikTok,
   whatever), each with its own fully editable column set (starts pre-filled
-  from YouTube's defaults, edit or delete freely) and its own worksheet lock.
-- **Log tab**: every send, paginated, with the resolved name (YouTube page
-  titles have " - YouTube" stripped automatically), which platform it went
-  to, and quick view/delete actions per entry.
+  from Channels' defaults, edit or delete freely) and its own worksheet lock.
+- **Activity tab**: every send (including Profile/Discover runs), paginated,
+  with the resolved name (YouTube page titles have " - YouTube" stripped
+  automatically), which platform it went to, and quick view/delete actions
+  per entry.
 - **Settings (gear icon)**: every lock in one place, plus the quick-setup
-  reminder — no separate options page anymore, this replaced it entirely.
+  reminder — no separate options page, this replaced it entirely.
 
 ## Recognized platforms
 
@@ -68,7 +86,7 @@ Everything lives in `chrome.storage.sync` under one key, `locks`:
 
 ```js
 {
-  youtube: { locked, url, secret, tab, columnsChannel: [...], columnsVideo: [...] },
+  youtube: { locked, url, secret, tab, columnsChannel: [...], columnsVideo: [...], columnsProfile: [...], columnsDiscover: [...] },
   other: [ { id, name, locked, url, secret, tab, columns: [...] } ]
 }
 ```
@@ -79,9 +97,12 @@ pagination now, not just a short scrolling list).
 
 ## Known limitations, stated plainly
 
-- **Sign-in-based worksheet discovery isn't built.** You still paste a Web
-  App URL and secret manually for every lock. A real upgrade, deliberately
-  not attempted yet — see the project handoff doc for why and what it'd need.
+- **Sign-in-based worksheet discovery isn't built.** You still lock a
+  worksheet with a URL+secret connection code for every lock — real Google
+  Sign-In (via `chrome.identity`) is a bigger future upgrade, deliberately
+  not attempted yet. Drive-based auto-discovery was considered and rejected:
+  it would require a new, broader Drive OAuth scope, reopening the exact
+  CASA security-review cost this project has otherwise avoided.
 - **Voice/attachment features aren't part of this extension** — those exist
   in the Google Sheets sidebar's input-options dropdown, a completely
-  separate surface from this popup.
+  separate surface from this side panel.

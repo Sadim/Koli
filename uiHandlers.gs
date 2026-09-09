@@ -168,6 +168,31 @@ function getSettings() {
   };
 }
 
+/**
+ * One paste instead of two — bundles the deployed Web App URL and the
+ * shared secret into a single opaque string the extension can decode
+ * client-side (plain base64, not encryption — the secret inside is
+ * still the real security boundary, this just saves a second copy-paste
+ * round trip and a chance to mismatch the wrong URL with the wrong
+ * secret). ScriptApp.getService().getUrl() reads the current Web App
+ * deployment directly, so there's nothing to manually copy from the
+ * Deploy dialog either — deploying it is still a required one-time
+ * step, generating the code afterward is not.
+ */
+function getConnectionCode_() {
+  const secret = getProp_(PROP_KEYS.INBOX_SHARED_SECRET, '');
+  if (!secret) throw new Error('Set a shared secret above first, then generate a connection code.');
+  let url = '';
+  try { url = ScriptApp.getService().getUrl(); } catch (e) { /* no deployment yet */ }
+  if (!url) throw new Error('No Web App deployment found yet — Deploy > New deployment > Web app first, then generate a connection code.');
+  return Utilities.base64Encode(JSON.stringify({ u: url, s: secret }));
+}
+
+function generateConnectionCode() {
+  try { return { ok: true, code: getConnectionCode_() }; }
+  catch (e) { return { ok: false, message: e.message }; }
+}
+
 function saveSettings(settings) {
   const props = PropertiesService.getDocumentProperties();
   if (settings.youtubeApiKey) props.setProperty(PROP_KEYS.YOUTUBE_API_KEY, settings.youtubeApiKey.trim());

@@ -1,8 +1,10 @@
 /**
  * background.js
- * Right-click (context menu) is the only way to send — deliberate: pick
- * a link, a selection, or the whole page. The toolbar icon opens the
- * popup instead (popup.html) — not a send action.
+ * Right-click (context menu) is the primary way to send a link/selection —
+ * deliberate: pick a link, a selection, or the whole page. The toolbar icon
+ * opens the persistent side panel instead (sidepanel.html), which also
+ * offers its own Home-tab quick-send, Profile, and Discover actions — see
+ * the koli-send message bridge below for how those reuse this file's send().
  *
  * Storage model: chrome.storage.sync key `locks` = {
  *   youtube: { locked, url, secret, tab, columns },
@@ -49,6 +51,11 @@ function rebuildContextMenus() {
 }
 chrome.runtime.onInstalled.addListener(rebuildContextMenus);
 chrome.runtime.onStartup.addListener(rebuildContextMenus);
+
+// Toolbar icon now opens the side panel instead of a popup — persistent
+// across page navigation, so Home's current-page card can react as you
+// browse instead of resetting every time the popup would've closed.
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((e) => console.error('[Koli]', e));
 // Rebuilds automatically whenever a profile is added/renamed/removed in
 // the popup — background.js never goes stale relative to what's stored.
 chrome.storage.onChanged.addListener((changes, area) => {
@@ -213,4 +220,14 @@ chrome.notifications.onClicked.addListener((notificationId) => {
     chrome.tabs.create({ url: link });
     delete notificationLinks[notificationId];
   }
+});
+
+// Bridge for the side panel's Home-tab quick-send buttons — routes through
+// this exact same send() rather than duplicating its fetch/log/notify
+// logic in sidepanel.js, so a quick send and a right-click send behave
+// identically and show up in the same Log tab the same way.
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (!msg || msg.kind !== 'koli-send') return false;
+  send(msg.type, msg.value, msg.pageTitle, msg.sourceUrl, msg.silent, msg.lockId).then((ok) => sendResponse({ ok }));
+  return true; // keep the message channel open for the async response
 });

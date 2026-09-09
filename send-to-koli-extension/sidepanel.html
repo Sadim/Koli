@@ -38,11 +38,13 @@
     }
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
   body {
-    font-family: 'Inter', 'Google Sans', Roboto, Arial, sans-serif; color: var(--ink-700); width: 384px;
+    font-family: 'Inter', 'Google Sans', Roboto, Arial, sans-serif; color: var(--ink-700); min-width: 300px;
     font-size: 13px; background: var(--surface); -webkit-font-smoothing: antialiased;
+    display: flex; flex-direction: column;
   }
-  button, input, select { font-family: inherit; }
+  button, input, select, textarea { font-family: inherit; }
   button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible {
     outline: 2px solid var(--teal); outline-offset: 2px; border-radius: 4px;
   }
@@ -52,7 +54,7 @@
   .hdr {
     display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px 14px 13px;
     background: linear-gradient(180deg, var(--green-50), var(--surface) 130%);
-    border-bottom: 1px solid var(--border-soft);
+    border-bottom: 1px solid var(--border-soft); flex-shrink: 0;
   }
   .brand-mark {
     width: 28px; height: 28px; border-radius: 9px; background: linear-gradient(155deg, var(--green-500), var(--green-700));
@@ -62,26 +64,100 @@
   .hdr h1 { font-size: 17px; font-weight: 800; color: var(--navy); letter-spacing: -.01em; }
 
   /* ---------- Top tabs ---------- */
-  .tabs { display: flex; justify-content: center; gap: 28px; padding-top: 10px; border-bottom: 1px solid var(--border-soft); }
+  .tabs { display: flex; justify-content: center; gap: 20px; padding-top: 10px; border-bottom: 1px solid var(--border-soft); flex-shrink: 0; }
   .tab {
-    position: relative; font-size: 12.5px; font-weight: 600; color: var(--ink-300); padding: 4px 2px 11px;
+    position: relative; font-size: 12px; font-weight: 600; color: var(--ink-300); padding: 4px 2px 11px;
     cursor: pointer; background: none; border: none; transition: color .18s var(--ease);
   }
   .tab:hover { color: var(--ink-500); }
   .tab.active { color: var(--ink-900); }
   .tab::after {
-    content: ''; position: absolute; left: 50%; transform: translateX(-50%) scaleX(0); bottom: 0; width: 36px;
+    content: ''; position: absolute; left: 50%; transform: translateX(-50%) scaleX(0); bottom: 0; width: 30px;
     height: 2.5px; border-radius: 2px; background: var(--teal); transition: transform .22s var(--ease-out);
   }
   .tab.active::after { transform: translateX(-50%) scaleX(1); }
 
+  .body-scroll { flex: 1; overflow-y: auto; min-height: 0; }
   .screen { display: none; }
-  .screen.active { display: block; animation: screenIn .18s var(--ease-out); }
+  .screen.active { display: flex; flex-direction: column; flex: 1; min-height: 0; animation: screenIn .18s var(--ease-out); }
   @keyframes screenIn { from { opacity: 0; } to { opacity: 1; } }
   @keyframes rowIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ---------- Home: current-page card ---------- */
+  .page-card {
+    margin: 16px 16px 0; padding: 14px 15px; border-radius: var(--radius-lg); background: var(--surface-sunken);
+    border: 1px solid var(--border-soft);
+  }
+  .page-card .kicker { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-300); margin-bottom: 6px; }
+  .page-card .title { font-size: 13px; font-weight: 700; color: var(--ink-900); line-height: 1.4; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .page-card .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: var(--radius-pill); margin-top: 8px; }
+  .page-card .badge.channel { background: var(--green-50); color: var(--green-700); }
+  .page-card .badge.video { background: color-mix(in srgb, var(--teal) 16%, transparent); color: var(--teal-600); }
+  .page-card .badge.other { background: var(--border-soft); color: var(--ink-500); }
+  .page-card .badge svg { flex-shrink: 0; }
+  .page-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .page-actions button {
+    flex: 1; padding: 9px 10px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer;
+    border: none; display: flex; align-items: center; justify-content: center; gap: 6px; transition: transform .15s var(--ease), box-shadow .15s var(--ease);
+  }
+  .page-actions .btn-fill { background: linear-gradient(155deg, var(--green-500), var(--green-600)); color: #fff; box-shadow: var(--shadow-sm); }
+  .page-actions .btn-fill:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+  .page-actions .btn-outline { background: var(--surface-raised); color: var(--ink-700); border: 1px solid var(--border); }
+  .page-actions .btn-outline:hover { border-color: var(--ink-300); }
+  .page-card .not-connected { font-size: 11px; color: var(--ink-500); margin-top: 10px; line-height: 1.5; }
+  .page-card .not-connected a { color: var(--green-600); font-weight: 600; cursor: pointer; }
+
+  /* ---------- Stat tiles ---------- */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 16px 0; }
+  .stat-tile { background: var(--surface-raised); border: 1px solid var(--border-soft); border-radius: var(--radius-md); padding: 11px 13px; }
+  .stat-tile .num { font-size: 20px; font-weight: 800; color: var(--ink-900); font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .stat-tile .lbl { font-size: 10.5px; color: var(--ink-500); margin-top: 3px; }
+  .stat-tile.err .num { color: var(--error); }
+
+  /* ---------- Disclosure sections (Profile / Discover) ---------- */
+  .disclosure { margin: 14px 16px 0; border: 1px solid var(--border-soft); border-radius: var(--radius-lg); overflow: hidden; }
+  .disclosure summary {
+    list-style: none; cursor: pointer; padding: 13px 15px; display: flex; align-items: center; gap: 10px;
+    font-size: 12.5px; font-weight: 700; color: var(--ink-900); background: var(--surface-sunken);
+  }
+  .disclosure summary::-webkit-details-marker { display: none; }
+  .disclosure summary .chev { margin-left: auto; color: var(--ink-300); transition: transform .18s var(--ease); flex-shrink: 0; }
+  .disclosure[open] summary .chev { transform: rotate(90deg); }
+  .disclosure summary .icon { color: var(--teal-600); flex-shrink: 0; display: flex; }
+  .disclosure-body { padding: 14px 15px; }
+  .field-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .field-row > div { flex: 1; }
+  .field-row label, .form-label { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--ink-300); margin-bottom: 5px; }
+  .disclosure-body input[type="text"], .disclosure-body input[type="date"], .disclosure-body input[type="number"] {
+    width: 100%; padding: 8px 9px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 12px;
+    background: var(--surface); color: var(--ink-900);
+  }
+  .disclosure-body input:focus { outline: none; border-color: var(--teal); }
+  .chk-row { display: flex; align-items: center; gap: 7px; padding: 5px 0; }
+  .chk-row input[type="checkbox"] { accent-color: var(--green-500); width: 14px; height: 14px; cursor: pointer; }
+  .chk-row label { font-size: 11.5px; font-weight: 500; color: var(--ink-700); cursor: pointer; }
+  .seg2 { display: inline-flex; background: var(--surface-sunken); border-radius: var(--radius-sm); padding: 2px; gap: 2px; margin-bottom: 10px; }
+  .seg2 button { border: none; background: none; border-radius: 6px; padding: 6px 12px; font-size: 11.5px; font-weight: 600; color: var(--ink-500); cursor: pointer; }
+  .seg2 button.active { background: var(--surface-raised); color: var(--ink-900); box-shadow: var(--shadow-xs); }
+  .stepper-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .stepper { display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 5px 10px; }
+  .stepper button { background: none; border: none; font-size: 14px; color: var(--ink-500); cursor: pointer; padding: 0 2px; }
+  .stepper b { font-size: 12px; color: var(--ink-900); min-width: 12px; text-align: center; }
+  .run-btn {
+    width: 100%; margin-top: 4px; padding: 10px; border-radius: var(--radius-sm); border: none; font-size: 12.5px; font-weight: 700;
+    background: linear-gradient(155deg, var(--green-500), var(--green-600)); color: #fff; cursor: pointer; box-shadow: var(--shadow-sm);
+    display: flex; align-items: center; justify-content: center; gap: 7px; transition: transform .15s var(--ease);
+  }
+  .run-btn:hover { transform: translateY(-1px); }
+  .run-btn:disabled { opacity: .55; cursor: default; transform: none; }
+  .result-card { margin-top: 10px; padding: 10px 11px; border-radius: var(--radius-sm); font-size: 11.5px; line-height: 1.5; display: none; }
+  .result-card.ok { display: block; background: var(--green-50); color: var(--green-700); }
+  .result-card.err { display: block; background: var(--error-bg); color: var(--error); }
 
   /* ---------- Lock pill ---------- */
-  .panelwrap { padding: 18px 18px 0; max-height: 380px; overflow-y: auto; }
+  .panelwrap { padding: 18px 18px 0; }
   .panel {
     position: relative; background: var(--surface-sunken); border: 1px solid var(--border-soft);
     border-radius: var(--radius-lg); padding: 27px 15px 15px;
@@ -136,7 +212,6 @@
   .flinks { display: flex; flex-direction: column; gap: 5px; font-size: 11px; color: var(--ink-500); }
   .flinks-icon { display: inline-flex; vertical-align: -2px; margin-right: 4px; color: var(--ink-300); }
   .flinks a { color: var(--ink-700); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
-  .save-btn { background: var(--green-50); color: var(--green-600); font-size: 13px; font-weight: 600; padding: 9px 20px; border-radius: var(--radius-sm); border: 0; cursor: pointer; }
   .primary-btn {
     background: linear-gradient(155deg, var(--green-500), var(--green-600)); color: #fff; font-size: 13px; font-weight: 700; padding: 10px 22px;
     border-radius: var(--radius-sm); border: 0; cursor: pointer; box-shadow: var(--shadow-sm); transition: transform .15s var(--ease), box-shadow .15s var(--ease);
@@ -150,11 +225,11 @@
   }
   .autosave-indicator.show { opacity: 1; }
 
-  /* ---------- Other Platforms: profile picker ---------- */
+  /* ---------- Other Platforms / type toggle ---------- */
   .profile-row { display: flex; gap: 8px; padding: 15px 18px 0; flex-wrap: wrap; }
   .type-toggle-hint { font-size: 10.5px; color: var(--ink-300); padding: 14px 18px 0; line-height: 1.5; }
   .profile-chip {
-    background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 7px 14px; font-size: 11.5px;
+    background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 7px 13px; font-size: 11.5px;
     font-weight: 600; color: var(--ink-500); cursor: pointer; transition: all .15s var(--ease);
   }
   .profile-chip:hover { border-color: var(--ink-300); color: var(--ink-700); }
@@ -165,7 +240,7 @@
   .no-profiles button:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
 
   /* ---------- Log ---------- */
-  .logwrap { display: flex; flex-direction: column; gap: 8px; padding: 15px 18px 0; max-height: 300px; overflow-y: auto; }
+  .logwrap { display: flex; flex-direction: column; gap: 8px; padding: 15px 18px 0; }
   .lrow {
     display: flex; justify-content: space-between; align-items: center; background: var(--surface-raised); border: 1px solid var(--border-soft);
     border-radius: var(--radius-md); padding: 10px 11px; animation: rowIn .2s var(--ease-out); box-shadow: var(--shadow-xs);
@@ -211,16 +286,17 @@
   }
   .modal-backdrop.open { display: flex; animation: backdropIn .15s var(--ease-out); }
   @keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
-  .modal { background: var(--surface-raised); border-radius: var(--radius-lg); padding: 20px; width: 320px; box-shadow: var(--shadow-lg); animation: modalIn .2s var(--ease-out); }
+  .modal { background: var(--surface-raised); border-radius: var(--radius-lg); padding: 20px; width: min(340px, 92vw); max-height: 88vh; overflow-y: auto; box-shadow: var(--shadow-lg); animation: modalIn .2s var(--ease-out); }
   @keyframes modalIn { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
   .modal h3 { font-size: 14.5px; font-weight: 700; margin-bottom: 4px; color: var(--ink-900); }
   .modal .hint { font-size: 11px; color: var(--ink-500); margin-bottom: 14px; line-height: 1.5; }
   .modal label { display: block; font-size: 11.5px; font-weight: 600; margin: 11px 0 5px; color: var(--ink-700); }
-  .modal input, .modal select {
+  .modal input, .modal select, .modal textarea {
     width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 12.5px;
     font-family: inherit; background: var(--surface); color: var(--ink-900); transition: border-color .15s var(--ease), box-shadow .15s var(--ease);
   }
-  .modal input:focus, .modal select:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 18%, transparent); }
+  .modal textarea { font-family: monospace; font-size: 11px; resize: none; }
+  .modal input:focus, .modal select:focus, .modal textarea:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 18%, transparent); }
   .modal .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
   .modal .modal-actions button { padding: 8px 16px; border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all .15s var(--ease); }
   .modal .btn-cancel { background: var(--surface); border: 1px solid var(--border); color: var(--ink-700); }
@@ -230,18 +306,22 @@
   .modal .status { font-size: 11px; margin-top: 9px; display: none; line-height: 1.5; }
   .modal .status.err { color: var(--error); display: block; }
   .modal .status.ok { color: var(--green-600); display: block; }
+  .modal .divider-or { display: flex; align-items: center; gap: 10px; margin: 14px 0 2px; font-size: 10px; font-weight: 700; color: var(--ink-300); text-transform: uppercase; letter-spacing: .05em; }
+  .modal .divider-or::before, .modal .divider-or::after { content: ''; flex: 1; height: 1px; background: var(--border-soft); }
+  .modal .link-btn-inline { background: none; border: none; color: var(--teal-600); font-weight: 600; font-size: 11px; cursor: pointer; padding: 0; margin-top: 6px; }
 
   /* ---------- Bottom nav ---------- */
-  .nav { margin-top: 6px; border-top: 1px solid var(--border-soft); display: flex; padding: 10px 12px; background: var(--surface); gap: 10px; }
+  .nav { border-top: 1px solid var(--border-soft); display: flex; padding: 10px 12px; background: var(--surface); gap: 8px; flex-shrink: 0; }
   .nbtn { flex: 1; display: flex; justify-content: center; }
   .nbtn button {
     background: none; border: 1px solid transparent; cursor: pointer; border-radius: var(--radius-md);
-    padding: 8px 20px; display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%;
-    font-size: 12px; font-weight: 600; color: var(--ink-500); transition: all .15s var(--ease);
+    padding: 8px 12px; display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%;
+    font-size: 11.5px; font-weight: 600; color: var(--ink-500); transition: all .15s var(--ease);
   }
   .nbtn button:hover { background: var(--surface-sunken); color: var(--ink-700); }
   .nbtn button.active { background: var(--green-50); border-color: rgba(30,138,76,.15); color: var(--green-700); }
   .nbtn button svg { flex-shrink: 0; }
+  [hidden] { display: none !important; }
 </style>
 </head>
 <body>
@@ -254,17 +334,81 @@
 <!-- ===================== HOME SCREEN ===================== -->
 <div class="screen active" id="screen-home">
   <div class="tabs" id="mainTabs">
-    <button class="tab active" data-tab="youtube">YouTube</button>
+    <button class="tab active" data-tab="home">Home</button>
+    <button class="tab" data-tab="columns">Columns</button>
     <button class="tab" data-tab="other">Other Platforms</button>
-    <button class="tab" data-tab="log">Log</button>
+    <button class="tab" data-tab="log">Activity</button>
   </div>
 
-  <!-- YouTube tab -->
-  <div class="tab-panel active" id="panel-youtube">
-    <p class="type-toggle-hint">Which sheet's columns are you editing? (Channel vs. Video is chosen separately, from the right-click "Send to Worksheet" menu.)</p>
+  <div class="body-scroll">
+
+  <!-- Home tab: current page + quick send + Profile/Discover -->
+  <div class="tab-panel active" id="panel-home">
+    <div class="page-card" id="pageCard">
+      <div class="kicker">Current page</div>
+      <div class="title" id="pageTitle">Checking…</div>
+      <span class="badge other" id="pageBadge"></span>
+      <div class="page-actions" id="pageActions"></div>
+      <div class="not-connected" id="pageNotConnected" hidden>Not connected yet — <a id="pageConnectLink">connect a worksheet in Settings</a> first.</div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-tile"><div class="num" id="statSentToday">0</div><div class="lbl">Sent today</div></div>
+      <div class="stat-tile err"><div class="num" id="statErrToday">0</div><div class="lbl">Errors today</div></div>
+    </div>
+
+    <details class="disclosure" id="profileDisclosure">
+      <summary><span class="icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>Profile — one channel, a date range<span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></summary>
+      <div class="disclosure-body">
+        <label class="form-label" for="profileInput">Channel</label>
+        <input type="text" id="profileInput" placeholder="Channel URL, @handle, or leave blank to use current page" style="margin-bottom:10px;" />
+        <div class="field-row">
+          <div><label class="form-label" for="profileStart">From</label><input type="date" id="profileStart" /></div>
+          <div><label class="form-label" for="profileEnd">To</label><input type="date" id="profileEnd" /></div>
+        </div>
+        <div class="chk-row"><input type="checkbox" id="profileTrack" /><label for="profileTrack">Track this channel going forward</label></div>
+        <button class="run-btn" id="profileRunBtn"><svg width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="M7 4.5l13 7.5-13 7.5z"/></svg>Run Profile</button>
+        <div class="result-card" id="profileResult"></div>
+      </div>
+    </details>
+
+    <details class="disclosure" id="discoverDisclosure">
+      <summary><span class="icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>Discover — find similar<span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></summary>
+      <div class="disclosure-body">
+        <label class="form-label" for="discoverInput">Seed link</label>
+        <input type="text" id="discoverInput" placeholder="Channel or video URL, or leave blank to use current page" style="margin-bottom:10px;" />
+        <div class="stepper-row">
+          <div class="seg2" id="discoverTypeToggle">
+            <button type="button" class="active" data-dtype="channel">Channels</button>
+            <button type="button" data-dtype="video">Videos</button>
+          </div>
+          <div class="stepper">
+            <button type="button" id="discoverCountMinus">−</button>
+            <b id="discoverCountDisplay">5</b>
+            <button type="button" id="discoverCountPlus">+</button>
+          </div>
+        </div>
+        <div class="chk-row"><input type="checkbox" id="discoverFKeywords" checked /><label for="discoverFKeywords">Keywords</label></div>
+        <div class="chk-row"><input type="checkbox" id="discoverFNiche" /><label for="discoverFNiche">Niche</label></div>
+        <div class="chk-row"><input type="checkbox" id="discoverFEngagement" /><label for="discoverFEngagement">Engagement rate</label></div>
+        <div class="chk-row" id="discoverPostsRow"><input type="checkbox" id="discoverFPosts" /><label for="discoverFPosts">Posts per month</label></div>
+        <div class="chk-row"><input type="checkbox" id="discoverFViews" /><label for="discoverFViews">View range</label></div>
+        <button class="run-btn" id="discoverRunBtn" style="margin-top:10px;"><svg width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="M7 4.5l13 7.5-13 7.5z"/></svg>Run Discover</button>
+        <div class="result-card" id="discoverResult"></div>
+      </div>
+    </details>
+
+    <div style="height:16px;"></div>
+  </div>
+
+  <!-- Columns tab (Channels / Videos / Profile / Discover column editors) -->
+  <div class="tab-panel" id="panel-columns" style="display:none">
+    <p class="type-toggle-hint">Which sheet's columns are you editing? (What actually gets sent — Channel, Video, Profile, or Discover — is chosen from the Home tab or the right-click "Send to Worksheet" menu.)</p>
     <div class="profile-row" id="youtubeTypeToggle" style="padding-top:0;">
       <button class="profile-chip active" data-coltype="channel">Channels</button>
       <button class="profile-chip" data-coltype="video">Videos</button>
+      <button class="profile-chip" data-coltype="profile">Profile</button>
+      <button class="profile-chip" data-coltype="discover">Discover</button>
     </div>
     <div class="panelwrap">
       <div class="panel">
@@ -308,10 +452,12 @@
     </div>
   </div>
 
-  <!-- Log tab -->
+  <!-- Activity (Log) tab -->
   <div class="tab-panel" id="panel-log" style="display:none">
     <div class="logwrap" id="logList"></div>
     <div class="pager" id="pager" style="display:none"></div>
+  </div>
+
   </div>
 
   <div class="nav">
@@ -324,6 +470,7 @@
 
 <!-- ===================== SETTINGS SCREEN ===================== -->
 <div class="screen" id="screen-settings">
+  <div class="body-scroll">
   <div class="settings-body">
     <div class="settings-section">
       <h3>Worksheet locks</h3>
@@ -342,10 +489,11 @@
       <h3>Quick setup</h3>
       <div class="setup-steps">
         <span class="num">1</span>In Koli's Apps Script editor: Deploy → New deployment → Web app → Execute as "Me" → Who has access "Anyone."<br>
-        <span class="num">2</span>Copy the URL it gives you.<br>
-        <span class="num">3</span>Tap a lock above, paste the URL and your Koli shared secret, then lock it.
+        <span class="num">2</span>In Koli's Settings, save a shared secret, then click "Generate" next to Connection code.<br>
+        <span class="num">3</span>Tap a lock above, paste that one code in, then lock it.
       </div>
     </div>
+  </div>
   </div>
   <div class="nav">
     <div class="nbtn"><button id="navHome2" title="Home">
@@ -360,6 +508,10 @@
   <div class="modal">
     <h3 id="lockModalTitle">Choose worksheet</h3>
     <div class="hint">This connects one Koli spreadsheet — sends from this profile always go here until you unlock it.</div>
+    <label>Connection code</label>
+    <textarea id="lockCode" rows="2" placeholder="Paste the code from Koli > Settings > Connection code"></textarea>
+    <button type="button" class="link-btn-inline" id="lockCodeDecode">Fill in URL &amp; secret from this code</button>
+    <div class="divider-or">or enter manually</div>
     <label>Web App URL</label>
     <input type="text" id="lockUrl" placeholder="https://script.google.com/macros/s/.../exec" />
     <label>Shared secret</label>
@@ -403,6 +555,6 @@
   </div>
 </div>
 
-<script src="popup.js"></script>
+<script src="sidepanel.js"></script>
 </body>
 </html>

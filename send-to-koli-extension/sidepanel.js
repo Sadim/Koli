@@ -1,17 +1,20 @@
 /**
- * popup.js
- * Storage model (chrome.storage.sync, key `locks`):
- *   { youtube: {locked,url,secret,tab,columns}, other: [{id,name,locked,url,secret,tab,columns}] }
- * Activity log lives separately in chrome.storage.local (key `koliLog`),
- * written by background.js — this file only reads/paginates/deletes it.
+ * sidepanel.js
+ * Rewritten from popup.js for the persistent Chrome side panel (manifest's
+ * side_panel.default_path). Storage model is unchanged from the popup era —
+ * chrome.storage.sync key `locks`:
+ *   { youtube: {locked,url,secret,tab,columnsChannel,columnsVideo,columnsProfile,columnsDiscover},
+ *     other: [{id,name,locked,url,secret,tab,columns}] }
+ * Activity log still lives in chrome.storage.local (key `koliLog`), written
+ * by background.js's send() for right-click/quick-send captures, and
+ * directly by this file for Profile/Discover runs (which never go through
+ * send() — see the Profile/Discover sections below).
  */
 
-// Kept literally in sync with constants.gs's CHANNEL_HEADERS / VIDEO_HEADERS
-// — the extension has no way to read those server-side, so this is a
-// manually-maintained mirror, same as every other column name used here.
-// Channels and Videos are genuinely different shapes (Grade/Outreach vs.
-// Views/Auth/New Subs), which is exactly why each gets its own editable
-// column list instead of one blended "YouTube columns" list.
+// Kept literally in sync with constants.gs's CHANNEL_HEADERS / VIDEO_HEADERS /
+// PROFILE_HEADERS / DISCOVER_HEADERS — the extension has no way to read
+// those server-side, so this is a manually-maintained mirror, same as every
+// other column name used here.
 const CHANNEL_DEFAULT_COLUMNS = [
   'Status', 'Channel', 'ID', 'Niche', 'Posts/Mo', 'Contact', 'Subs', 'Avg Views',
   'Post Times', 'Grade', 'Outreach', 'Last Contact', 'Notes', 'Report'
@@ -20,39 +23,82 @@ const VIDEO_DEFAULT_COLUMNS = [
   'Status', 'Video', 'ID', 'Channel', 'Views', 'Likes', 'Comments', 'Auth',
   'Eng %', 'Posted', 'Day', 'New Subs', 'Location', 'Age', 'Gender', 'Updated'
 ];
+const PROFILE_DEFAULT_COLUMNS = [
+  'Status', 'Channel', 'Video ID', 'Channel ID', 'Video', 'Posted', 'Views',
+  'Likes', 'Comments', 'Auth', 'Eng %', 'CPM', 'Sponsor', 'Mention TS',
+  'Location', 'Age', 'Gender', 'Sub Δ', 'Updated'
+];
+const DISCOVER_DEFAULT_COLUMNS = [
+  'Type', 'Name', 'Channel', 'Subs/Views', 'Posts/Mo', 'Eng %', 'Match Score', 'Found Via'
+];
+
+// Cosmetic-only mirror of background.js's RECOGNIZED_PLATFORMS, used solely
+// to label the Home tab's current-page card. background.js re-derives this
+// independently at send time for its own mismatch check — this copy never
+// decides what actually gets sent, only how the card describes the page
+// before you choose.
+const RECOGNIZED_PLATFORMS = [
+  {
+    name: 'YouTube',
+    domain: /youtube\.com|youtu\.be/,
+    videoPattern: /youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\//,
+    channelPattern: /youtube\.com\/(channel\/|@|c\/|user\/)/
+  }
+];
+function classifyUrl(url) {
+  if (!url) return 'note';
+  for (const platform of RECOGNIZED_PLATFORMS) {
+    if (!platform.domain.test(url)) continue;
+    if (platform.videoPattern && platform.videoPattern.test(url)) return 'video';
+    if (platform.channelPattern && platform.channelPattern.test(url)) return 'channel';
+  }
+  return 'note';
+}
+function resolveDisplayName_(pageTitle, value) {
+  if (pageTitle) {
+    const stripped = pageTitle.replace(/\s*-\s*YouTube\s*$/i, '').trim();
+    if (stripped) return stripped;
+  }
+  return value || 'Untitled';
+}
 
 let state = { locks: { youtube: null, other: [] } };
 let activeOtherProfileId = null;
-let activeYoutubeColType = 'channel'; // 'channel' or 'video' — which column list/apply-target is showing
+let activeColType = 'channel'; // 'channel' | 'video' | 'profile' | 'discover' — which column list/apply-target is showing
 let logPage = 0;
 const LOG_PAGE_SIZE = 5;
+let currentTab = null; // { url, title } of the active tab, refreshed on Home focus
 
-// Inline SVG icon set — kept as raw markup strings (not emoji) so the
-// popup renders crisply and consistently across every OS/browser font,
-// and so icon color can follow the CSS theme (incl. dark mode) instead
-// of being baked into a glyph.
 const ICONS = {
   lockOpen: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 7.3-2.3"/></svg>',
   lockClosed: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
   trash: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/></svg>',
   eye: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>',
   checkCircle: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.3 2.3L16 10"/></svg>',
-  errorCircle: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5l5 5M14.5 9.5l-5 5"/></svg>'
+  errorCircle: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5l5 5M14.5 9.5l-5 5"/></svg>',
+  channel: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
+  video: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="14" height="14" rx="2.5"/><path d="M17 9.5l4-2.5v10l-4-2.5"/></svg>',
+  note: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg>'
 };
 
 async function loadState() {
   const { locks } = await chrome.storage.sync.get('locks');
   state.locks = locks || { youtube: null, other: [] };
   if (!state.locks.youtube) {
-    state.locks.youtube = { locked: false, url: '', secret: '', tab: '', columnsChannel: CHANNEL_DEFAULT_COLUMNS.slice(), columnsVideo: VIDEO_DEFAULT_COLUMNS.slice() };
+    state.locks.youtube = {
+      locked: false, url: '', secret: '', tab: '',
+      columnsChannel: CHANNEL_DEFAULT_COLUMNS.slice(), columnsVideo: VIDEO_DEFAULT_COLUMNS.slice(),
+      columnsProfile: PROFILE_DEFAULT_COLUMNS.slice(), columnsDiscover: DISCOVER_DEFAULT_COLUMNS.slice()
+    };
   } else {
     const yt = state.locks.youtube;
     // Migrate a pre-existing single `columns` list (from before Channels
-    // and Videos had separate editors) into columnsChannel — it was
-    // always really the Channels layout, Videos never had one before.
+    // and Videos had separate editors) into columnsChannel.
     if (yt.columns && !yt.columnsChannel) yt.columnsChannel = yt.columns;
     if (!yt.columnsChannel) yt.columnsChannel = CHANNEL_DEFAULT_COLUMNS.slice();
     if (!yt.columnsVideo) yt.columnsVideo = VIDEO_DEFAULT_COLUMNS.slice();
+    if (!yt.columnsProfile) yt.columnsProfile = PROFILE_DEFAULT_COLUMNS.slice();
+    if (!yt.columnsDiscover) yt.columnsDiscover = DISCOVER_DEFAULT_COLUMNS.slice();
     delete yt.columns;
   }
   if (!state.locks.other) state.locks.other = [];
@@ -61,15 +107,16 @@ async function saveLocks() {
   await chrome.storage.sync.set({ locks: state.locks });
 }
 
-// ---------- Tab switching ----------
+// ---------- Top tab switching ----------
 document.querySelectorAll('#mainTabs .tab').forEach((btn) => {
   btn.onclick = () => {
     document.querySelectorAll('#mainTabs .tab').forEach((b) => b.classList.remove('active'));
     btn.classList.add('active');
-    ['youtube', 'other', 'log'].forEach((name) => {
+    ['home', 'columns', 'other', 'log'].forEach((name) => {
       document.getElementById('panel-' + name).style.display = name === btn.dataset.tab ? 'block' : 'none';
     });
     if (btn.dataset.tab === 'log') renderLogTab();
+    if (btn.dataset.tab === 'home') refreshHomeTab();
   };
 });
 
@@ -83,8 +130,206 @@ document.getElementById('navHome').onclick = () => showScreen('home');
 document.getElementById('navSettings').onclick = () => showScreen('settings');
 document.getElementById('navHome2').onclick = () => showScreen('home');
 document.getElementById('navSettings2').onclick = () => showScreen('settings');
+document.getElementById('pageConnectLink').onclick = () => showScreen('settings');
 
-// ---------- Column grid rendering with drag-to-reorder ----------
+// ==================================================================
+// Home tab — current page, quick send, Profile, Discover
+// ==================================================================
+async function refreshHomeTab() {
+  await refreshCurrentPageCard();
+  await refreshStatTiles();
+}
+
+async function refreshCurrentPageCard() {
+  const titleEl = document.getElementById('pageTitle');
+  const badgeEl = document.getElementById('pageBadge');
+  const actionsEl = document.getElementById('pageActions');
+  const notConnectedEl = document.getElementById('pageNotConnected');
+
+  let tab;
+  try {
+    [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  } catch (e) { /* no active tab (rare) */ }
+  currentTab = tab ? { url: tab.url || '', title: tab.title || '' } : { url: '', title: '' };
+
+  titleEl.textContent = resolveDisplayName_(currentTab.title, currentTab.url) || 'No page detected';
+  const kind = classifyUrl(currentTab.url);
+  badgeEl.className = 'badge ' + kind;
+  badgeEl.innerHTML = ICONS[kind] + '<span>' + (kind === 'channel' ? 'YouTube channel' : kind === 'video' ? 'YouTube video' : 'Not auto-detected') + '</span>';
+
+  const lock = state.locks.youtube;
+  actionsEl.innerHTML = '';
+  if (!lock || !lock.locked) {
+    notConnectedEl.hidden = false;
+    return;
+  }
+  notConnectedEl.hidden = true;
+
+  const makeBtn = (label, cls, onClick) => {
+    const b = document.createElement('button');
+    b.className = cls;
+    b.textContent = label;
+    b.onclick = onClick;
+    return b;
+  };
+  if (kind === 'channel') {
+    actionsEl.appendChild(makeBtn('Send as Channel', 'btn-fill', () => quickSend('channel')));
+    actionsEl.appendChild(makeBtn('Send as Note', 'btn-outline', () => quickSend('note')));
+  } else if (kind === 'video') {
+    actionsEl.appendChild(makeBtn('Send as Video', 'btn-fill', () => quickSend('video')));
+    actionsEl.appendChild(makeBtn('Send as Note', 'btn-outline', () => quickSend('note')));
+  } else {
+    actionsEl.appendChild(makeBtn('Send as Note', 'btn-fill', () => quickSend('note')));
+  }
+}
+
+async function quickSend(type) {
+  if (!currentTab || !currentTab.url) return;
+  const resp = await chrome.runtime.sendMessage({
+    kind: 'koli-send', type, value: currentTab.url, pageTitle: currentTab.title,
+    sourceUrl: currentTab.url, silent: false, lockId: 'youtube'
+  });
+  await refreshStatTiles();
+  return resp;
+}
+
+async function refreshStatTiles() {
+  const { koliLog } = await chrome.storage.local.get('koliLog');
+  const log = koliLog || [];
+  const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
+  const todayEntries = log.filter((e) => e.timestamp >= startOfToday.getTime());
+  document.getElementById('statSentToday').textContent = String(todayEntries.filter((e) => e.success).length);
+  document.getElementById('statErrToday').textContent = String(todayEntries.filter((e) => !e.success).length);
+}
+
+// ---------- Profile mini-form ----------
+document.getElementById('profileRunBtn').onclick = async () => {
+  const lock = state.locks.youtube;
+  const btn = document.getElementById('profileRunBtn');
+  const result = document.getElementById('profileResult');
+  result.className = 'result-card'; result.style.display = 'none';
+
+  if (!lock || !lock.locked) {
+    result.className = 'result-card err'; result.textContent = 'Lock a worksheet for YouTube first (Columns tab, or Settings).';
+    return;
+  }
+  const channelInput = document.getElementById('profileInput').value.trim() || (currentTab && currentTab.url) || '';
+  if (!channelInput) {
+    result.className = 'result-card err'; result.textContent = 'No channel given, and no channel page is open right now.';
+    return;
+  }
+  const startDate = document.getElementById('profileStart').value;
+  const endDate = document.getElementById('profileEnd').value;
+  const track = document.getElementById('profileTrack').checked;
+
+  btn.disabled = true; btn.textContent = 'Running…';
+  try {
+    const resp = await fetch(lock.url, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ secret: lock.secret, action: 'profile', channelInput, startDate, endDate, mode: 'append', track })
+    });
+    const data = await resp.json();
+    const resolvedName = resolveDisplayName_('', channelInput);
+    if (!data.ok) {
+      result.className = 'result-card err'; result.textContent = data.error || 'Profile run failed.';
+      await logActivityLocal_({ type: 'profile', value: channelInput, resolvedName, profileLabel: 'YouTube Profile', success: false, message: data.error });
+    } else {
+      const added = typeof data.added === 'number' ? data.added : (typeof data.rowsWritten === 'number' ? data.rowsWritten : null);
+      result.className = 'result-card ok';
+      result.textContent = (added !== null ? added + ' video row(s) written. ' : 'Done. ') +
+        (data.stoppedEarly ? 'Hit the time budget — run it again to pick up where it left off.' : '');
+      await logActivityLocal_({ type: 'profile', value: channelInput, resolvedName, profileLabel: 'YouTube Profile', success: true });
+    }
+    await refreshStatTiles();
+  } catch (e) {
+    result.className = 'result-card err'; result.textContent = 'Could not reach your worksheet: ' + e.message;
+  } finally {
+    btn.disabled = false; btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="M7 4.5l13 7.5-13 7.5z"/></svg>Run Profile';
+  }
+};
+
+// ---------- Discover mini-form ----------
+let discoverType = 'channel';
+let discoverCount = 5;
+document.querySelectorAll('#discoverTypeToggle button').forEach((btn) => {
+  btn.onclick = () => {
+    discoverType = btn.dataset.dtype;
+    document.querySelectorAll('#discoverTypeToggle button').forEach((b) => b.classList.toggle('active', b === btn));
+    document.getElementById('discoverPostsRow').style.display = discoverType === 'channel' ? 'flex' : 'none';
+  };
+});
+document.getElementById('discoverCountMinus').onclick = () => {
+  discoverCount = Math.max(1, discoverCount - 1);
+  document.getElementById('discoverCountDisplay').textContent = String(discoverCount);
+};
+document.getElementById('discoverCountPlus').onclick = () => {
+  discoverCount = Math.min(5, discoverCount + 1);
+  document.getElementById('discoverCountDisplay').textContent = String(discoverCount);
+};
+
+document.getElementById('discoverRunBtn').onclick = async () => {
+  const lock = state.locks.youtube;
+  const btn = document.getElementById('discoverRunBtn');
+  const result = document.getElementById('discoverResult');
+  result.className = 'result-card'; result.style.display = 'none';
+
+  if (!lock || !lock.locked) {
+    result.className = 'result-card err'; result.textContent = 'Lock a worksheet for YouTube first (Columns tab, or Settings).';
+    return;
+  }
+  const seedInput = document.getElementById('discoverInput').value.trim() || (currentTab && currentTab.url) || '';
+  if (!seedInput) {
+    result.className = 'result-card err'; result.textContent = 'No seed given, and no YouTube page is open right now.';
+    return;
+  }
+  const filters = {
+    matchKeywords: document.getElementById('discoverFKeywords').checked,
+    matchNiche: document.getElementById('discoverFNiche').checked,
+    matchEngagement: document.getElementById('discoverFEngagement').checked,
+    matchPostsPerMonth: document.getElementById('discoverFPosts').checked,
+    matchViews: document.getElementById('discoverFViews').checked
+  };
+
+  btn.disabled = true; btn.textContent = 'Running…';
+  try {
+    const resp = await fetch(lock.url, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ secret: lock.secret, action: 'discover', seedInput, searchType: discoverType, resultCount: discoverCount, filters })
+    });
+    const data = await resp.json();
+    const resolvedName = resolveDisplayName_('', seedInput);
+    if (!data.ok) {
+      result.className = 'result-card err'; result.textContent = data.error || 'Discover run failed.';
+      await logActivityLocal_({ type: 'discover', value: seedInput, resolvedName, profileLabel: 'YouTube Discover', success: false, message: data.error });
+    } else {
+      const found = typeof data.found === 'number' ? data.found : (Array.isArray(data.results) ? data.results.length : null);
+      result.className = 'result-card ok';
+      result.textContent = found !== null ? found + ' result(s) written to Discover Results.' : 'Done.';
+      await logActivityLocal_({ type: 'discover', value: seedInput, resolvedName, profileLabel: 'YouTube Discover', success: true });
+    }
+    await refreshStatTiles();
+  } catch (e) {
+    result.className = 'result-card err'; result.textContent = 'Could not reach your worksheet: ' + e.message;
+  } finally {
+    btn.disabled = false; btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="M7 4.5l13 7.5-13 7.5z"/></svg>Run Discover';
+  }
+};
+
+// Profile/Discover runs never go through background.js's send() (different
+// body shape entirely — no `secret,type,value` capture envelope), so they
+// log to koliLog directly here, same shape send()'s logActivity_ writes,
+// so the Log tab renders both kinds identically.
+async function logActivityLocal_(entry) {
+  const { koliLog } = await chrome.storage.local.get('koliLog');
+  const log = koliLog || [];
+  log.unshift(Object.assign({ timestamp: Date.now() }, entry));
+  if (log.length > 500) log.length = 500;
+  await chrome.storage.local.set({ koliLog: log });
+}
+
+// ==================================================================
+// Columns tab (Channels / Videos / Profile / Discover column editors)
+// ==================================================================
 function renderColumnGrid(gridEl, columns, opts) {
   gridEl.innerHTML = '';
   columns.forEach((col, i) => {
@@ -140,10 +385,6 @@ function renderColumnGrid(gridEl, columns, opts) {
   });
 }
 
-// Debounced auto-save — cheap chrome.storage writes, no reason to make
-// the person click a button just to persist a drag or a delete. Flashes
-// a small "Saved" indicator briefly so the save is still visible without
-// needing its own button to compete for attention.
 let autoSaveTimer = null;
 function autoSave(indicatorId) {
   clearTimeout(autoSaveTimer);
@@ -159,33 +400,36 @@ function autoSave(indicatorId) {
   }, 400);
 }
 
-// ---------- YouTube tab (Channels / Videos column-editor switcher) ----------
-// Channels and Videos are genuinely different sheets with different
-// headers (see CHANNEL_DEFAULT_COLUMNS / VIDEO_DEFAULT_COLUMNS above) —
-// this switcher edits one or the other, never a blended "YouTube" list.
-// Which link/page a send actually becomes (Channel vs. Video) is chosen
-// separately, from the right-click menu (see background.js); this tab is
-// only about each destination sheet's column layout.
-function columnsKeyFor_(type) { return type === 'video' ? 'columnsVideo' : 'columnsChannel'; }
-function applyActionFor_(type) { return type === 'video' ? 'apply_video_columns' : 'apply_channel_columns'; }
-function sheetLabelFor_(type) { return type === 'video' ? 'Videos' : 'Channels'; }
+// Channels/Videos/Profile/Discover are genuinely different sheets with
+// different headers — this switcher edits one list at a time, never a
+// blended list. Which one a send actually becomes is chosen from the Home
+// tab or the right-click menu, not here.
+function columnsKeyFor_(type) {
+  return { video: 'columnsVideo', profile: 'columnsProfile', discover: 'columnsDiscover' }[type] || 'columnsChannel';
+}
+function applyActionFor_(type) {
+  return { video: 'apply_video_columns', profile: 'apply_profile_columns', discover: 'apply_discover_columns' }[type] || 'apply_channel_columns';
+}
+function sheetLabelFor_(type) {
+  return { video: 'Videos', profile: 'Profile', discover: 'Discover Results' }[type] || 'Channels';
+}
 
-function renderYoutubeTab() {
+function renderColumnsTab() {
   document.querySelectorAll('#youtubeTypeToggle .profile-chip').forEach((btn) => {
-    btn.classList.toggle('active', btn.dataset.coltype === activeYoutubeColType);
+    btn.classList.toggle('active', btn.dataset.coltype === activeColType);
   });
-  const columns = state.locks.youtube[columnsKeyFor_(activeYoutubeColType)];
+  const columns = state.locks.youtube[columnsKeyFor_(activeColType)];
   renderColumnGrid(document.getElementById('youtubeColGrid'), columns, { editable: true, indicatorId: 'youtubeAutosave' });
-  updateLockPill(document.getElementById('youtubeLockPill'), state.locks.youtube, sheetLabelFor_(activeYoutubeColType));
-  document.getElementById('youtubeSheetLabel').textContent = sheetLabelFor_(activeYoutubeColType);
-  document.getElementById('youtubeApplyBtn').textContent = 'Apply to ' + sheetLabelFor_(activeYoutubeColType) + ' sheet';
+  updateLockPill(document.getElementById('youtubeLockPill'), state.locks.youtube, sheetLabelFor_(activeColType));
+  document.getElementById('youtubeSheetLabel').textContent = sheetLabelFor_(activeColType);
+  document.getElementById('youtubeApplyBtn').textContent = 'Apply to ' + sheetLabelFor_(activeColType) + ' sheet';
 }
 document.querySelectorAll('#youtubeTypeToggle .profile-chip').forEach((btn) => {
-  btn.onclick = () => { activeYoutubeColType = btn.dataset.coltype; renderYoutubeTab(); };
+  btn.onclick = () => { activeColType = btn.dataset.coltype; renderColumnsTab(); };
 });
 document.getElementById('youtubeLockPill').onclick = () => openLockModal('youtube');
 document.getElementById('youtubeAddColBtn').onclick = () => {
-  const key = columnsKeyFor_(activeYoutubeColType);
+  const key = columnsKeyFor_(activeColType);
   state.locks.youtube[key].push('');
   renderColumnGrid(document.getElementById('youtubeColGrid'), state.locks.youtube[key], { editable: true, indicatorId: 'youtubeAutosave' });
   autoSave('youtubeAutosave');
@@ -193,7 +437,7 @@ document.getElementById('youtubeAddColBtn').onclick = () => {
 document.getElementById('youtubeApplyBtn').onclick = () => {
   document.getElementById('applyColumnsStatus').className = 'status';
   document.getElementById('applyColumnsHint').textContent =
-    'This reorders your real ' + sheetLabelFor_(activeYoutubeColType) + ' sheet\'s columns to match what\'s shown here, ' +
+    'This reorders your real ' + sheetLabelFor_(activeColType) + ' sheet\'s columns to match what\'s shown here, ' +
     'and hides any column you removed (nothing is deleted — hidden columns can be unhidden anytime in Sheets). ' +
     'Anyone else viewing this sheet will see the new layout too.';
   document.getElementById('applyColumnsModal').classList.add('open');
@@ -201,13 +445,13 @@ document.getElementById('youtubeApplyBtn').onclick = () => {
 document.getElementById('applyColumnsCancel').onclick = () => document.getElementById('applyColumnsModal').classList.remove('open');
 document.getElementById('applyColumnsConfirm').onclick = async () => {
   const lock = state.locks.youtube;
-  const type = activeYoutubeColType;
+  const type = activeColType;
   const status = document.getElementById('applyColumnsStatus');
   if (!lock.locked || !lock.url || !lock.secret) {
     status.className = 'status err'; status.textContent = 'Lock a worksheet for YouTube first.';
     return;
   }
-  status.className = 'status'; status.textContent = 'Applying…'; status.style.display = 'block'; status.style.color = 'var(--text-muted)';
+  status.className = 'status'; status.textContent = 'Applying…'; status.style.display = 'block'; status.style.color = 'var(--ink-500)';
   try {
     const resp = await fetch(lock.url, {
       method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -235,7 +479,9 @@ function updateLockPill(pillEl, lock, defaultLabel) {
   }
 }
 
-// ---------- Other Platforms tab ----------
+// ==================================================================
+// Other Platforms tab
+// ==================================================================
 function renderOtherTab() {
   const row = document.getElementById('profileRow');
   row.innerHTML = '';
@@ -283,7 +529,6 @@ document.getElementById('deleteProfileLink').onclick = async () => {
   renderOtherTab();
 };
 
-// ---------- Add Platform modal ----------
 function openAddPlatformModal() {
   document.getElementById('newPlatformName').value = '';
   document.getElementById('addPlatformStatus').className = 'status';
@@ -299,7 +544,7 @@ document.getElementById('addPlatformConfirm').onclick = async () => {
   }
   const profile = {
     id: 'p_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    name, locked: false, url: '', secret: '', tab: '', columns: YOUTUBE_DEFAULT_COLUMNS.slice()
+    name, locked: false, url: '', secret: '', tab: '', columns: CHANNEL_DEFAULT_COLUMNS.slice()
   };
   state.locks.other.push(profile);
   activeOtherProfileId = profile.id;
@@ -308,7 +553,9 @@ document.getElementById('addPlatformConfirm').onclick = async () => {
   renderOtherTab();
 };
 
-// ---------- Lock target modal (shared by YouTube + each Other-Platform profile) ----------
+// ==================================================================
+// Lock target modal (shared by YouTube + each Other-Platform profile)
+// ==================================================================
 let lockModalTarget = null; // 'youtube' or a profile id
 
 function getLockObject(target) {
@@ -319,6 +566,7 @@ function openLockModal(target) {
   lockModalTarget = target;
   const lock = getLockObject(target);
   document.getElementById('lockModalTitle').textContent = lock.locked ? 'Change worksheet' : 'Choose worksheet';
+  document.getElementById('lockCode').value = '';
   document.getElementById('lockUrl').value = lock.url || '';
   document.getElementById('lockSecret').value = lock.secret || '';
   document.getElementById('lockTabSelect').innerHTML = '<option value="">Prospects (default)</option>';
@@ -330,6 +578,24 @@ function openLockModal(target) {
   document.getElementById('lockModal').classList.add('open');
 }
 document.getElementById('lockModalCancel').onclick = () => document.getElementById('lockModal').classList.remove('open');
+
+// Connection-code paste — decodes Koli Settings' single generated string
+// (base64 JSON {u,s}) into the URL + secret fields, so most people never
+// type either one by hand.
+document.getElementById('lockCodeDecode').onclick = () => {
+  const status = document.getElementById('lockModalStatus');
+  const raw = document.getElementById('lockCode').value.trim();
+  if (!raw) { status.className = 'status err'; status.textContent = 'Paste a connection code first.'; return; }
+  try {
+    const decoded = JSON.parse(atob(raw));
+    if (!decoded.u || !decoded.s) throw new Error('missing fields');
+    document.getElementById('lockUrl').value = decoded.u;
+    document.getElementById('lockSecret').value = decoded.s;
+    status.className = 'status ok'; status.textContent = 'Filled in — review below, then Test & Lock.';
+  } catch (e) {
+    status.className = 'status err'; status.textContent = 'That doesn\'t look like a valid connection code.';
+  }
+};
 
 document.getElementById('lockModalConfirm').onclick = async () => {
   const lock = getLockObject(lockModalTarget);
@@ -349,7 +615,7 @@ document.getElementById('lockModalConfirm').onclick = async () => {
   if (!url || !secret) { status.className = 'status err'; status.textContent = 'URL and secret are both required.'; return; }
 
   const requestBody = { secret, action: 'list_tabs' };
-  status.className = 'status'; status.textContent = 'Testing…'; status.style.display = 'block'; status.style.color = 'var(--text-muted)';
+  status.className = 'status'; status.textContent = 'Testing…'; status.style.display = 'block'; status.style.color = 'var(--ink-500)';
   try {
     const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(requestBody) });
     const rawText = await resp.text();
@@ -360,8 +626,6 @@ document.getElementById('lockModalConfirm').onclick = async () => {
       return;
     }
     if (!data.ok) {
-      // TEMPORARY — shows exactly what was sent and exactly what came back,
-      // so this is diagnosable by reading the screen, no DevTools needed.
       status.className = 'status err';
       status.innerHTML = 'Sent: <code>' + escapeHtml(JSON.stringify(requestBody)) + '</code><br>Got back: <code>' + escapeHtml(rawText) + '</code>';
       return;
@@ -377,7 +641,6 @@ document.getElementById('lockModalConfirm').onclick = async () => {
   }
 };
 
-// Populate the tab dropdown once a URL+secret are entered, same pattern as options.html.
 document.getElementById('lockSecret').addEventListener('blur', async () => {
   const url = document.getElementById('lockUrl').value.trim();
   const secret = document.getElementById('lockSecret').value.trim();
@@ -389,7 +652,7 @@ document.getElementById('lockSecret').addEventListener('blur', async () => {
     const data = JSON.parse(rawText);
     if (!data.ok || !Array.isArray(data.tabs)) {
       status.className = 'status err';
-      status.innerHTML = 'Could not load real tab names \u2014 dropdown will stay on the default. Got back: <code>' + escapeHtml(rawText) + '</code>';
+      status.innerHTML = 'Could not load real tab names — dropdown will stay on the default. Got back: <code>' + escapeHtml(rawText) + '</code>';
       return;
     }
     const select = document.getElementById('lockTabSelect');
@@ -405,11 +668,17 @@ document.getElementById('lockSecret').addEventListener('blur', async () => {
   }
 });
 
-// ---------- Settings screen ----------
+// ==================================================================
+// Settings screen
+// ==================================================================
 function renderSettingsScreen() {
   const yt = state.locks.youtube;
   document.getElementById('ytSummaryTarget').textContent = yt.locked ? (yt.tab || 'Channels/Videos') : 'Not connected';
-  document.getElementById('ytSummaryEdit').onclick = () => { showScreen('home'); document.querySelector('.tab[data-tab="youtube"]').click(); openLockModal('youtube'); };
+  document.getElementById('ytSummaryEdit').onclick = () => {
+    showScreen('home');
+    document.querySelector('.tab[data-tab="columns"]').click();
+    openLockModal('youtube');
+  };
 
   const wrap = document.getElementById('otherLocksSummary');
   wrap.innerHTML = '';
@@ -426,7 +695,9 @@ function renderSettingsScreen() {
   });
 }
 
-// ---------- Log tab ----------
+// ==================================================================
+// Log (Activity) tab
+// ==================================================================
 async function renderLogTab() {
   const { koliLog } = await chrome.storage.local.get('koliLog');
   const log = koliLog || [];
@@ -434,7 +705,7 @@ async function renderLogTab() {
   const pagerEl = document.getElementById('pager');
 
   if (!log.length) {
-    listEl.innerHTML = '<div class="log-empty">Nothing sent yet — right-click a link or selection on any page to get started.</div>';
+    listEl.innerHTML = '<div class="log-empty">Nothing sent yet — right-click a link or selection on any page, or use Home\'s quick-send/Profile/Discover.</div>';
     pagerEl.style.display = 'none';
     return;
   }
@@ -519,9 +790,27 @@ function timeAgo(ts) {
 function escapeHtml(s) { return String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
 
 function refreshAllPanels() {
-  renderYoutubeTab();
+  renderColumnsTab();
   renderOtherTab();
+  refreshHomeTab();
 }
+
+// React live as the person switches or navigates tabs while the panel
+// stays open — this is the whole point of a persistent side panel over a
+// popup that closed (and lost this state) on every focus change.
+chrome.tabs.onActivated.addListener(() => {
+  if (document.getElementById('screen-home').classList.contains('active') &&
+      document.getElementById('panel-home').style.display !== 'none') {
+    refreshCurrentPageCard();
+  }
+});
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status !== 'complete' || !tab.active) return;
+  if (document.getElementById('screen-home').classList.contains('active') &&
+      document.getElementById('panel-home').style.display !== 'none') {
+    refreshCurrentPageCard();
+  }
+});
 
 // ---------- Init ----------
 (async () => {

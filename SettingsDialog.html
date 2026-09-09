@@ -95,9 +95,18 @@
 <div class="section">
   <div class="section-title">Browser extension ("Send to Koli")</div>
   <label for="inboxSecret">Shared secret</label>
-  <input type="password" id="inboxSecret" placeholder="Set a secret, then paste the same one into the extension" />
+  <input type="password" id="inboxSecret" placeholder="Set a secret, then generate a connection code below" />
   <div class="masked" id="inboxSecretStatus"></div>
-  <div class="hint">Prevents anyone who finds your Web App URL from posting into your sheet. Set once here, paste the same value into the extension's settings.</div>
+  <div class="hint">Prevents anyone who finds your Web App URL from posting into your sheet.</div>
+
+  <label for="connectionCode" style="margin-top:16px;">Connection code</label>
+  <textarea id="connectionCode" readonly rows="2" style="width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:10px;font-size:11px;font-family:monospace;resize:none;background:#fff;" placeholder="Save your secret above (and deploy this as a Web App, if you haven't), then click Generate"></textarea>
+  <div class="status" id="connectionCodeStatus" style="margin-top:6px;"></div>
+  <div style="display:flex;gap:8px;margin-top:8px;">
+    <button type="button" class="btn-secondary" id="generateCodeBtn" style="flex:1;">Generate</button>
+    <button type="button" class="btn-secondary" id="copyCodeBtn" style="flex:1;">Copy</button>
+  </div>
+  <div class="hint">Paste this one string into the extension's "Connection code" field instead of the URL and secret separately — it decodes to both. Requires the Web App to already be deployed (Deploy &gt; New deployment &gt; Web app) and a secret saved above.</div>
 </div>
 
 <div class="status" id="status"></div>
@@ -126,6 +135,35 @@
     }).getSettings();
   }
   load();
+
+  document.getElementById('generateCodeBtn').onclick = () => {
+    const box = document.getElementById('connectionCode');
+    const status = document.getElementById('connectionCodeStatus');
+    status.className = 'status'; status.style.display = 'none';
+    box.value = 'Generating…';
+    google.script.run
+      .withSuccessHandler((resp) => {
+        if (!resp.ok) {
+          box.value = '';
+          status.className = 'status err'; status.textContent = resp.message; status.style.display = 'block';
+          return;
+        }
+        box.value = resp.code;
+      })
+      .withFailureHandler((err) => {
+        box.value = '';
+        status.className = 'status err'; status.textContent = err.message || String(err); status.style.display = 'block';
+      })
+      .generateConnectionCode();
+  };
+  document.getElementById('copyCodeBtn').onclick = () => {
+    const box = document.getElementById('connectionCode');
+    const status = document.getElementById('connectionCodeStatus');
+    if (!box.value || box.value === 'Generating…') return;
+    box.select();
+    document.execCommand('copy');
+    status.className = 'status ok'; status.textContent = 'Copied.'; status.style.display = 'block';
+  };
 
   document.getElementById('saveBtn').onclick = () => {
     const btn = document.getElementById('saveBtn');
