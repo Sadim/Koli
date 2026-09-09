@@ -27,6 +27,33 @@
   .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
   .status { font-size: 12px; margin-top: 10px; display: none; }
   .status.ok { color: var(--green); } .status.err { color: #d93025; }
+
+  .country-picker { position: relative; }
+  .country-picker-field {
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 40px;
+    border: 1px solid var(--border); border-radius: 10px; padding: 6px 8px; cursor: text; background: #fff;
+  }
+  .country-picker-field:focus-within { border-color: var(--green); box-shadow: 0 0 0 3px #e6f4ea; }
+  .country-pill {
+    display: inline-flex; align-items: center; gap: 5px; background: #e6f4ea; color: var(--green-dark);
+    border-radius: 999px; padding: 3px 6px 3px 8px; font-size: 12px; font-weight: 600; white-space: nowrap;
+  }
+  .country-pill .flag { font-size: 13px; }
+  .country-pill button {
+    background: none; border: none; padding: 2px; margin-left: 1px; cursor: pointer; color: var(--green-dark);
+    font-size: 13px; line-height: 1; border-radius: 50%;
+  }
+  .country-pill button:hover { background: rgba(0,0,0,.08); }
+  .country-picker-input { flex: 1; min-width: 100px; border: none; outline: none; font-size: 13px; padding: 4px 2px; background: transparent; }
+  .country-dropdown {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1px solid var(--border);
+    border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,.12); max-height: 220px; overflow-y: auto; z-index: 20;
+  }
+  .country-option { display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; font-size: 13px; }
+  .country-option:hover, .country-option.active { background: var(--bg); }
+  .country-option .flag { font-size: 15px; }
+  .country-option .code { color: var(--text-muted); font-size: 11px; margin-left: auto; }
+  .country-empty { padding: 12px; color: var(--text-muted); font-size: 12px; text-align: center; }
 </style>
 
 <h2>Settings</h2>
@@ -86,14 +113,13 @@
 
 <div class="section">
   <div class="section-title">Discover: default target regions</div>
-  <div class="hint" style="margin-bottom:8px;">Steers Discover results toward these countries whenever a channel has one declared: most don't, and those are treated as neutral, not penalized. Leave everything unchecked/blank to turn this off.</div>
-  <div class="chk-row"><input type="checkbox" id="regionUS" /><label for="regionUS">United States</label></div>
-  <div class="chk-row"><input type="checkbox" id="regionGB" /><label for="regionGB">United Kingdom</label></div>
-  <div class="chk-row"><input type="checkbox" id="regionCA" /><label for="regionCA">Canada</label></div>
-  <div class="chk-row"><input type="checkbox" id="regionAU" /><label for="regionAU">Australia</label></div>
-  <label for="regionOther" style="margin-top:10px;">Other regions</label>
-  <input type="text" id="regionOther" placeholder="Comma-separated 2-letter codes, e.g. IE, NZ, DE" />
-  <div class="hint">ISO country codes: the same ones YouTube itself uses.</div>
+  <div class="hint" style="margin-bottom:8px;">Steers Discover results toward these countries whenever a channel has one declared: most don't, and those are treated as neutral, not penalized. Leave empty to turn this off.</div>
+  <div class="country-picker" id="regionPicker">
+    <div class="country-picker-field" id="regionField">
+      <input type="text" id="regionSearch" class="country-picker-input" placeholder="Search countries…" autocomplete="off" />
+    </div>
+    <div class="country-dropdown" id="regionDropdown" style="display:none;"></div>
+  </div>
 </div>
 
 <div class="section">
@@ -129,6 +155,98 @@
 </div>
 
 <script>
+  // ---------- Country picker (Discover default target regions) ----------
+  // ISO 3166-1 alpha-2 codes: the same ones YouTube's own channel.country
+  // field uses, and what discoverService.gs's region-steering already
+  // expects. Flag emoji are derived from the code (regional indicator
+  // trick), not stored per-country: less data, same result.
+  const COUNTRIES = [
+    ['AF','Afghanistan'],['AL','Albania'],['DZ','Algeria'],['AD','Andorra'],['AO','Angola'],['AG','Antigua and Barbuda'],
+    ['AR','Argentina'],['AM','Armenia'],['AU','Australia'],['AT','Austria'],['AZ','Azerbaijan'],['BS','Bahamas'],
+    ['BH','Bahrain'],['BD','Bangladesh'],['BB','Barbados'],['BY','Belarus'],['BE','Belgium'],['BZ','Belize'],
+    ['BJ','Benin'],['BT','Bhutan'],['BO','Bolivia'],['BA','Bosnia and Herzegovina'],['BW','Botswana'],['BR','Brazil'],
+    ['BN','Brunei'],['BG','Bulgaria'],['BF','Burkina Faso'],['BI','Burundi'],['KH','Cambodia'],['CM','Cameroon'],
+    ['CA','Canada'],['CV','Cape Verde'],['CF','Central African Republic'],['TD','Chad'],['CL','Chile'],['CN','China'],
+    ['CO','Colombia'],['KM','Comoros'],['CG','Congo'],['CR','Costa Rica'],['HR','Croatia'],['CU','Cuba'],
+    ['CY','Cyprus'],['CZ','Czechia'],['DK','Denmark'],['DJ','Djibouti'],['DM','Dominica'],['DO','Dominican Republic'],
+    ['EC','Ecuador'],['EG','Egypt'],['SV','El Salvador'],['GQ','Equatorial Guinea'],['ER','Eritrea'],['EE','Estonia'],
+    ['SZ','Eswatini'],['ET','Ethiopia'],['FJ','Fiji'],['FI','Finland'],['FR','France'],['GA','Gabon'],
+    ['GM','Gambia'],['GE','Georgia'],['DE','Germany'],['GH','Ghana'],['GR','Greece'],['GD','Grenada'],
+    ['GT','Guatemala'],['GN','Guinea'],['GW','Guinea-Bissau'],['GY','Guyana'],['HT','Haiti'],['HN','Honduras'],
+    ['HK','Hong Kong'],['HU','Hungary'],['IS','Iceland'],['IN','India'],['ID','Indonesia'],['IR','Iran'],
+    ['IQ','Iraq'],['IE','Ireland'],['IL','Israel'],['IT','Italy'],['JM','Jamaica'],['JP','Japan'],
+    ['JO','Jordan'],['KZ','Kazakhstan'],['KE','Kenya'],['KI','Kiribati'],['KW','Kuwait'],['KG','Kyrgyzstan'],
+    ['LA','Laos'],['LV','Latvia'],['LB','Lebanon'],['LS','Lesotho'],['LR','Liberia'],['LY','Libya'],
+    ['LI','Liechtenstein'],['LT','Lithuania'],['LU','Luxembourg'],['MO','Macao'],['MG','Madagascar'],['MW','Malawi'],
+    ['MY','Malaysia'],['MV','Maldives'],['ML','Mali'],['MT','Malta'],['MH','Marshall Islands'],['MR','Mauritania'],
+    ['MU','Mauritius'],['MX','Mexico'],['FM','Micronesia'],['MD','Moldova'],['MC','Monaco'],['MN','Mongolia'],
+    ['ME','Montenegro'],['MA','Morocco'],['MZ','Mozambique'],['MM','Myanmar'],['NA','Namibia'],['NR','Nauru'],
+    ['NP','Nepal'],['NL','Netherlands'],['NZ','New Zealand'],['NI','Nicaragua'],['NE','Niger'],['NG','Nigeria'],
+    ['KP','North Korea'],['MK','North Macedonia'],['NO','Norway'],['OM','Oman'],['PK','Pakistan'],['PW','Palau'],
+    ['PS','Palestine'],['PA','Panama'],['PG','Papua New Guinea'],['PY','Paraguay'],['PE','Peru'],['PH','Philippines'],
+    ['PL','Poland'],['PT','Portugal'],['PR','Puerto Rico'],['QA','Qatar'],['RO','Romania'],['RU','Russia'],
+    ['RW','Rwanda'],['KN','Saint Kitts and Nevis'],['LC','Saint Lucia'],['WS','Samoa'],['SM','San Marino'],
+    ['SA','Saudi Arabia'],['SN','Senegal'],['RS','Serbia'],['SC','Seychelles'],['SL','Sierra Leone'],['SG','Singapore'],
+    ['SK','Slovakia'],['SI','Slovenia'],['SB','Solomon Islands'],['SO','Somalia'],['ZA','South Africa'],
+    ['KR','South Korea'],['SS','South Sudan'],['ES','Spain'],['LK','Sri Lanka'],['SD','Sudan'],['SR','Suriname'],
+    ['SE','Sweden'],['CH','Switzerland'],['SY','Syria'],['TW','Taiwan'],['TJ','Tajikistan'],['TZ','Tanzania'],
+    ['TH','Thailand'],['TL','Timor-Leste'],['TG','Togo'],['TO','Tonga'],['TT','Trinidad and Tobago'],['TN','Tunisia'],
+    ['TR','Turkey'],['TM','Turkmenistan'],['TV','Tuvalu'],['UG','Uganda'],['UA','Ukraine'],
+    ['AE','United Arab Emirates'],['GB','United Kingdom'],['US','United States'],['UY','Uruguay'],['UZ','Uzbekistan'],
+    ['VU','Vanuatu'],['VA','Vatican City'],['VE','Venezuela'],['VN','Vietnam'],['YE','Yemen'],['ZM','Zambia'],['ZW','Zimbabwe']
+  ];
+  function flagEmoji_(code) {
+    return code.toUpperCase().replace(/./g, (c) => String.fromCodePoint(127397 + c.charCodeAt(0)));
+  }
+  const selectedRegions = new Set();
+
+  function renderRegionPills_() {
+    const field = document.getElementById('regionField');
+    const search = document.getElementById('regionSearch');
+    field.querySelectorAll('.country-pill').forEach((el) => el.remove());
+    [...selectedRegions].forEach((code) => {
+      const c = COUNTRIES.find((c) => c[0] === code);
+      const pill = document.createElement('span');
+      pill.className = 'country-pill';
+      pill.innerHTML = '<span class="flag">' + flagEmoji_(code) + '</span>' + (c ? c[1] : code);
+      const rm = document.createElement('button');
+      rm.type = 'button'; rm.textContent = '×'; rm.title = 'Remove';
+      rm.onclick = (e) => { e.stopPropagation(); selectedRegions.delete(code); renderRegionPills_(); };
+      pill.appendChild(rm);
+      field.insertBefore(pill, search);
+    });
+  }
+  function renderRegionDropdown_() {
+    const dropdown = document.getElementById('regionDropdown');
+    const q = document.getElementById('regionSearch').value.trim().toLowerCase();
+    const matches = COUNTRIES.filter((c) => !selectedRegions.has(c[0]) && (!q || c[1].toLowerCase().includes(q) || c[0].toLowerCase() === q)).slice(0, 50);
+    dropdown.innerHTML = '';
+    if (!matches.length) {
+      dropdown.innerHTML = '<div class="country-empty">No matching country</div>';
+    } else {
+      matches.forEach(([code, name]) => {
+        const opt = document.createElement('div');
+        opt.className = 'country-option';
+        opt.innerHTML = '<span class="flag">' + flagEmoji_(code) + '</span><span>' + name + '</span><span class="code">' + code + '</span>';
+        opt.onclick = () => {
+          selectedRegions.add(code);
+          document.getElementById('regionSearch').value = '';
+          renderRegionPills_();
+          renderRegionDropdown_();
+          document.getElementById('regionSearch').focus();
+        };
+        dropdown.appendChild(opt);
+      });
+    }
+    dropdown.style.display = 'block';
+  }
+  document.getElementById('regionSearch').addEventListener('input', renderRegionDropdown_);
+  document.getElementById('regionSearch').addEventListener('focus', renderRegionDropdown_);
+  document.getElementById('regionField').addEventListener('click', () => document.getElementById('regionSearch').focus());
+  document.addEventListener('click', (e) => {
+    if (!document.getElementById('regionPicker').contains(e.target)) document.getElementById('regionDropdown').style.display = 'none';
+  });
+
   function load() {
     google.script.run.withSuccessHandler((s) => {
       document.getElementById('versionLabel').textContent = 'Koli v' + s.version;
@@ -140,10 +258,9 @@
       document.getElementById('sampleSize').value = s.commentSampleSize;
       document.getElementById('scanSponsors').checked = !!s.scanChannelSponsors;
       document.getElementById('attemptTimestamp').checked = !!s.attemptSponsorTimestamp;
-      const regions = (s.defaultTargetRegions || '').split(',').map((r) => r.trim()).filter(Boolean);
-      const knownCodes = ['US', 'GB', 'CA', 'AU'];
-      knownCodes.forEach((code) => { document.getElementById('region' + code).checked = regions.indexOf(code) !== -1; });
-      document.getElementById('regionOther').value = regions.filter((r) => knownCodes.indexOf(r) === -1).join(', ');
+      selectedRegions.clear();
+      (s.defaultTargetRegions || '').split(',').map((r) => r.trim().toUpperCase()).filter(Boolean).forEach((r) => selectedRegions.add(r));
+      renderRegionPills_();
       document.getElementById('inboxSecretStatus').textContent = s.inboxSecretSet ? 'Currently set.' : 'Not set.';
       document.getElementById('timezone').value = s.timezone;
       document.getElementById('accessCodeStatus').textContent = s.premiumUnlocked ? '✓ Premium unlocked.' : (s.accessCodeSet ? 'Code set, but not valid.' : 'Not set: free tier.');
@@ -215,10 +332,7 @@
         timezone: document.getElementById('timezone').value.trim(),
         scanChannelSponsors: document.getElementById('scanSponsors').checked,
         attemptSponsorTimestamp: document.getElementById('attemptTimestamp').checked,
-        defaultTargetRegions: ['US', 'GB', 'CA', 'AU']
-          .filter((code) => document.getElementById('region' + code).checked)
-          .concat(document.getElementById('regionOther').value.split(',').map((r) => r.trim()).filter(Boolean))
-          .join(',')
+        defaultTargetRegions: [...selectedRegions].join(',')
       });
   };
 </script>
