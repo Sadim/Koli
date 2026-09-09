@@ -171,15 +171,42 @@ function isTier1Audience_(locationString) {
 }
 
 /**
+ * Weighted fraction of a composite's components backed by real, measured
+ * signal rather than a neutral/placeholder fallback — e.g. Grade's
+ * contentFit is always a flat 50 (nothing to measure it against yet), or
+ * momentum/reliability fall back to neutral when there's too little
+ * upload history to say anything. `realSignal` is {componentKey: boolean},
+ * `weights` is the same weights object the composite itself was built
+ * from (GRADE_WEIGHTS or BRAND_FIT_WEIGHTS) — components not present in
+ * realSignal count as not-real, so a caller can't silently under-report.
+ */
+function computeEvidenceCoverage_(realSignal, weights) {
+  return Object.keys(weights).reduce(function (sum, key) {
+    return sum + (realSignal[key] ? weights[key] : 0);
+  }, 0);
+}
+
+/** coverageFraction: 0-1. See constants.gs's EVIDENCE_COVERAGE_BANDS for the thresholds. */
+function classifyEvidenceCoverage_(coverageFraction) {
+  const band = EVIDENCE_COVERAGE_BANDS.find(function (b) { return coverageFraction >= b.min; });
+  return band ? band.label : EVIDENCE_COVERAGE_BANDS[EVIDENCE_COVERAGE_BANDS.length - 1].label;
+}
+
+/**
  * Composite Grade v2 — 7 components (see constants.gs for weights).
  * Content fit is a flat neutral 50 right now: it's inherently relative to
  * a specific target niche/campaign ("fit for what?"), and Grade today is
  * computed once per channel with no target input — genuinely meaningless
  * to fake a real number here rather than admit that's unbuilt. Every
  * component's actual value is kept in the returned breakdown so the note
- * on the Grade cell shows real numbers, not just the final letter.
+ * on the Grade cell shows real numbers, not just the final letter — and
+ * now also an evidenceCoverage/confidence pair, so a grade built mostly
+ * on fallbacks doesn't read as equally trustworthy as one that isn't.
  */
 function computeGrade_(channelId, growthScore, authenticityScore, engagementRatio, audienceLocation, recentVideos) {
+  const hasVideoSample = recentVideos.length >= 4; // mirrors computeGrowthScore_/computeReliabilityScore_'s own "not enough sample" threshold — approximated here since only the already-derived growthScore, not its raw stats count, reaches this function
+  const hasAuthenticity = authenticityScore !== null && authenticityScore !== undefined;
+
   const components = {
     momentum: growthScore,
     engagementQuality: computeEngagementQualityScore_(authenticityScore, engagementRatio),
@@ -189,9 +216,22 @@ function computeGrade_(channelId, growthScore, authenticityScore, engagementRati
     audienceFit: isTier1Audience_(audienceLocation) ? 100 : 40,
     contentFit: 50 // placeholder — see comment above
   };
+  const realSignal = {
+    momentum: hasVideoSample,
+    engagementQuality: hasAuthenticity,
+    commercialFit: true, // always real Sponsors-sheet data, even when the honest answer is "zero deals found"
+    reliability: hasVideoSample,
+    risk: hasAuthenticity,
+    audienceFit: false, // a binary Tier-1-country check is a crude proxy, not real audience data — see isTier1Audience_
+    contentFit: false // always a flat neutral placeholder — see comment above
+  };
   const composite = Object.keys(components).reduce(function (sum, key) {
     return sum + components[key] * GRADE_WEIGHTS[key];
   }, 0);
   const band = GRADE_BANDS.find(function (b) { return composite >= b.min; }) || GRADE_BANDS[GRADE_BANDS.length - 1];
-  return { letter: band.letter, score: Math.round(composite), components: components };
+  const evidenceCoverage = computeEvidenceCoverage_(realSignal, GRADE_WEIGHTS);
+  return {
+    letter: band.letter, score: Math.round(composite), components: components,
+    evidenceCoverage: evidenceCoverage, confidence: classifyEvidenceCoverage_(evidenceCoverage)
+  };
 }

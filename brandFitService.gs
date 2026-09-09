@@ -83,12 +83,30 @@ function computeBrandFitForChannel_(rowData, brief) {
     contentFit: briefFit.contentFit, audienceFit: briefFit.audienceFit, engagementQuality: engagementQuality,
     momentum: momentum, budgetFit: budgetFit, reliability: reliability, risk: risk
   };
+  // Same evidence-coverage idea as Grade v2 (channelMetricsService.gs) — a
+  // component can look like a real number and still be a fallback: a blank
+  // brief field gets auto-satisfied rather than actually scored (see
+  // scoreBriefFit_'s prompt), no budget entered is neutral not penalized,
+  // and skipping the live safety check falls back to a weaker
+  // authenticity-only proxy for risk.
+  const hasVideoSample = data.recentVideos.length >= 4;
+  const realSignal = {
+    contentFit: !!String(brief.targetNiche || '').trim(),
+    audienceFit: !!String(brief.targetAudience || '').trim(),
+    engagementQuality: enrichment.authenticity !== null && enrichment.authenticity !== undefined,
+    momentum: hasVideoSample,
+    budgetFit: Number(brief.budgetPerVideo) > 0,
+    reliability: hasVideoSample,
+    risk: !!brief.includeSafetyCheck
+  };
   const composite = computeBrandFitComposite_(components);
   const band = GRADE_BANDS.find(function (b) { return composite >= b.min; }) || GRADE_BANDS[GRADE_BANDS.length - 1];
+  const evidenceCoverage = computeEvidenceCoverage_(realSignal, BRAND_FIT_WEIGHTS);
 
   return {
     channelName: data.name, composite: composite, letter: band.letter, components: components,
-    notes: briefFit.notes, estimatedCPM: cpm
+    notes: briefFit.notes, estimatedCPM: cpm,
+    evidenceCoverage: evidenceCoverage, confidence: classifyEvidenceCoverage_(evidenceCoverage)
   };
 }
 
@@ -176,6 +194,7 @@ function writeBrandFitRow_(sheet, rowData, brief, scored) {
 
   const c = scored.components;
   sheet.getRange(newRow, 4).setNote(
+    'Confidence: ' + scored.confidence.toUpperCase() + ' (' + Math.round(scored.evidenceCoverage * 100) + '% of this score is real measured signal — fill in more of the brief, or include the live safety check, to raise it)\n\n' +
     'Composite: ' + Math.round(scored.composite) + '/100 vs. "' + brief.brand + '"\n' +
     'Content fit ' + Math.round(c.contentFit) + ' (20%) · Audience fit ' + Math.round(c.audienceFit) + ' (20%) · ' +
     'Engagement quality ' + Math.round(c.engagementQuality) + ' (15%) · Momentum ' + Math.round(c.momentum) + ' (15%) · ' +

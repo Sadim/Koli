@@ -52,6 +52,15 @@ const NO_PROPERTIES_STUB = {
   }
 };
 
+// Minimal stub so computeCommercialFitScore_ (channelMetricsService.gs)
+// hits its own "no Sponsors sheet yet" early return instead of throwing —
+// simulates the normal case for a channel with no deal history.
+const NO_SPONSORS_SHEET_STUB = {
+  SpreadsheetApp: {
+    getActiveSpreadsheet: () => ({ getSheetByName: () => null })
+  }
+};
+
 let passed = 0, failed = 0;
 function test(name, fn) {
   try {
@@ -214,10 +223,66 @@ console.log('youtubeService.gs');
   });
 }
 
+// ---------- channelMetricsService.gs ----------
+console.log('channelMetricsService.gs');
+{
+  const m = loadGsMulti(['constants.gs', 'channelMetricsService.gs'], NO_SPONSORS_SHEET_STUB);
+
+  test('computeEvidenceCoverage_: all-real components cover the full weight sum (1.0)', () => {
+    const weights = { a: 0.6, b: 0.4 };
+    assert.strictEqual(m.computeEvidenceCoverage_({ a: true, b: true }, weights), 1);
+  });
+  test('computeEvidenceCoverage_: a not-real component drops exactly its own weight, not more/less', () => {
+    const weights = { a: 0.6, b: 0.4 };
+    const coverage = m.computeEvidenceCoverage_({ a: true, b: false }, weights);
+    assert.ok(Math.abs(coverage - 0.6) < 1e-9, 'expected 0.6, got ' + coverage);
+  });
+  test('computeEvidenceCoverage_: a component missing from realSignal entirely counts as not-real (no silent under-reporting)', () => {
+    const weights = { a: 0.6, b: 0.4 };
+    assert.strictEqual(m.computeEvidenceCoverage_({ a: true }, weights), 0.6);
+  });
+  test('computeEvidenceCoverage_: all-false components cover nothing (0)', () => {
+    const weights = { a: 0.6, b: 0.4 };
+    assert.strictEqual(m.computeEvidenceCoverage_({ a: false, b: false }, weights), 0);
+  });
+
+  test('classifyEvidenceCoverage_: >=80% is "graded"', () => {
+    assert.strictEqual(m.classifyEvidenceCoverage_(1), 'graded');
+    assert.strictEqual(m.classifyEvidenceCoverage_(0.8), 'graded');
+  });
+  test('classifyEvidenceCoverage_: 60-79% is "provisional"', () => {
+    assert.strictEqual(m.classifyEvidenceCoverage_(0.79), 'provisional');
+    assert.strictEqual(m.classifyEvidenceCoverage_(0.6), 'provisional');
+  });
+  test('classifyEvidenceCoverage_: below 60% is "insufficient evidence"', () => {
+    assert.strictEqual(m.classifyEvidenceCoverage_(0.59), 'insufficient evidence');
+    assert.strictEqual(m.classifyEvidenceCoverage_(0), 'insufficient evidence');
+  });
+
+  test('computeGrade_: audienceFit and contentFit are always flagged not-real (crude proxy / unbuilt), capping best-case coverage at 85%', () => {
+    // Every other component real (long upload history, authenticity
+    // present, real Sponsors-sheet data) — audienceFit (10%) and
+    // contentFit (5%) can never be "real" today, so 85% is the ceiling,
+    // not 100%, no matter how complete everything else is.
+    const recentVideos = Array.from({ length: 10 }, (_, i) => ({ publishedAt: new Date(Date.now() - i * 86400000).toISOString() }));
+    const grade = m.computeGrade_('UC123', 70, 8, 3, 'United States', recentVideos);
+    assert.ok(Math.abs(grade.evidenceCoverage - 0.85) < 1e-9, 'expected 0.85 ceiling, got ' + grade.evidenceCoverage);
+    assert.strictEqual(grade.confidence, 'graded');
+  });
+  test('computeGrade_: thin upload history + no authenticity data drops to "insufficient evidence"', () => {
+    // Only commercialFit (15%) can be real here — momentum/reliability
+    // fall back (too few videos), engagementQuality/risk fall back (no
+    // authenticity score), audienceFit/contentFit are never real.
+    const grade = m.computeGrade_('UC123', 50, null, 0, 'Unknown', []);
+    assert.ok(grade.evidenceCoverage <= 0.15 + 1e-9, 'expected coverage capped near 15%, got ' + grade.evidenceCoverage);
+    assert.strictEqual(grade.confidence, 'insufficient evidence');
+  });
+}
+
 // ---------- brandFitService.gs ----------
 console.log('brandFitService.gs');
 {
-  const m = loadGsMulti(['constants.gs', 'brandFitService.gs']);
+  const m = loadGsMulti(['constants.gs', 'channelMetricsService.gs', 'brandFitService.gs']);
 
   test('clampScore0to100_: in-range passes through, rounds fractional', () => {
     assert.strictEqual(m.clampScore0to100_(72), 72);

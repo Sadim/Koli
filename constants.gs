@@ -81,6 +81,21 @@ const GRADE_BANDS = [
   { min: 40, letter: 'D' }, { min: 0, letter: 'F' }
 ];
 
+// Evidence-coverage confidence tiers for Grade v2 and Brand Fit Score —
+// same idea as a source-grounded-audit tool grading its own evidence
+// coverage before trusting a score: a composite built partly on honestly-
+// flagged placeholders (Grade's contentFit, a blank Brand Fit brief field
+// auto-satisfied instead of scored) can still look like a full-confidence
+// number with no way to tell from the letter/score alone. Thresholds are
+// a judgment call, not a standard — tune here if they feel wrong once
+// there's real usage to judge against. See channelMetricsService.gs's
+// computeEvidenceCoverage_/classifyEvidenceCoverage_ for how this is used.
+const EVIDENCE_COVERAGE_BANDS = [
+  { min: 0.8, label: 'graded' },
+  { min: 0.6, label: 'provisional' },
+  { min: 0, label: 'insufficient evidence' }
+];
+
 // Brand Fit Score — the "not a Grade rewrite" item from ROADMAP.md's queued
 // list: Grade is channel-intrinsic (same for every brand); this is
 // channel-vs-a-specific-campaign-brief. It exists specifically to replace

@@ -225,6 +225,7 @@ function writeChannelRow(channel) {
   const c = grade.components;
   if (colOf('Grade')) {
     sheet.getRange(row, colOf('Grade')).setNote(
+      'Confidence: ' + grade.confidence.toUpperCase() + ' (' + Math.round(grade.evidenceCoverage * 100) + '% of this score is real measured signal, not a placeholder/neutral fallback)\n\n' +
       'Composite score: ' + grade.score + '/100\n' +
       'Momentum ' + Math.round(c.momentum) + ' (25%) · Engagement quality ' + Math.round(c.engagementQuality) + ' (20%) · ' +
       'Commercial fit ' + Math.round(c.commercialFit) + ' (15%) · Reliability ' + Math.round(c.reliability) + ' (15%) · ' +
