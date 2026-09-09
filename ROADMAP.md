@@ -793,6 +793,42 @@ version to take effect. Real Google Sign-In (`chrome.identity`,
 replacing the shared secret) is still the deferred long-term item; the
 extension isn't actually open-sourced yet either, just staged for it.
 
+## Payment collection — decided, not yet built (round 17 follow-up)
+
+Asked directly: does Koli need a way to actually collect payment for
+premium? Yes — checked licenseService.gs and found the honest answer is
+that today's mechanism **can't work post-launch at all**, not just
+"isn't wired up yet." `PREMIUM_ACCESS_CODE_HASHES` is a hardcoded array
+in the template; since Koli is distributed by "Make a copy," every
+customer's Sheet becomes a fully independent script at copy time —
+nothing pushed to this master template afterward reaches copies already
+out in the wild, so there's no way to grant a new paying customer access
+without them hand-editing their own copy's code.
+
+**Decided**: hold off on wiring up an actual provider for now. **When
+it is built**, pricing is a **recurring subscription**, not one-time —
+noted here so the eventual design doesn't get built the wrong shape.
+Planned architecture (written up in licenseService.gs's header so it
+doesn't need re-deriving): swap the local array check for a runtime
+`UrlFetchApp` call to a small Koli-controlled verification endpoint (no
+new OAuth scope — `script.external_request` is already granted), fed by
+Gumroad or Lemon Squeezy's built-in license-key API rather than a
+hand-rolled Stripe webhook — recommended specifically because it needs
+no custom backend beyond what Koli already has. A subscription model
+means that check has to re-verify periodically (short cache TTL), not
+cache forever like a one-time-purchase model could.
+
+**In the meantime**: updated the Settings dialog's access-code field and
+`showUpgradeAlert_()`'s copy to say plainly "not for sale yet" — the UI
+previously implied a code could be obtained somewhere, which wasn't
+true and would have dead-ended anyone who tried.
+
+**Trust note for whenever this is built**: a live license check is a
+real, deliberate exception to the extension's "no outbound calls except
+your own Web App URL" claim (see its README's "Trust & transparency"
+section) — update that section alongside the actual implementation, not
+after.
+
 ## Vision backlog — from the founder, round 16
 
 Captured in one pass, deliberately not built yet — recorded now so
