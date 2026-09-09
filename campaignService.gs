@@ -1,8 +1,8 @@
 /**
  * campaignService.gs
- * "Manage" — tracking a deal from signed through complete. Stage is a
+ * "Manage": tracking a deal from signed through complete. Stage is a
  * dropdown column (same pattern already proven on Outreach), not a
- * visual drag-and-drop board — Sheets has no native Kanban view. A real
+ * visual drag-and-drop board: Sheets has no native Kanban view. A real
  * board is a natural fit for the extension sidebar once that exists;
  * not attempted here.
  */
@@ -22,7 +22,7 @@ function showCreateCampaignDialog() {
 function createCampaign(row, brand, deliverables, value, deadline, notes) {
   const channelsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.CHANNELS);
   const rowData = getChannelRowData_(channelsSheet, row);
-  if (!rowData.channelId) throw new Error('This row has no Channel ID — analyze it with Channel Analysis first.');
+  if (!rowData.channelId) throw new Error('This row has no Channel ID: analyze it with Channel Analysis first.');
   if (!brand) throw new Error('Brand/sponsor name is required.');
 
   const sheet = getOrCreateSheet_(SHEET_NAMES.CAMPAIGNS, CAMPAIGN_HEADERS);
@@ -42,7 +42,7 @@ function createCampaign(row, brand, deliverables, value, deadline, notes) {
   return { ok: true, channelName: rowData.name, brand: brand };
 }
 
-/** Native dropdown for Stage, same UX as Outreach's — applied once per sheet, not per row. */
+/** Native dropdown for Stage, same UX as Outreach's: applied once per sheet, not per row. */
 function ensureCampaignStageColumn_(sheet) {
   const stageCol = CAMPAIGN_HEADERS.indexOf('Stage') + 1;
   const rule = SpreadsheetApp.newDataValidation().requireValueInList(CAMPAIGN_STAGES, true).setAllowInvalid(false).build();

@@ -1,20 +1,20 @@
 /**
  * sponsorService.gs
- * Sponsors is the only sponsor-detection sheet now — Sponsor Mentions
+ * Sponsors is the only sponsor-detection sheet now: Sponsor Mentions
  * (the old per-mention detail log) is retired; its Posted/Timestamp/
  * Evidence columns live directly on the Sponsors rollup instead. The two
  * sheets were carrying almost the same information twice, so each
  * (channel, brand) row now just holds the LATEST mention's Posted date,
  * timestamp, and evidence text alongside the aggregate First Seen/Last
- * Seen/Mentions/Sample Video fields — full mention-by-mention history is
+ * Seen/Mentions/Sample Video fields: full mention-by-mention history is
  * no longer kept, a deliberate simplification, not a bug.
  *
  * Verification tier: for any video, SponsorBlock is checked first (free,
  * crowd-verified, exact timestamps) before falling back to Gemini's
  * text-based guess or the caption-fuzzy-match timestamp. When SponsorBlock
  * confirms a segment but Gemini found no brand name in the description
- * (spoken-only disclosure), that mention is still logged — as
- * "Unknown (SponsorBlock-confirmed)" — rather than silently dropped.
+ * (spoken-only disclosure), that mention is still logged: as
+ * "Unknown (SponsorBlock-confirmed)": rather than silently dropped.
  * You can rename the brand manually once you've checked the clip; same
  * manual-entry protection as the Email field applies going forward.
  */
@@ -22,7 +22,7 @@
 function recordSponsorMentions(channelId, channelName, video, sponsors) {
   const sbSegments = video.videoId ? getSponsorBlockSegments_(video.videoId) : [];
   const effectiveSponsors = (sponsors && sponsors.length) ? sponsors
-    : (sbSegments.length ? [{ brand: 'Unknown (SponsorBlock-confirmed)', evidence: 'No brand name found in description/comments — SponsorBlock confirms a sponsor segment exists.' }] : []);
+    : (sbSegments.length ? [{ brand: 'Unknown (SponsorBlock-confirmed)', evidence: 'No brand name found in description/comments: SponsorBlock confirms a sponsor segment exists.' }] : []);
 
   if (!effectiveSponsors.length) return;
 
@@ -39,7 +39,7 @@ function upsertAggregateSponsors_(channelId, channelName, video, sponsors, sbSeg
     : safeTitle;
 
   // SponsorBlock's verified timestamp is free (sbSegments is already
-  // fetched above) — always attempted. The caption-fuzzy-match fallback
+  // fetched above): always attempted. The caption-fuzzy-match fallback
   // costs a real network call, so it stays behind its own Settings
   // toggle, same as before, just written here instead of a separate sheet.
   const sbTimestamp = (sbSegments && sbSegments.length) ? formatSeconds_(sbSegments[0].start) : null;
@@ -53,10 +53,10 @@ function upsertAggregateSponsors_(channelId, channelName, video, sponsors, sbSeg
 
     let timestamp = '';
     if (sbTimestamp) {
-      timestamp = sbTimestamp + ' (verified — SponsorBlock)';
+      timestamp = sbTimestamp + ' (verified: SponsorBlock)';
     } else if (attemptCaptionTimestamp && video.videoId) {
       const ts = findSponsorTimestamp_(video.videoId, s.evidence || s.brand);
-      timestamp = ts ? (ts + ' (estimated — caption match)') : 'No match found';
+      timestamp = ts ? (ts + ' (estimated: caption match)') : 'No match found';
     }
     const evidence = sanitizeCellText_(s.evidence || '');
 
@@ -78,7 +78,7 @@ function upsertAggregateSponsors_(channelId, channelName, video, sponsors, sbSeg
       sheet.getRange(targetRow, 6).setValue(existingCount + 1);
       data[rowIndex][5] = existingCount + 1;
 
-      // Posted/Timestamp/Evidence track the LATEST mention only — an
+      // Posted/Timestamp/Evidence track the LATEST mention only: an
       // older re-processed video shouldn't overwrite more recent evidence.
       if (isLatest) {
         sheet.getRange(targetRow, 8, 1, 3).setValues([[publishedDate, timestamp, evidence]]);
@@ -88,16 +88,16 @@ function upsertAggregateSponsors_(channelId, channelName, video, sponsors, sbSeg
     if (sbTimestamp) {
       const brandCell = sheet.getRange(targetRow, 3);
       brandCell.setNote(isUnknown
-        ? 'Sponsor not identified from text — jump to ' + sbTimestamp + ' in the video to check manually.'
+        ? 'Sponsor not identified from text: jump to ' + sbTimestamp + ' in the video to check manually.'
         : 'SponsorBlock-verified timestamp: ' + sbTimestamp);
     }
   });
 }
 
 /**
- * Normalizes a brand name for matching/deduplication — "Nike", "Nike Inc",
+ * Normalizes a brand name for matching/deduplication: "Nike", "Nike Inc",
  * "NIKE, LLC." all collapse to the same key. Strips common legal suffixes,
- * punctuation, and extra whitespace. Used for MATCHING only — the sheet
+ * punctuation, and extra whitespace. Used for MATCHING only: the sheet
  * still displays whatever Gemini actually extracted, so a genuinely new
  * brand name isn't silently rewritten into something it never said.
  */

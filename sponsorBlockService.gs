@@ -1,6 +1,6 @@
 /**
  * sponsorBlockService.gs
- * SponsorBlock (sponsor.ajay.app) — free, open-source, crowdsourced
+ * SponsorBlock (sponsor.ajay.app): free, open-source, crowdsourced
  * database of human-verified sponsor segment timestamps for YouTube
  * videos. When it has data for a video, it's a strictly better signal
  * than Gemini guessing from a description: real viewers marked the exact
@@ -8,11 +8,11 @@
  *
  * Coverage caveat, stated plainly: this only has data for videos real
  * SponsorBlock users have actually watched and submitted. A small niche
- * channel may have zero coverage — that's not a bug, that's why this is
+ * channel may have zero coverage: that's not a bug, that's why this is
  * "check first, fall back to Gemini," never a full replacement.
  *
  * This is an external, unofficial-for-our-purposes API (not built for
- * server-side bulk lookups, though publicly documented) — same honesty
+ * server-side bulk lookups, though publicly documented): same honesty
  * rule as the captions endpoint: fails soft, never blocks a row.
  */
 
@@ -39,7 +39,7 @@ function getSponsorBlockSegments_(videoId) {
   }, DEFAULTS.CACHE_TTL_SECONDS);
 }
 
-/** Best (highest-voted) segment's start time, formatted mm:ss / h:mm:ss — or null if no coverage. */
+/** Best (highest-voted) segment's start time, formatted mm:ss / h:mm:ss: or null if no coverage. */
 function getBestSponsorBlockTimestamp_(videoId) {
   const segments = getSponsorBlockSegments_(videoId);
   return segments.length ? formatSeconds_(segments[0].start) : null;

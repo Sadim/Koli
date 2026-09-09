@@ -1,16 +1,16 @@
 /**
  * customFunctions.gs
  * =KOLI_* formulas usable directly in any cell. Deliberately limited to
- * pure computation on values you type or reference — Google Sheets
+ * pure computation on values you type or reference: Google Sheets
  * custom functions run in a restricted sandbox that disallows
  * UrlFetchApp and most other authorized services (confirmed directly,
  * not assumed), so nothing here can call YouTube/Gemini live. Each
  * function reuses logic that already exists elsewhere in Koli rather
- * than reimplementing it — one source of truth either way.
+ * than reimplementing it: one source of truth either way.
  */
 
 /**
- * Normalizes a brand/sponsor name the same way the Sponsors tab does —
+ * Normalizes a brand/sponsor name the same way the Sponsors tab does:
  * strips corporate suffixes (Inc, LLC, Ltd...), fixes casing. Useful
  * for previewing what a messy pasted brand name will collapse to
  * before it ever reaches the Sponsors tab.
@@ -23,17 +23,17 @@ function KOLI_NORMALIZE_BRAND(rawName) {
 }
 
 /**
- * Estimates CPM using Koli's own industry-benchmark tiers — the same
+ * Estimates CPM using Koli's own industry-benchmark tiers: the same
  * math Channel analysis uses, usable here for quick scenario math
  * without running a full analysis. Always a range, never a single
- * number — same "estimate, not a real ad-market feed" honesty as the
+ * number: same "estimate, not a real ad-market feed" honesty as the
  * built-in version. Deliberately does not read the optional Settings
  * CPM-table override (that depends on Document Properties, which
- * custom functions may not reliably have access to) — always uses the
+ * custom functions may not reliably have access to): always uses the
  * default benchmark table.
  * @param {number} subCount Subscriber count.
  * @param {number} engagementPct Engagement rate as a percentage, e.g. 4 for 4%.
- * @param {string} niche Niche/category text — matched loosely, same as the built-in estimator.
+ * @param {string} niche Niche/category text: matched loosely, same as the built-in estimator.
  * @return The estimated CPM range.
  * @customfunction
  */
@@ -52,7 +52,7 @@ function KOLI_CPM(subCount, engagementPct, niche) {
 }
 
 /**
- * Engagement ratio the same way Koli computes it internally —
+ * Engagement ratio the same way Koli computes it internally:
  * (likes + comments) / views, as a percentage.
  * @param {number} likes
  * @param {number} comments
@@ -67,7 +67,7 @@ function KOLI_ENGAGEMENT(likes, comments, views) {
 }
 
 /**
- * Formats a large number the way Koli does throughout the sheet — e.g.
+ * Formats a large number the way Koli does throughout the sheet: e.g.
  * 1234567 becomes "1.2M", 45000 becomes "45K".
  * @param {number} count
  * @return The formatted count.

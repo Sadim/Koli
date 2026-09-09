@@ -39,7 +39,7 @@ function onOpen() {
     .addToUi();
 }
 
-/** Returns the currently active sheet/tab's name — powers the sidebar's active-tab indicator. */
+/** Returns the currently active sheet/tab's name: powers the sidebar's active-tab indicator. */
 function getActiveSheetName() {
   return SpreadsheetApp.getActiveSheet().getName();
 }
@@ -85,13 +85,13 @@ function runDiagnostics() {
 function showProfileSidebar() {
   const t = HtmlService.createTemplateFromFile('Sidebar');
   t.mode = 'profile';
-  SpreadsheetApp.getUi().showSidebar(t.evaluate().setTitle('Koli — Profile'));
+  SpreadsheetApp.getUi().showSidebar(t.evaluate().setTitle('Koli: Profile'));
 }
 
 function showDiscoverSidebar() {
   const t = HtmlService.createTemplateFromFile('Sidebar');
   t.mode = 'discover';
-  SpreadsheetApp.getUi().showSidebar(t.evaluate().setTitle('Koli — Discover'));
+  SpreadsheetApp.getUi().showSidebar(t.evaluate().setTitle('Koli: Discover'));
 }
 
 function showSettingsDialog() {
@@ -108,22 +108,22 @@ function showDashboard() {
 function showHelp() {
   SpreadsheetApp.getUi().alert(
     'Koli',
-    'Attention — start here. Stale Outreach follow-ups, recent sponsor activity, and high-grade ' +
-    'channels with no sponsor history yet — what actually needs you today, not another table to skim.\n' +
-    'Analyze Channels / Analyze Videos — bulk metadata enrichment.\n' +
-    'Profile — full per-video history for one channel over a date range, trackable going forward.\n' +
-    'Discover — find channels/videos similar to a seed link.\n' +
-    'Refresh Tracked Profiles — pulls new videos for every channel you\'ve tagged as tracked.\n' +
-    'Export > Creator One-Pager — pitch-ready PDF for the selected Channels row.\n' +
-    'Export > Draft Outreach Email — personalized cold-email draft hooked on a specific ' +
+    'Attention: start here. Stale Outreach follow-ups, recent sponsor activity, and high-grade ' +
+    'channels with no sponsor history yet: what actually needs you today, not another table to skim.\n' +
+    'Analyze Channels / Analyze Videos: bulk metadata enrichment.\n' +
+    'Profile: full per-video history for one channel over a date range, trackable going forward.\n' +
+    'Discover: find channels/videos similar to a seed link.\n' +
+    'Refresh Tracked Profiles: pulls new videos for every channel you\'ve tagged as tracked.\n' +
+    'Export > Creator One-Pager: pitch-ready PDF for the selected Channels row.\n' +
+    'Export > Draft Outreach Email: personalized cold-email draft hooked on a specific ' +
     'detail from the creator\'s last 3 videos, editable in the Outreach Drafts sheet.\n' +
-    'Brand Intelligence > Brand Fit Score — score one or more selected Channels rows against ' +
+    'Brand Intelligence > Brand Fit Score: score one or more selected Channels rows against ' +
     'a specific brand brief (niche, audience, budget), not just Grade\'s general quality score.\n' +
-    'Export > Set Up Brand View — a live, brand-safe Channels view for connecting Looker Studio ' +
+    'Export > Set Up Brand View: a live, brand-safe Channels view for connecting Looker Studio ' +
     'and sharing a presentation link with a brand, without giving them access to this spreadsheet.\n' +
-    'Export > Send Selected Profile Rows to Profile View — same idea, for whichever Profile rows ' +
+    'Export > Send Selected Profile Rows to Profile View: same idea, for whichever Profile rows ' +
     'you\'ve selected.\n' +
-    'Run Diagnostics — checks your API keys and Drive permissions in one click.\n' +
+    'Run Diagnostics: checks your API keys and Drive permissions in one click.\n' +
     'Set your YouTube and Gemini API keys first under Settings.',
     SpreadsheetApp.getUi().ButtonSet.OK
   );
@@ -137,7 +137,7 @@ function runRefreshTrackedProfiles() {
     return;
   }
   const lines = results.map(function (r) {
-    return r.error ? (r.channel + ': error — ' + r.error) : (r.channel + ': ' + r.newVideos + ' new video(s)');
+    return r.error ? (r.channel + ': error: ' + r.error) : (r.channel + ': ' + r.newVideos + ' new video(s)');
   });
   ui.alert('Refresh Tracked Profiles', lines.join('\n'), ui.ButtonSet.OK);
 }
@@ -170,14 +170,14 @@ function getSettings() {
 }
 
 /**
- * One paste instead of two — bundles the deployed Web App URL and the
+ * One paste instead of two: bundles the deployed Web App URL and the
  * shared secret into a single opaque string the extension can decode
- * client-side (plain base64, not encryption — the secret inside is
+ * client-side (plain base64, not encryption: the secret inside is
  * still the real security boundary, this just saves a second copy-paste
  * round trip and a chance to mismatch the wrong URL with the wrong
  * secret). ScriptApp.getService().getUrl() reads the current Web App
  * deployment directly, so there's nothing to manually copy from the
- * Deploy dialog either — deploying it is still a required one-time
+ * Deploy dialog either: deploying it is still a required one-time
  * step, generating the code afterward is not.
  */
 function getConnectionCode_() {
@@ -185,7 +185,7 @@ function getConnectionCode_() {
   if (!secret) throw new Error('Set a shared secret above first, then generate a connection code.');
   let url = '';
   try { url = ScriptApp.getService().getUrl(); } catch (e) { /* no deployment yet */ }
-  if (!url) throw new Error('No Web App deployment found yet — Deploy > New deployment > Web app first, then generate a connection code.');
+  if (!url) throw new Error('No Web App deployment found yet: Deploy > New deployment > Web app first, then generate a connection code.');
   return Utilities.base64Encode(JSON.stringify({ u: url, s: secret }));
 }
 
@@ -207,7 +207,7 @@ function saveSettings(settings) {
   if (settings.timezone) props.setProperty(PROP_KEYS.TIMEZONE, settings.timezone.trim());
   props.setProperty(PROP_KEYS.SCAN_CHANNEL_SPONSORS, String(!!settings.scanChannelSponsors));
   props.setProperty(PROP_KEYS.ATTEMPT_SPONSOR_TIMESTAMP, String(!!settings.attemptSponsorTimestamp));
-  // Unconditional (unlike the API-key fields above) — this is a normal
+  // Unconditional (unlike the API-key fields above): this is a normal
   // editable value, not a write-only masked secret, so clearing every
   // checkbox and the custom field must actually clear the stored default,
   // not silently keep whatever was set last time.
@@ -240,14 +240,14 @@ function analyzeChannelOne(rawInput) {
     const avgPosts = computeAvgPostsPerMonth_(data.recentVideos, lookback);
     const contact = findContact(data.description);
     const commentSample = getChannelCommentSample_(data.recentVideos);
-    // Enrichment is the slowest single step (the one Gemini call) — cache
+    // Enrichment is the slowest single step (the one Gemini call): cache
     // it per channel so resending the same channel within the cache
     // window (a very normal thing to do while testing, or if a link
     // gets captured twice) skips it entirely instead of re-running a
     // full Gemini call for an answer that hasn't changed.
     const enrichment = withCache_(cacheKey_('enrichment', channelId), function () {
       return enrichChannel_(data.description, data.recentVideos, commentSample);
-    }, 21600); // 6h — matches the existing raw-data cache TTL
+    }, 21600); // 6h: matches the existing raw-data cache TTL
     const aggregates = computeChannelAggregates_(data.recentVideos);
     const cpm = estimateCPM(enrichment.mainNiche, data.subCount, aggregates.engagementRatio);
 
@@ -271,7 +271,7 @@ function analyzeChannelOne(rawInput) {
     }
 
     // Everything below is cheap (pure math / already-fetched data, no new
-    // API or Gemini calls) — built so a caller like the extension's Home
+    // API or Gemini calls): built so a caller like the extension's Home
     // tab can render a rich result card right after a manual send,
     // instead of just a "sent" toast. Grade recomputed here rather than
     // threaded out of writeChannelRow's internals, same real formula
@@ -347,7 +347,7 @@ function analyzeVideoOne(rawInput) {
 function runProfileOne(rawInput, startDate, endDate, mode, track) {
   try {
     const result = runProfile(rawInput, startDate, endDate, mode, track);
-    const stopNote = result.stoppedEarly ? ' — stopped early (approaching Apps Script\'s time limit); re-run the same request to continue from here' : '';
+    const stopNote = result.stoppedEarly ? ': stopped early (approaching Apps Script\'s time limit); re-run the same request to continue from here' : '';
     return {
       ok: true, name: result.channelName + stopNote,
       written: result.written, errors: result.errors, total: result.total,

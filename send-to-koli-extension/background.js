@@ -1,30 +1,30 @@
 /**
  * background.js
- * Right-click (context menu) is the primary way to send a link/selection —
+ * Right-click (context menu) is the primary way to send a link/selection:
  * deliberate: pick a link, a selection, or the whole page. The toolbar icon
  * opens the persistent side panel instead (sidepanel.html), which also
- * offers its own Home-tab quick-send, Profile, and Discover actions — see
+ * offers its own Home-tab quick-send, Profile, and Discover actions: see
  * the koli-send message bridge below for how those reuse this file's send().
  *
  * Storage model: chrome.storage.sync key `locks` = {
  *   youtube: { locked, url, secret, tab, columns },
  *   other:   [{ id, name, locked, url, secret, tab, columns }]
  * }
- * Each lock is a fully independent binding — YouTube's context-menu
+ * Each lock is a fully independent binding: YouTube's context-menu
  * items always target the youtube lock; each Other-Platform profile
  * gets its own dynamically-created menu item so a send is never
  * guessed at, only ever explicit about which lock it's going to.
  */
 
 /**
- * Channel and Video are explicit menu choices, not auto-detected — Koli's
+ * Channel and Video are explicit menu choices, not auto-detected: Koli's
  * Channels and Videos sheets have genuinely different headers (Channels:
  * Niche/Posts-per-Month/Contact/Subs/Grade/Outreach...; Videos: Views/
  * Likes/Comments/Auth/Eng %/New Subs...), so guessing wrong from a URL
  * pattern silently sends the wrong shape of data to the wrong place. Two
  * explicit "Send to Worksheet" submenu items (for both a right-clicked
  * link and the current page) put that choice in the user's hands instead.
- * classifyUrl() is kept only as a soft mismatch check (see send()) — it
+ * classifyUrl() is kept only as a soft mismatch check (see send()): it
  * never overrides what was explicitly clicked.
  */
 function rebuildContextMenus() {
@@ -52,12 +52,12 @@ function rebuildContextMenus() {
 chrome.runtime.onInstalled.addListener(rebuildContextMenus);
 chrome.runtime.onStartup.addListener(rebuildContextMenus);
 
-// Toolbar icon now opens the side panel instead of a popup — persistent
+// Toolbar icon now opens the side panel instead of a popup: persistent
 // across page navigation, so Home's current-page card can react as you
 // browse instead of resetting every time the popup would've closed.
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((e) => console.error('[Koli]', e));
 // Rebuilds automatically whenever a profile is added/renamed/removed in
-// the popup — background.js never goes stale relative to what's stored.
+// the popup: background.js never goes stale relative to what's stored.
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'sync' && changes.locks) rebuildContextMenus();
 });
@@ -76,20 +76,20 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   } else if (info.menuItemId.indexOf('send-other-') === 0) {
     const profileId = info.menuItemId.slice('send-other-'.length);
     const value = info.linkUrl || info.selectionText || tab.url;
-    send('note', value, tab.title, tab.url, false, profileId); // non-YouTube platforms aren't auto-classified — always sent as a generic capture
+    send('note', value, tab.title, tab.url, false, profileId); // non-YouTube platforms aren't auto-classified: always sent as a generic capture
   }
 });
 
 /**
- * Recognized platforms — each with its own rules for what counts as a
+ * Recognized platforms: each with its own rules for what counts as a
  * "channel" vs. a "video/post." No longer the source of truth for what
- * gets sent as (that's now an explicit menu choice — see
+ * gets sent as (that's now an explicit menu choice: see
  * rebuildContextMenus), only used by send() as a soft mismatch check
  * against whatever was explicitly clicked. Unrecognized platforms/URLs
- * still send fine as a generic note — unrestricted on purpose, that's
+ * still send fine as a generic note: unrestricted on purpose, that's
  * what makes off-platform mentions (a creator referenced on a blog, a
  * forum post, a directory listing) useful to capture at all. Add a new
- * platform here when it's time — one object, not a rewrite.
+ * platform here when it's time: one object, not a rewrite.
  */
 const RECOGNIZED_PLATFORMS = [
   {
@@ -98,7 +98,7 @@ const RECOGNIZED_PLATFORMS = [
     videoPattern: /youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\//,
     channelPattern: /youtube\.com\/(channel\/|@|c\/|user\/)/
   }
-  // Instagram, TikTok, etc. — added here when their turn comes.
+  // Instagram, TikTok, etc.: added here when their turn comes.
 ];
 
 function classifyUrl(url) {
@@ -108,12 +108,12 @@ function classifyUrl(url) {
     if (platform.videoPattern && platform.videoPattern.test(url)) return 'video';
     if (platform.channelPattern && platform.channelPattern.test(url)) return 'channel';
   }
-  return 'note'; // not a recognized platform, or didn't match a known pattern — still sendable, just generic
+  return 'note'; // not a recognized platform, or didn't match a known pattern: still sendable, just generic
 }
 
 /**
  * YouTube's own page titles are reliably formatted ("Channel Name -
- * YouTube", "Video Title - YouTube") — stripping that suffix gets a
+ * YouTube", "Video Title - YouTube"): stripping that suffix gets a
  * clean display name for the log without an extra network round-trip
  * to resolve the real channel name server-side, which would slow down
  * the one interaction that's supposed to be instant. Not perfect for
@@ -131,12 +131,12 @@ async function logActivity_(entry) {
   const { koliLog } = await chrome.storage.local.get('koliLog');
   const log = koliLog || [];
   log.unshift(Object.assign({ timestamp: Date.now() }, entry));
-  if (log.length > 500) log.length = 500; // raised from 50 — enough for the Log tab's real pagination
+  if (log.length > 500) log.length = 500; // raised from 50: enough for the Log tab's real pagination
   await chrome.storage.local.set({ koliLog: log });
 }
 
 /**
- * lockId is 'youtube' (default) or an Other-Platform profile's id —
+ * lockId is 'youtube' (default) or an Other-Platform profile's id:
  * decides which stored lock's url/secret/tab this send uses. Never
  * guessed from the URL; always either the YouTube-specific menu items
  * or an explicit per-profile menu item chose it.
@@ -149,13 +149,13 @@ async function send(type, value, pageTitle, sourceUrl, silent, lockId) {
 
   if (!lock || !lock.locked || !lock.url || !lock.secret) {
     if (!silent) notify('Not connected', 'Open the extension and lock a worksheet for ' + profileLabel + ' first.');
-    return { ok: false, error: 'Not connected — lock a worksheet for ' + profileLabel + ' first.' };
+    return { ok: false, error: 'Not connected: lock a worksheet for ' + profileLabel + ' first.' };
   }
 
   const resolvedName = resolveDisplayName_(pageTitle, value);
 
   // Channel/Video is now an explicit menu choice (see rebuildContextMenus),
-  // never guessed — but classifyUrl() still runs here as a soft mismatch
+  // never guessed: but classifyUrl() still runs here as a soft mismatch
   // check, since picking the wrong one sends the right shape of data to
   // the wrong sheet with no error (a video URL "looks like" a valid
   // channel input often enough that Koli won't necessarily reject it).
@@ -163,16 +163,16 @@ async function send(type, value, pageTitle, sourceUrl, silent, lockId) {
   // what was explicitly clicked.
   const guessedType = classifyUrl(value);
   const mismatchWarning = (type === 'channel' || type === 'video') && guessedType !== 'note' && guessedType !== type
-    ? ' (this looked like a ' + guessedType + ' link — sent as ' + type + ' anyway)'
+    ? ' (this looked like a ' + guessedType + ' link: sent as ' + type + ' anyway)'
     : '';
 
   // Channel/video sends now wait on live YouTube+Gemini calls (several
-  // seconds, sometimes longer) — an immediate notification here doesn't
+  // seconds, sometimes longer): an immediate notification here doesn't
   // make that faster, but it means the wait isn't silent dead air with
   // no sign anything is happening. Notes are still effectively instant,
   // so they don't get this.
   if (!silent && (type === 'channel' || type === 'video')) {
-    notify('Analyzing…', resolvedName + mismatchWarning + ' — this takes a few seconds, hang tight.');
+    notify('Analyzing…', resolvedName + mismatchWarning + ': this takes a few seconds, hang tight.');
   }
 
   try {
@@ -185,7 +185,7 @@ async function send(type, value, pageTitle, sourceUrl, silent, lockId) {
     if (data.ok) {
       if (!silent) notify('Sent to ' + profileLabel, resolvedName + ' added to your worksheet. Click to view.', data.link);
       await logActivity_({ type, value, pageTitle, resolvedName, profileLabel, success: true, link: data.link });
-      return data; // full response, not just true — carries `preview` (channel/video analysis stats) when present, for the side panel's Home tab to render
+      return data; // full response, not just true: carries `preview` (channel/video analysis stats) when present, for the side panel's Home tab to render
     } else {
       if (!silent) notify(profileLabel + ' rejected this', data.error || 'Unknown error.');
       await logActivity_({ type, value, pageTitle, resolvedName, profileLabel, success: false, message: data.error });
@@ -200,7 +200,7 @@ async function send(type, value, pageTitle, sourceUrl, silent, lockId) {
 }
 
 // Maps a notification's auto-generated ID to the sheet link it should
-// open on click — lets a "Sent to Koli" toast actually take you to the
+// open on click: lets a "Sent to Koli" toast actually take you to the
 // result instead of just confirming it happened somewhere.
 const notificationLinks = {};
 
@@ -222,7 +222,7 @@ chrome.notifications.onClicked.addListener((notificationId) => {
   }
 });
 
-// Bridge for the side panel's Home-tab quick-send buttons — routes through
+// Bridge for the side panel's Home-tab quick-send buttons: routes through
 // this exact same send() rather than duplicating its fetch/log/notify
 // logic in sidepanel.js, so a quick send and a right-click send behave
 // identically and show up in the same Log tab the same way.

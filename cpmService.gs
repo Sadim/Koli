@@ -1,6 +1,6 @@
 /**
  * cpmService.gs
- * Estimates CPM from industry-benchmark ranges, not a real ad-market feed —
+ * Estimates CPM from industry-benchmark ranges, not a real ad-market feed:
  * always returned and displayed as a range, never a single number, per
  * Step 0 answer #1. Optionally overridden per-niche via Script Properties
  * (Settings) if you later plug in your own deal-derived benchmarks.
@@ -11,7 +11,7 @@ function estimateCPM(niche, subCount, engagementRatioPct) {
   return '$' + raw.low + '-$' + raw.high + ' CPM (est.)';
 }
 
-/** Same estimate as estimateCPM, as numbers rather than a formatted string — for math (e.g. Brand Fit Score's budget-fit check), not display. */
+/** Same estimate as estimateCPM, as numbers rather than a formatted string: for math (e.g. Brand Fit Score's budget-fit check), not display. */
 function estimateCPMRaw_(niche, subCount, engagementRatioPct) {
   const range = lookupNicheRange_(niche);
   const subMult = subCountMultiplier_(subCount);

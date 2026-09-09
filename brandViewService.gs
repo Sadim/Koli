@@ -2,24 +2,24 @@
  * brandViewService.gs
  * Two brand-safe views, both meant as the data source for an external
  * presentation layer (Looker Studio, formerly Data Studio) shared with a
- * brand via a view-only link — the free alternative to Sheets Canvas: no
+ * brand via a view-only link: the free alternative to Sheets Canvas: no
  * Workspace paid tier needed on either side, and the brand never needs
  * access to the real spreadsheet, only whichever of these tabs Looker
  * Studio is connected to.
  *
- * "Brand View" — a live QUERY() over the whole Channels sheet (see
- * showBrandView below). "Profile View" — a snapshot of whichever Profile
+ * "Brand View": a live QUERY() over the whole Channels sheet (see
+ * showBrandView below). "Profile View": a snapshot of whichever Profile
  * rows you had selected when you last ran it (see
  * sendProfileSelectionToView further down this file).
  *
  * Deliberately excludes the same internal-only fields Creator One-Pager
  * already excludes (Outreach status, Last Contact, Notes) plus Status/
  * ID/Post Times/Report, which have no value to a brand and would just be
- * noise in a comparison view. Contact IS included — matching Creator
+ * noise in a comparison view. Contact IS included: matching Creator
  * One-Pager's own precedent of sharing it with a brand, not a stricter
  * policy invented just for this view.
  *
- * Built as a single QUERY() formula, not a script-generated snapshot —
+ * Built as a single QUERY() formula, not a script-generated snapshot:
  * it stays live automatically as Channels changes, no "refresh" menu
  * click to remember, and no extra Drive/Gemini/YouTube cost. Column
  * letters are resolved from Channels' actual current header row rather
@@ -35,7 +35,7 @@ function showBrandView() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const channelsSheet = ss.getSheetByName(SHEET_NAMES.CHANNELS);
   if (!channelsSheet || channelsSheet.getLastRow() < 2) {
-    SpreadsheetApp.getUi().alert('No Channels data yet — analyze some channels first, then set up Brand View.');
+    SpreadsheetApp.getUi().alert('No Channels data yet: analyze some channels first, then set up Brand View.');
     return;
   }
 
@@ -64,10 +64,10 @@ function showBrandView() {
   ss.setActiveSheet(sheet);
   SpreadsheetApp.getUi().alert(
     'Brand View ready',
-    'A live, brand-safe view of your Channels data is in the "Brand View" tab — Channel, Niche, Subs, Avg ' +
+    'A live, brand-safe view of your Channels data is in the "Brand View" tab: Channel, Niche, Subs, Avg ' +
     'Views, Posts/Mo, Grade, and Contact only (no Outreach status, internal Notes, or IDs). Connect Looker ' +
     'Studio\'s Google Sheets connector to this tab, then share the Looker Studio report\'s own link with a ' +
-    'brand — they never need access to this spreadsheet itself.\n\n' +
+    'brand: they never need access to this spreadsheet itself.\n\n' +
     'If Channels\' columns ever change, re-run Koli > Export > Set Up Brand View to rebuild this formula ' +
     'against the new layout.',
     SpreadsheetApp.getUi().ButtonSet.OK
@@ -87,16 +87,16 @@ function columnToLetter_(col) {
 }
 
 /**
- * Profile View — the same "present via Looker Studio without exposing
+ * Profile View: the same "present via Looker Studio without exposing
  * the real spreadsheet" idea as Brand View, for Profile instead of
  * Channels. Different mechanism on purpose: Profile's use case is "these
  * specific rows I picked," not "everything in the sheet," and Sheets
- * formulas have no concept of "whatever's currently selected" — QUERY()
+ * formulas have no concept of "whatever's currently selected": QUERY()
  * can't express that the way Brand View's live formula does. So this is
  * a script-triggered snapshot instead: run it again any time you want
  * Profile View to reflect a different selection. Excludes Status/Video
  * ID/Channel ID (internal row-matching plumbing, meaningless to a
- * brand) — same "don't show what's not theirs to see" rule as
+ * brand): same "don't show what's not theirs to see" rule as
  * Brand View and Creator One-Pager.
  */
 const PROFILE_VIEW_EXCLUDE_FIELDS = ['Status', 'Video ID', 'Channel ID'];
@@ -124,7 +124,7 @@ function sendProfileSelectionToView() {
   const selectedRows = sheet.getRange(range.getRow(), 1, range.getNumRows(), PROFILE_HEADERS.length).getValues()
     .filter(function (r) { return r[videoIdCol]; }); // drops any blank rows caught inside the selection
   if (!selectedRows.length) {
-    ui.alert('No data rows in that selection — select one or more Profile rows with actual data, then try again.');
+    ui.alert('No data rows in that selection: select one or more Profile rows with actual data, then try again.');
     return;
   }
 
@@ -143,7 +143,7 @@ function sendProfileSelectionToView() {
   ui.alert(
     'Profile View updated',
     outRows.length + ' row(s) copied to the "Profile View" tab. Connect Looker Studio\'s Google Sheets ' +
-    'connector to this tab the same way as Brand View, then share the Looker Studio report\'s own link — ' +
+    'connector to this tab the same way as Brand View, then share the Looker Studio report\'s own link: ' +
     're-run this any time you want Profile View to reflect a different selection.',
     ui.ButtonSet.OK
   );

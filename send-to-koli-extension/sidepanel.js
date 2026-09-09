@@ -1,18 +1,18 @@
 /**
  * sidepanel.js
  * Rewritten from popup.js for the persistent Chrome side panel (manifest's
- * side_panel.default_path). Storage model is unchanged from the popup era —
+ * side_panel.default_path). Storage model is unchanged from the popup era:
  * chrome.storage.sync key `locks`:
  *   { youtube: {locked,url,secret,tab,columnsChannel,columnsVideo,columnsProfile,columnsDiscover},
  *     other: [{id,name,locked,url,secret,tab,columns}] }
  * Activity log still lives in chrome.storage.local (key `koliLog`), written
  * by background.js's send() for right-click/quick-send captures, and
  * directly by this file for Profile/Discover runs (which never go through
- * send() — see the Profile/Discover sections below).
+ * send(): see the Profile/Discover sections below).
  */
 
 // Kept literally in sync with constants.gs's CHANNEL_HEADERS / VIDEO_HEADERS /
-// PROFILE_HEADERS / DISCOVER_HEADERS — the extension has no way to read
+// PROFILE_HEADERS / DISCOVER_HEADERS: the extension has no way to read
 // those server-side, so this is a manually-maintained mirror, same as every
 // other column name used here.
 const CHANNEL_DEFAULT_COLUMNS = [
@@ -34,7 +34,7 @@ const DISCOVER_DEFAULT_COLUMNS = [
 
 // Cosmetic-only mirror of background.js's RECOGNIZED_PLATFORMS, used solely
 // to label the Home tab's current-page card. background.js re-derives this
-// independently at send time for its own mismatch check — this copy never
+// independently at send time for its own mismatch check: this copy never
 // decides what actually gets sent, only how the card describes the page
 // before you choose.
 const RECOGNIZED_PLATFORMS = [
@@ -64,7 +64,7 @@ function resolveDisplayName_(pageTitle, value) {
 
 let state = { locks: { youtube: null, other: [] } };
 let activeOtherProfileId = null;
-let activeColType = 'channel'; // 'channel' | 'video' | 'profile' | 'discover' — which column list/apply-target is showing
+let activeColType = 'channel'; // 'channel' | 'video' | 'profile' | 'discover': which column list/apply-target is showing
 let logPage = 0;
 const LOG_PAGE_SIZE = 5;
 let currentTab = null; // { url, title } of the active tab, refreshed on Home focus
@@ -109,7 +109,7 @@ async function saveLocks() {
 
 // ---------- Top tab switching ----------
 // Tab identity is 'home' | 'youtube' | 'log' for the three fixed tabs, or a
-// platform's own id (state.locks.other[i].id) for a dynamic platform tab —
+// platform's own id (state.locks.other[i].id) for a dynamic platform tab:
 // one real tab per added platform, not a chip row inside a shared "Other
 // Platforms" tab like the popup-era design had. #platformTabsSlot holds
 // those dynamic buttons plus a trailing "+" to add another.
@@ -168,7 +168,7 @@ document.getElementById('navSettings2').onclick = () => showScreen('settings');
 document.getElementById('pageConnectLink').onclick = () => showScreen('settings');
 
 // ==================================================================
-// Home tab — current page, quick send, Profile, Discover
+// Home tab: current page, quick send, Profile, Discover
 // ==================================================================
 async function refreshHomeTab() {
   await refreshCurrentPageCard();
@@ -186,7 +186,7 @@ async function refreshCurrentPageCard() {
     [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   } catch (e) { /* no active tab (rare) */ }
   currentTab = tab ? { url: tab.url || '', title: tab.title || '' } : { url: '', title: '' };
-  hidePreviewCard_(); // a different page is now current — the last card's numbers no longer apply to it
+  hidePreviewCard_(); // a different page is now current: the last card's numbers no longer apply to it
 
   titleEl.textContent = resolveDisplayName_(currentTab.title, currentTab.url) || 'No page detected';
   const kind = classifyUrl(currentTab.url);
@@ -229,7 +229,7 @@ async function quickSend(type, buttonEl) {
   if (buttonEl) {
     buttonEl.disabled = true;
     // Channel/video sends run Koli's real analysis pipeline (live YouTube
-    // + Gemini calls) — genuinely several seconds, not instant, so the
+    // + Gemini calls): genuinely several seconds, not instant, so the
     // button needs its own loading state rather than just the browser
     // notification background.js already sends (easy to miss/dismiss).
     buttonEl.textContent = (type === 'channel' || type === 'video') ? 'Analyzing…' : 'Sending…';
@@ -254,13 +254,13 @@ function hidePreviewCard_() {
   document.getElementById('previewCard').hidden = true;
 }
 
-/** Renders the result of a manual channel send as a rich card — grade, stats, suggested rate — instead of leaving the person to go check the Sheet to see what Koli actually found. */
+/** Renders the result of a manual channel send as a rich card (grade, stats, suggested rate) instead of leaving the person to go check the Sheet to see what Koli actually found. */
 function renderPreviewCard_(resp) {
   const p = resp.preview;
   const card = document.getElementById('previewCard');
 
   const badge = document.getElementById('previewGradeBadge');
-  badge.textContent = p.gradeLetter || '—';
+  badge.textContent = p.gradeLetter || '?';
   badge.className = 'preview-grade' + (p.gradeLetter ? ' grade-' + p.gradeLetter.toLowerCase() : '');
   document.getElementById('previewGradeLabel').textContent = (GRADE_LABELS[p.gradeLetter] || 'Analyzed') + ' · Grade ' + (p.gradeLetter || '?');
   document.getElementById('previewConfidence').textContent = p.gradeConfidence || '';
@@ -269,9 +269,9 @@ function renderPreviewCard_(resp) {
   if (resp.link) { viewLink.href = resp.link; viewLink.hidden = false; } else { viewLink.hidden = true; }
 
   document.getElementById('previewSubs').textContent = formatCompactNumber_(p.subCount);
-  document.getElementById('previewEngagement').textContent = (typeof p.engagementRatio === 'number' ? p.engagementRatio.toFixed(1) : '—') + '%';
+  document.getElementById('previewEngagement').textContent = (typeof p.engagementRatio === 'number' ? p.engagementRatio.toFixed(1) : 'N/A') + '%';
   document.getElementById('previewViews').textContent = formatCompactNumber_(p.avgViews);
-  document.getElementById('previewPosts').textContent = (typeof p.avgPostsPerMonth === 'number' ? p.avgPostsPerMonth.toFixed(1) : '—');
+  document.getElementById('previewPosts').textContent = (typeof p.avgPostsPerMonth === 'number' ? p.avgPostsPerMonth.toFixed(1) : 'N/A');
 
   const rateEl = document.getElementById('previewRate');
   rateEl.innerHTML = (typeof p.suggestedRateLow === 'number' && typeof p.suggestedRateHigh === 'number')
@@ -285,7 +285,7 @@ function renderPreviewCard_(resp) {
 }
 
 function formatCompactNumber_(n) {
-  if (typeof n !== 'number') return '—';
+  if (typeof n !== 'number') return 'N/A';
   if (n >= 1000000) return (n / 1000000).toFixed(n >= 10000000 ? 0 : 1) + 'M';
   if (n >= 1000) return (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'K';
   return String(n);
@@ -335,7 +335,7 @@ document.getElementById('profileRunBtn').onclick = async () => {
       const added = typeof data.added === 'number' ? data.added : (typeof data.rowsWritten === 'number' ? data.rowsWritten : null);
       result.className = 'result-card ok';
       result.textContent = (added !== null ? added + ' video row(s) written. ' : 'Done. ') +
-        (data.stoppedEarly ? 'Hit the time budget — run it again to pick up where it left off.' : '');
+        (data.stoppedEarly ? 'Hit the time budget: run it again to pick up where it left off.' : '');
       await logActivityLocal_({ type: 'profile', value: channelInput, resolvedName, profileLabel: 'YouTube Profile', success: true });
     }
     await refreshStatTiles();
@@ -419,7 +419,7 @@ document.getElementById('discoverRunBtn').onclick = async () => {
 };
 
 // Profile/Discover runs never go through background.js's send() (different
-// body shape entirely — no `secret,type,value` capture envelope), so they
+// body shape entirely: no `secret,type,value` capture envelope), so they
 // log to koliLog directly here, same shape send()'s logActivity_ writes,
 // so the Log tab renders both kinds identically.
 async function logActivityLocal_(entry) {
@@ -504,7 +504,7 @@ function autoSave(indicatorId) {
 }
 
 // Channels/Videos/Profile/Discover are genuinely different sheets with
-// different headers — this switcher edits one list at a time, never a
+// different headers: this switcher edits one list at a time, never a
 // blended list. Which one a send actually becomes is chosen from the Home
 // tab or the right-click menu, not here.
 function columnsKeyFor_(type) {
@@ -541,7 +541,7 @@ document.getElementById('youtubeApplyBtn').onclick = () => {
   document.getElementById('applyColumnsStatus').className = 'status';
   document.getElementById('applyColumnsHint').textContent =
     'This reorders your real ' + sheetLabelFor_(activeColType) + ' sheet\'s columns to match what\'s shown here, ' +
-    'and hides any column you removed (nothing is deleted — hidden columns can be unhidden anytime in Sheets). ' +
+    'and hides any column you removed (nothing is deleted: hidden columns can be unhidden anytime in Sheets). ' +
     'Anyone else viewing this sheet will see the new layout too.';
   document.getElementById('applyColumnsModal').classList.add('open');
 };
@@ -562,7 +562,7 @@ document.getElementById('applyColumnsConfirm').onclick = async () => {
     });
     const data = await resp.json();
     if (!data.ok) { status.className = 'status err'; status.textContent = data.error || 'Could not apply the layout.'; return; }
-    status.className = 'status ok'; status.textContent = 'Applied — your ' + sheetLabelFor_(type) + ' sheet now matches this layout.';
+    status.className = 'status ok'; status.textContent = 'Applied: your ' + sheetLabelFor_(type) + ' sheet now matches this layout.';
     setTimeout(() => document.getElementById('applyColumnsModal').classList.remove('open'), 1200);
   } catch (e) {
     status.className = 'status err'; status.textContent = 'Could not reach your worksheet: ' + e.message;
@@ -583,12 +583,12 @@ function updateLockPill(pillEl, lock, defaultLabel) {
 }
 
 // ==================================================================
-// Platform tabs — one shared panel (#panel-other), rendered for whichever
+// Platform tabs: one shared panel (#panel-other), rendered for whichever
 // platform's own tab is active (activeOtherProfileId, set by showMainTab_).
 // ==================================================================
 function renderOtherTab() {
   const profile = state.locks.other.find((p) => p.id === activeOtherProfileId);
-  if (!profile) return; // no platform tab is the active one right now — nothing to render
+  if (!profile) return; // no platform tab is the active one right now: nothing to render
   document.getElementById('otherProfileNameLabel').textContent = profile.name;
   renderColumnGrid(document.getElementById('otherColGrid'), profile.columns, { editable: true, indicatorId: 'otherAutosave' });
   updateLockPill(document.getElementById('otherLockPill'), profile, 'Prospects');
@@ -606,7 +606,7 @@ document.getElementById('deleteProfileLink').onclick = async () => {
   state.locks.other = state.locks.other.filter((p) => p.id !== activeOtherProfileId);
   activeOtherProfileId = null;
   await saveLocks();
-  showMainTab_('youtube'); // the just-deleted tab no longer exists — fall back rather than leave a dead tab selected
+  showMainTab_('youtube'); // the just-deleted tab no longer exists: fall back rather than leave a dead tab selected
 };
 
 function openAddPlatformModal() {
@@ -658,7 +658,7 @@ function openLockModal(target) {
 }
 document.getElementById('lockModalCancel').onclick = () => document.getElementById('lockModal').classList.remove('open');
 
-// Connection-code paste — decodes Koli Settings' single generated string
+// Connection-code paste: decodes Koli Settings' single generated string
 // (base64 JSON {u,s}) into the URL + secret fields, so most people never
 // type either one by hand.
 document.getElementById('lockCodeDecode').onclick = () => {
@@ -670,7 +670,7 @@ document.getElementById('lockCodeDecode').onclick = () => {
     if (!decoded.u || !decoded.s) throw new Error('missing fields');
     document.getElementById('lockUrl').value = decoded.u;
     document.getElementById('lockSecret').value = decoded.s;
-    status.className = 'status ok'; status.textContent = 'Filled in — review below, then Test & Lock.';
+    status.className = 'status ok'; status.textContent = 'Filled in: review below, then Test & Lock.';
   } catch (e) {
     status.className = 'status err'; status.textContent = 'That doesn\'t look like a valid connection code.';
   }
@@ -731,7 +731,7 @@ document.getElementById('lockSecret').addEventListener('blur', async () => {
     const data = JSON.parse(rawText);
     if (!data.ok || !Array.isArray(data.tabs)) {
       status.className = 'status err';
-      status.innerHTML = 'Could not load real tab names — dropdown will stay on the default. Got back: <code>' + escapeHtml(rawText) + '</code>';
+      status.innerHTML = 'Could not load real tab names: dropdown will stay on the default. Got back: <code>' + escapeHtml(rawText) + '</code>';
       return;
     }
     const select = document.getElementById('lockTabSelect');
@@ -784,7 +784,7 @@ async function renderLogTab() {
   const pagerEl = document.getElementById('pager');
 
   if (!log.length) {
-    listEl.innerHTML = '<div class="log-empty">Nothing sent yet — right-click a link or selection on any page, or use Home\'s quick-send/Profile/Discover.</div>';
+    listEl.innerHTML = '<div class="log-empty">Nothing sent yet: right-click a link or selection on any page, or use Home\'s quick-send/Profile/Discover.</div>';
     pagerEl.style.display = 'none';
     return;
   }
@@ -869,14 +869,14 @@ function timeAgo(ts) {
 function escapeHtml(s) { return String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
 
 function refreshAllPanels() {
-  renderTabBar_(); // must run at least once even before any tab switch — this is what first populates the "+" add-platform button
+  renderTabBar_(); // must run at least once even before any tab switch: this is what first populates the "+" add-platform button
   renderColumnsTab();
   renderOtherTab();
   refreshHomeTab();
 }
 
 // React live as the person switches or navigates tabs while the panel
-// stays open — this is the whole point of a persistent side panel over a
+// stays open: this is the whole point of a persistent side panel over a
 // popup that closed (and lost this state) on every focus change.
 chrome.tabs.onActivated.addListener(() => {
   if (document.getElementById('screen-home').classList.contains('active') &&

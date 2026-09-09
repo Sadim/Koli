@@ -2,7 +2,7 @@
  * contactService.gs
  * Original build (not a port). Goal, per spec: find a contact email by
  * following the channel's other social handles, the way an outreach person
- * would — check the About description first, then follow any link-in-bio
+ * would: check the About description first, then follow any link-in-bio
  * aggregator (Linktree/Beacons/etc.) or business site linked from it, since
  * creators put contact emails there more often than in the YouTube About
  * box itself.
@@ -43,7 +43,7 @@ function findContact(description) {
   const desc = description || '';
   const socials = extractSocials_(desc);
 
-  // 1. Direct email in the About description — cheapest, most common win.
+  // 1. Direct email in the About description: cheapest, most common win.
   let email = firstNonYoutubeEmail_(desc);
 
   // 2. Follow any link-in-bio aggregator page found in the description.
@@ -100,7 +100,7 @@ function findFirstMatch_(text, reList) {
 }
 
 /**
- * Grabs the first plausible non-YouTube, non-aggregator http(s) URL —
+ * Grabs the first plausible non-YouTube, non-aggregator http(s) URL:
  * treated as a personal/business site worth checking for a /contact page.
  */
 function findGenericSiteUrl_(text) {
@@ -122,7 +122,7 @@ function firstNonYoutubeEmail_(text) {
 }
 
 /**
- * Fetches a page's text with a short timeout and no throw on failure —
+ * Fetches a page's text with a short timeout and no throw on failure:
  * a broken or blocked page should never fail the whole channel row.
  */
 function safeFetchText_(url) {

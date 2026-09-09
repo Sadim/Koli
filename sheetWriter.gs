@@ -28,7 +28,7 @@ function getOrCreateSheet_(name, headers) {
     formatHeaderRow_(sheet, headers.length);
   } else if (name === SHEET_NAMES.CHANNELS && needsChannelsV2Migration_(sheet)) {
     // The v2 layout reordered columns (not just appended new trailing
-    // ones) — naive header-append would silently misalign every existing
+    // ones): naive header-append would silently misalign every existing
     // row against the wrong header. Leave the sheet untouched here;
     // Koli > Migrate Channels Sheet (v2) handles this safely and once.
   } else {
@@ -48,8 +48,8 @@ function needsChannelsV2Migration_(sheet) {
 /**
  * A sheet built before new trailing columns existed (e.g. Channels before
  * Outreach/Last Contact/Notes/Report) only has the old header row. This
- * appends whatever's missing at the end — never touches existing columns
- * or data — so upgrading Koli doesn't require rebuilding any sheet.
+ * appends whatever's missing at the end: never touches existing columns
+ * or data: so upgrading Koli doesn't require rebuilding any sheet.
  */
 function migrateHeaders_(sheet, expectedHeaders) {
   const currentWidth = sheet.getLastColumn();
@@ -63,7 +63,7 @@ function migrateHeaders_(sheet, expectedHeaders) {
 /**
  * Applies the Outreach dropdown (native data validation, same UI pattern
  * as the original Data Validation reference) to the whole column, and
- * backfills "Not Contacted" only into currently-blank cells — never
+ * backfills "Not Contacted" only into currently-blank cells: never
  * overwrites a status you've already set.
  */
 function ensureOutreachColumn_(sheet) {
@@ -106,8 +106,8 @@ function hyperlinkFormula_(url, label) {
 }
 
 /**
- * Status cells get a glyph + color instead of plain text — "☑ Done" in
- * green, "✗ Error: ..." in red, "○ New" in gray — same icon language
+ * Status cells get a glyph + color instead of plain text: "☑ Done" in
+ * green, "✗ Error: ..." in red, "○ New" in gray: same icon language
  * already used in the sidebar's result rows. Easier to scan a column of
  * these at a glance than a column of plain words.
  */
@@ -124,12 +124,12 @@ function formatStatusCell_(cell, rawStatus) {
 
 /**
  * Formula/CSV-injection guard. Any text derived from Gemini output or an
- * external source (video descriptions, comments, channel names — all
+ * external source (video descriptions, comments, channel names: all
  * writable by anyone on the public internet) could contain a string
  * starting with =, +, -, or @, which Google Sheets treats as a live
  * formula on render regardless of how the cell was written. A leading
  * apostrophe forces it to render as literal text instead. Applied to
- * every cell that holds AI-derived or externally-sourced free text —
+ * every cell that holds AI-derived or externally-sourced free text:
  * not to values Koli computed itself (CPM strings, dates, counts).
  */
 function sanitizeCellText_(text) {
@@ -139,15 +139,15 @@ function sanitizeCellText_(text) {
 
 /**
  * Manual email entry: type an address directly into the Email cell (col 6
- * on Channels) any time — including right over "Not found." Re-running
+ * on Channels) any time: including right over "Not found." Re-running
  * Channel analysis for that channel will NOT overwrite it. Only a cell
  * that's currently blank or still says "Not found" gets written with
  * whatever auto-detection just found. If auto-detection now finds a
  * different email than what's manually sitting there, it doesn't fight
- * you for the cell — it notes the discrepancy instead, so you can decide.
+ * you for the cell: it notes the discrepancy instead, so you can decide.
  */
 function writeEmailPreservingManual_(sheet, row, currentEmail, autoFoundEmail, contactCol) {
-  if (!contactCol) return; // Contact column doesn't exist in this layout — nothing to write
+  if (!contactCol) return; // Contact column doesn't exist in this layout: nothing to write
   const cell = sheet.getRange(row, contactCol);
   const isManualOrConfirmed = currentEmail && currentEmail !== 'Not found';
 
@@ -168,16 +168,16 @@ function writeEmailPreservingManual_(sheet, row, currentEmail, autoFoundEmail, c
 function writeChannelRow(channel) {
   const sheet = getOrCreateSheet_(SHEET_NAMES.CHANNELS, CHANNEL_HEADERS);
   if (needsChannelsV2Migration_(sheet)) {
-    throw new Error('Channels sheet needs a one-time migration to the new layout first — run Koli > Migrate Channels Sheet (v2) from the menu, then try again.');
+    throw new Error('Channels sheet needs a one-time migration to the new layout first: run Koli > Migrate Channels Sheet (v2) from the menu, then try again.');
   }
   if (sheet.getLastColumn() > CHANNEL_HEADERS.length && sheet.getRange(1, CHANNEL_HEADERS.length + 1).getValue()) {
     throw new Error('This Channels sheet still has extra columns from an older layout. Rename this tab (e.g. "Channels (old)") so Koli creates a fresh one, or manually delete the columns after ' + CHANNEL_HEADERS[CHANNEL_HEADERS.length - 1] + ' before continuing.');
   }
 
   // Every column below is looked up against the sheet's ACTUAL current
-  // header row — never assumed to match CHANNEL_HEADERS' declared order.
+  // header row: never assumed to match CHANNEL_HEADERS' declared order.
   // Someone may have manually reordered columns in Sheets, or applied a
-  // reordered layout from the extension — either way, a value must land
+  // reordered layout from the extension: either way, a value must land
   // in the right column by name, not by position. If a column has been
   // removed entirely, colOf returns null and that field is silently
   // skipped rather than erroring or misplacing data into the wrong spot.
@@ -188,7 +188,7 @@ function writeChannelRow(channel) {
   };
 
   const idCol = colOf('ID');
-  if (!idCol) throw new Error('This Channels sheet has no "ID" column — Koli needs it to identify rows. Restore it or start a fresh Channels tab.');
+  if (!idCol) throw new Error('This Channels sheet has no "ID" column: Koli needs it to identify rows. Restore it or start a fresh Channels tab.');
   const existingRow = findRowByKey_(sheet, idCol, channel.channelId);
   const row = existingRow === -1 ? sheet.getLastRow() + 1 : existingRow;
 
@@ -230,8 +230,8 @@ function writeChannelRow(channel) {
       'Momentum ' + Math.round(c.momentum) + ' (25%) · Engagement quality ' + Math.round(c.engagementQuality) + ' (20%) · ' +
       'Commercial fit ' + Math.round(c.commercialFit) + ' (15%) · Reliability ' + Math.round(c.reliability) + ' (15%) · ' +
       'Risk ' + Math.round(c.risk) + ' (10%, higher = lower risk) · Audience fit ' + Math.round(c.audienceFit) + ' (10%) · ' +
-      'Content fit ' + Math.round(c.contentFit) + ' (5%, placeholder — needs a target niche input, not built yet)\n' +
-      'Not a standard external metric — Koli\'s own formula, tunable in constants.gs.'
+      'Content fit ' + Math.round(c.contentFit) + ' (5%, placeholder: needs a target niche input, not built yet)\n' +
+      'Not a standard external metric: Koli\'s own formula, tunable in constants.gs.'
     );
   }
 
@@ -260,7 +260,7 @@ function writeChannelError_(channelInput, errorMessage) {
  * One-time, safe migration from the pre-v2 Channels layout (13 columns)
  * to the new one (24 columns, several new metrics inserted mid-sheet,
  * not just appended). The old sheet is renamed as a backup, never
- * deleted — copyTo preserves formulas (hyperlinks survive) and notes.
+ * deleted: copyTo preserves formulas (hyperlinks survive) and notes.
  * New columns are left blank; they backfill the next time each channel
  * is re-analyzed, not automatically here (avoids a surprise API-quota
  * burn re-analyzing everything at once).
@@ -269,9 +269,9 @@ function migrateChannelsSheetV2() {
   const ui = SpreadsheetApp.getUi();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const oldSheet = ss.getSheetByName(SHEET_NAMES.CHANNELS);
-  if (!oldSheet) { ui.alert('No Channels sheet found — nothing to migrate.'); return; }
+  if (!oldSheet) { ui.alert('No Channels sheet found: nothing to migrate.'); return; }
   if (!needsChannelsV2Migration_(oldSheet)) {
-    ui.alert('Channels sheet is already on the new layout — nothing to migrate.');
+    ui.alert('Channels sheet is already on the new layout: nothing to migrate.');
     return;
   }
 
@@ -283,7 +283,7 @@ function migrateChannelsSheetV2() {
     formatHeaderRow_(oldSheet, CHANNEL_HEADERS.length);
     (HIDDEN_COLS[SHEET_NAMES.CHANNELS] || []).forEach(function (col) { oldSheet.hideColumns(col); });
     ensureOutreachColumn_(oldSheet);
-    ui.alert('Channels sheet had no data — rebuilt with the new layout.');
+    ui.alert('Channels sheet had no data: rebuilt with the new layout.');
     return;
   }
 
@@ -311,7 +311,7 @@ function migrateChannelsSheetV2() {
     'Migration complete',
     numDataRows + ' channel(s) moved to the new layout. New columns (Avg Views, Post Times, Likes, ' +
     'Comments, Auth, Eng %, Location, Gender, Age, Grade, Rank) are blank until each channel is ' +
-    're-analyzed — re-run Channel analysis on rows you want backfilled. Your original data is untouched ' +
+    're-analyzed: re-run Channel analysis on rows you want backfilled. Your original data is untouched ' +
     'in the "' + backupName + '" tab.',
     ui.ButtonSet.OK
   );
@@ -341,7 +341,7 @@ function getActiveChannelRow_() {
 }
 
 /**
- * Multi-row variant of getActiveChannelRow_ — every distinct data row
+ * Multi-row variant of getActiveChannelRow_: every distinct data row
  * (row >= 2) touched by the current selection on the Channels sheet, in
  * sheet order. Selecting several rows (e.g. for a multi-creator Brand Fit
  * Score comparison) works the same way selecting one row always has;
@@ -364,12 +364,12 @@ function getActiveChannelRows_() {
 
 /**
  * Reorders a sheet's actual columns to match orderedNames, and hides
- * (never deletes) any existing column not in that list — reversible,
+ * (never deletes) any existing column not in that list: reversible,
  * since a browser-extension click shouldn't be able to permanently
  * destroy real data. Columns not present at all are silently skipped
  * rather than erroring, so a slightly-out-of-date requested layout
  * doesn't block the ones that do still apply. Shared by the "Send to
- * Koli" extension's Channels and Videos column editors — same operation,
+ * Koli" extension's Channels and Videos column editors: same operation,
  * different target sheet and header set (they're not interchangeable:
  * Videos' real headers are Status/Video/ID/Channel/Views/Likes/Comments/
  * Auth/Eng %/Posted/Day/New Subs/Location/Age/Gender/Updated, distinct
@@ -377,9 +377,9 @@ function getActiveChannelRows_() {
  */
 function applyColumnLayout_(sheetName, orderedNames) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
-  if (!sheet) throw new Error('No ' + sheetName + ' sheet exists yet — analyze one first, then try again.');
+  if (!sheet) throw new Error('No ' + sheetName + ' sheet exists yet: analyze one first, then try again.');
 
-  // Create any requested column that doesn't exist yet — appended at the
+  // Create any requested column that doesn't exist yet: appended at the
   // end for now; the reorder pass right after puts it wherever it
   // actually belongs. New columns are blank going forward (nothing
   // retroactively fills historical rows) since Koli has no data source
@@ -404,7 +404,7 @@ function applyColumnLayout_(sheetName, orderedNames) {
     sheet.moveColumns(sheet.getRange(1, currentCol, sheet.getMaxRows(), 1), destinationCol);
   });
 
-  // Hide anything not requested, unhide anything that is — re-read once
+  // Hide anything not requested, unhide anything that is: re-read once
   // more since the moves above changed positions.
   const finalHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   finalHeaders.forEach(function (name, i) {
@@ -452,7 +452,7 @@ function writeVideoRow(video) {
   sheet.getRange(row, 16).setNumberFormat('yyyy-mm-dd hh:mm');
 
   sheet.getRange(row, 8).setNote('Comment authenticity justification:\n' + (video.authenticity.justification || 'n/a'));
-  sheet.getRange(row, 13).setNote('Estimate only — inferred from title, description, niche, and comment sample. Not YouTube Studio data.');
+  sheet.getRange(row, 13).setNote('Estimate only: inferred from title, description, niche, and comment sample. Not YouTube Studio data.');
   if (video.channelAboutSummary) {
     sheet.getRange(row, 4).setNote('About ' + video.channelTitle + ':\n' + video.channelAboutSummary);
   }
@@ -473,7 +473,7 @@ function formatCount_(n) {
   return String(n);
 }
 
-/** Cached per channel — see deriveAboutSummary_() in geminiService.gs. */
+/** Cached per channel: see deriveAboutSummary_() in geminiService.gs. */
 function getChannelAboutSummaryCached_(channelId, description, recentVideos) {
   const cacheK = cacheKey_('aboutSummary', channelId);
   return withCache_(cacheK, function () {
@@ -528,9 +528,9 @@ function ensureDashboardSheet_() {
 
 /**
  * Auth column stores text like "7/10" (or "n/a"), not a plain number, so a
- * spreadsheet AVERAGE() formula can't read it directly — computed here in
+ * spreadsheet AVERAGE() formula can't read it directly: computed here in
  * script instead and written as a static value. Called on every Dashboard
- * open (see showDashboard() in uiHandlers.gs) rather than kept "live" —
+ * open (see showDashboard() in uiHandlers.gs) rather than kept "live":
  * simpler and more robust for a non-dev-maintained sheet than a fragile
  * nested regex formula.
  */
@@ -552,7 +552,7 @@ function refreshAuthenticityAverage_(dashboardSheet) {
 
 /**
  * keyCol=3 (Video ID). Mode 'replace' clears this channel's existing rows
- * first — call clearProfileRowsForChannel_ once before the write loop, not
+ * first: call clearProfileRowsForChannel_ once before the write loop, not
  * per row.
  */
 function writeProfileRow(entry) {

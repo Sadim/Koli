@@ -1,10 +1,10 @@
 /**
  * captionsService.gs
  * Best-effort in-video timestamps for sponsor mentions. Uses YouTube's
- * public timedtext endpoint — no video download, no transcription model,
+ * public timedtext endpoint: no video download, no transcription model,
  * just an HTTP GET. This endpoint is unofficial/undocumented: it can
  * return nothing (no captions available) or change behavior without
- * notice. Always fails soft — a missing timestamp never blocks a row.
+ * notice. Always fails soft: a missing timestamp never blocks a row.
  * Gated behind Settings > "Attempt in-video timestamp" since it adds a
  * network round trip and a text-matching pass per sponsor mention found.
  */
@@ -32,7 +32,7 @@ function fetchCaptionLines_(videoId) {
         return { startSeconds: start, text: decoded };
       });
     } catch (e) {
-      return []; // no captions, wrong format, or endpoint hiccup — fail soft
+      return []; // no captions, wrong format, or endpoint hiccup: fail soft
     }
   }, DEFAULTS.CACHE_TTL_SECONDS);
 }
@@ -59,14 +59,14 @@ function findSponsorTimestamp_(videoId, evidenceText) {
   });
 
   // Require at least a third of the evidence words to show up in one
-  // caption line — below that, it's noise, not a real match.
+  // caption line: below that, it's noise, not a real match.
   if (!bestLine || bestScore < 0.34) return null;
   return formatSeconds_(bestLine.startSeconds);
 }
 
 /**
  * Caption text from around one specific moment, not a generic sample of
- * the whole video — used to build an outreach hook on the exact segment a
+ * the whole video: used to build an outreach hook on the exact segment a
  * heatmap identified as a replay spike (heatmapService.gs), where the
  * point is "what happens right here," not "what's this video about."
  * Falls back to the nearest available lines if nothing falls inside the

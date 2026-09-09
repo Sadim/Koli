@@ -1,6 +1,6 @@
 /**
  * researchService.gs
- * Free, no-API-key cross-platform research signal — currently just
+ * Free, no-API-key cross-platform research signal: currently just
  * Reddit. Conceptually borrowed from last30days-skill's approach: the
  * plain reddit.com/search.json endpoint is unreliable for scripted
  * access, so this uses old.reddit.com's RSS search feed with a real
@@ -39,7 +39,7 @@ function searchRedditMentions_(query, limit) {
     } catch (e) {
       return [];
     }
-  }, 3600); // 1 hour — this is a point-in-time signal, don't cache as long as YouTube data
+  }, 3600); // 1 hour: this is a point-in-time signal, don't cache as long as YouTube data
 }
 
 /**
@@ -54,14 +54,14 @@ function checkBrandSafety(nameOrChannelInput) {
     const channelId = resolveChannelId(nameOrChannelInput);
     queryName = getChannelData(channelId).name;
   } catch (e) {
-    // Not a resolvable channel link — treat the input as a literal name.
+    // Not a resolvable channel link: treat the input as a literal name.
   }
 
   const mentions = searchRedditMentions_(queryName, 10);
   if (!mentions.length) {
     return {
       name: queryName, mentionCount: 0, flagged: false,
-      summary: 'No recent Reddit mentions found for "' + queryName + '" — could mean no controversy, ' +
+      summary: 'No recent Reddit mentions found for "' + queryName + '": could mean no controversy, ' +
         'or just low Reddit visibility. Not proof either way.'
     };
   }

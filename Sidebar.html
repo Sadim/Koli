@@ -74,7 +74,7 @@
   .chk-row .chk-hint { color: var(--mut); font-size: 10.5px; display: block; margin-top: 1px; }
   .drawer-link { color: var(--green); font-weight: 600; font-size: 11.5px; cursor: pointer; text-decoration: none; }
 
-  /* ---------- Top tabs: now share the header row — fills the space between logo and gear ---------- */
+  /* ---------- Top tabs: now share the header row: fills the space between logo and gear ---------- */
   .top-tabs {
     display: flex; flex: 1; min-width: 0; box-shadow: 0 1px 2px rgba(0,0,0,.04); flex-shrink: 1;
   }
@@ -179,7 +179,7 @@
   .plain-hint { font-size: 10.5px; font-style: italic; color: var(--mut); margin: 10px 12px; line-height: 1.55; }
   .bottom-spacer { height: 6px; flex-shrink: 0; }
 
-  /* ---------- Composer (bottom bar) — one card holding input + toggle + send, per the reference ---------- */
+  /* ---------- Composer (bottom bar): one card holding input + toggle + send, per the reference ---------- */
   .bottom-bar { flex-shrink: 0; padding: 6px 6px 10px 6px; }
   .composer {
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 9px 9px 8px;
@@ -220,7 +220,7 @@
 </style>
 
 <div class="mini-header">
-  <div class="brand-mark-small">K<span class="active-sheet-badge" id="activeSheetBadge" title="—"></span></div>
+  <div class="brand-mark-small">K<span class="active-sheet-badge" id="activeSheetBadge" title="N/A"></span></div>
   <div class="top-tabs" id="topTabsBar">
     <button class="top-tab active" data-toptab="profile">Profile</button>
     <button class="top-tab" data-toptab="discover">Discover</button>
@@ -273,7 +273,7 @@
 
   <!-- ===================== DISCOVER ===================== -->
   <div class="top-panel" id="toppanel-discover">
-    <div class="discover-note">Finds up to 5 similar channels or videos. Filters use a margin, not an exact match — think "close to," not "identical."</div>
+    <div class="discover-note">Finds up to 5 similar channels or videos. Filters use a margin, not an exact match: think "close to," not "identical."</div>
     <div class="controls-row">
       <div class="seg">
         <button type="button" class="active" data-type="channel" id="discover-type-channel">Channels</button>
@@ -329,23 +329,23 @@
 </div>
 
 <script>
-  // Each setup block below runs isolated — if one throws (a missing
+  // Each setup block below runs isolated: if one throws (a missing
   // element, a stale template value, anything), it's logged to the
   // console and every OTHER block still runs. Without this, one early
   // error silently kills every click handler registered after it in the
-  // same script — which is exactly the failure mode that made an entire
+  // same script: which is exactly the failure mode that made an entire
   // sidebar look unresponsive from a single bad line.
   function setup(name, fn) {
     try { fn(); } catch (e) { console.error('[Koli] setup failed: ' + name, e); }
   }
 
   // ---------- Active sheet/tab indicator ----------
-  // Polls every few seconds while the sidebar is open — cheap (just reads
+  // Polls every few seconds while the sidebar is open: cheap (just reads
   // a name, no API calls) but it is a small periodic background call,
   // worth knowing about even at negligible cost.
   function refreshActiveSheetName() {
     google.script.run.withSuccessHandler((name) => {
-      document.getElementById('activeSheetBadge').title = 'Viewing: ' + (name || '—');
+      document.getElementById('activeSheetBadge').title = 'Viewing: ' + (name || 'N/A');
     }).getActiveSheetName();
   }
   refreshActiveSheetName();
@@ -466,7 +466,7 @@
           profileMode,
           document.getElementById('profile-track').checked
         ],
-        labelFor: (item, result) => (result.name || item) + (result.written !== undefined ? ' — ' + result.written + '/' + result.total + ' video(s) written' : ''),
+        labelFor: (item, result) => (result.name || item) + (result.written !== undefined ? ': ' + result.written + '/' + result.total + ' video(s) written' : ''),
         resultsId: 'profile-results', progressId: 'profile-progressFill', chipsId: 'profile-chips'
       };
     }
@@ -524,7 +524,7 @@
     if (!batchState.running) return;
     if (batchState.index >= batchState.items.length) {
       batchState.running = false; setRunBtnState(false);
-      updateBatchChips(cfg, '<span class="chip ok">Done — ' + batchState.ok + ' ok, ' + batchState.skip + ' skipped, ' + batchState.err + ' errors</span>');
+      updateBatchChips(cfg, '<span class="chip ok">Done: ' + batchState.ok + ' ok, ' + batchState.skip + ' skipped, ' + batchState.err + ' errors</span>');
       return;
     }
     const item = batchState.items[batchState.index];

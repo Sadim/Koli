@@ -46,7 +46,7 @@
     display: flex; flex-direction: column;
   }
   button, input, select, textarea { font-family: inherit; }
-  /* Mild tap feedback — short and subtle on purpose, just enough to
+  /* Mild tap feedback: short and subtle on purpose, just enough to
      confirm a press registered. .lock-pill and .primary-btn override this
      with their own transform below since they already use transform for
      centering/hover and need scale layered on top, not replacing it. */
@@ -72,7 +72,7 @@
 
   /* ---------- Top tabs ---------- */
   /* justify-content:flex-start + overflow-x:auto instead of a centered
-     fixed row — the tab count is no longer fixed (Home/YouTube/Activity
+     fixed row: the tab count is no longer fixed (Home/YouTube/Activity
      plus one tab per added platform plus "+"), so it needs to scroll
      rather than wrap or overflow once there are more than a handful. */
   .tabs {
@@ -94,7 +94,7 @@
   }
   .tab.active::after { transform: translateX(-50%) scaleX(1); }
   .tab.tab-add { color: var(--teal-600); font-weight: 800; font-size: 14px; padding-bottom: 9px; }
-  .tab.tab-add::after { display: none; } /* an action, not a section — never shows the active underline */
+  .tab.tab-add::after { display: none; } /* an action, not a section: never shows the active underline */
 
   .body-scroll { flex: 1; overflow-y: auto; min-height: 0; }
   .screen { display: none; }
@@ -105,13 +105,13 @@
   .tab-panel.active { display: block; }
 
   /* ---------- Home: current-page card ---------- */
-  /* Brand chip — reinforces "this came from Koli" right where the action
+  /* Brand chip: reinforces "this came from Koli" right where the action
      happens (Home tab), not just in the header above the tab bar. Doubles
      as an at-a-glance lock status so the person doesn't have to scan the
      page card's smaller print to know if a send will actually go anywhere. */
   .brand-chip {
     display: inline-flex; align-items: center; gap: 7px; margin: 15px 16px 0; padding: 5px 12px 5px 5px;
-    /* Fixed brand navy, not the adaptive --navy token — this chip is a
+    /* Fixed brand navy, not the adaptive --navy token: this chip is a
        constant accent (like a badge), not UI chrome that should invert in
        dark mode; --navy itself flips to near-white there for text-on-
        surface contrast, which would make white chip text disappear. */
@@ -152,9 +152,9 @@
   .page-card .not-connected { font-size: 11px; color: var(--ink-500); margin-top: 10px; line-height: 1.5; }
   .page-card .not-connected a { color: var(--green-600); font-weight: 600; cursor: pointer; }
 
-  /* ---------- Preview card — result of a manual "Send as Channel," shown
+  /* ---------- Preview card: result of a manual "Send as Channel," shown
      right after Koli's real analysis finishes (not an instant/auto
-     preview — the underlying pipeline is a real YouTube+Gemini pass,
+     preview: the underlying pipeline is a real YouTube+Gemini pass,
      deliberately not run on every page you merely browse to). ---------- */
   .preview-card { margin: 14px 16px 0; padding: 14px 15px; border-radius: var(--radius-lg); background: var(--surface-sunken); border: 1px solid var(--border-soft); animation: rowIn .2s var(--ease-out); }
   .preview-head { display: flex; align-items: center; gap: 10px; }
@@ -425,12 +425,12 @@
       <div class="title" id="pageTitle">Checking…</div>
       <span class="badge other" id="pageBadge"></span>
       <div class="page-actions" id="pageActions"></div>
-      <div class="not-connected" id="pageNotConnected" hidden>Not connected yet — <a id="pageConnectLink">connect a worksheet in Settings</a> first.</div>
+      <div class="not-connected" id="pageNotConnected" hidden>Not connected yet: <a id="pageConnectLink">connect a worksheet in Settings</a> first.</div>
     </div>
 
     <div class="preview-card" id="previewCard" hidden>
       <div class="preview-head">
-        <div class="preview-grade" id="previewGradeBadge">—</div>
+        <div class="preview-grade" id="previewGradeBadge">?</div>
         <div class="preview-head-text">
           <div class="preview-grade-label" id="previewGradeLabel"></div>
           <div class="preview-confidence" id="previewConfidence"></div>
@@ -438,10 +438,10 @@
         <a class="preview-view-link" id="previewViewLink" target="_blank" rel="noopener">View in Sheet</a>
       </div>
       <div class="preview-stats">
-        <div><b id="previewSubs">—</b><span>Subscribers</span></div>
-        <div><b id="previewEngagement">—</b><span>Engagement</span></div>
-        <div><b id="previewViews">—</b><span>Avg views</span></div>
-        <div><b id="previewPosts">—</b><span>Posts/mo</span></div>
+        <div><b id="previewSubs">N/A</b><span>Subscribers</span></div>
+        <div><b id="previewEngagement">N/A</b><span>Engagement</span></div>
+        <div><b id="previewViews">N/A</b><span>Avg views</span></div>
+        <div><b id="previewPosts">N/A</b><span>Posts/mo</span></div>
       </div>
       <div class="preview-rate" id="previewRate"></div>
       <div class="preview-contact" id="previewContact" hidden></div>
@@ -453,7 +453,7 @@
     </div>
 
     <details class="disclosure" id="profileDisclosure">
-      <summary><span class="icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>Profile — one channel, a date range<span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></summary>
+      <summary><span class="icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>Profile: one channel, a date range<span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></summary>
       <div class="disclosure-body">
         <label class="form-label" for="profileInput">Channel</label>
         <input type="text" id="profileInput" placeholder="Channel URL, @handle, or leave blank to use current page" style="margin-bottom:10px;" />
@@ -468,7 +468,7 @@
     </details>
 
     <details class="disclosure" id="discoverDisclosure">
-      <summary><span class="icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>Discover — find similar<span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></summary>
+      <summary><span class="icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>Discover: find similar<span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></summary>
       <div class="disclosure-body">
         <label class="form-label" for="discoverInput">Seed link</label>
         <input type="text" id="discoverInput" placeholder="Channel or video URL, or leave blank to use current page" style="margin-bottom:10px;" />
@@ -502,7 +502,7 @@
 
   <!-- YouTube tab (Channels / Videos / Profile / Discover column editors) -->
   <div class="tab-panel" id="panel-youtube" style="display:none">
-    <p class="type-toggle-hint">Which sheet's columns are you editing? (What actually gets sent — Channel, Video, Profile, or Discover — is chosen from the Home tab or the right-click "Send to Worksheet" menu.)</p>
+    <p class="type-toggle-hint">Which sheet's columns are you editing? (What actually gets sent, whether Channel, Video, Profile, or Discover, is chosen from the Home tab or the right-click "Send to Worksheet" menu.)</p>
     <div class="profile-row" id="youtubeTypeToggle" style="padding-top:0;">
       <button class="profile-chip active" data-coltype="channel">Channels</button>
       <button class="profile-chip" data-coltype="video">Videos</button>
@@ -514,7 +514,7 @@
         <button class="lock-pill" id="youtubeLockPill"><span class="lock-icon">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 7.3-2.3"/></svg>
         </span><span class="lock-label">Choose worksheet</span></button>
-        <p class="copy">Matches your <b id="youtubeSheetLabel">Channels</b> sheet once a link's analyzed. Drag to reorder, hover a column and tap the trash icon to remove — changes save automatically. <span class="autosave-indicator" id="youtubeAutosave"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 13l5 5L19.5 7"/></svg>Saved</span></p>
+        <p class="copy">Matches your <b id="youtubeSheetLabel">Channels</b> sheet once a link's analyzed. Drag to reorder, hover a column and tap the trash icon to remove: changes save automatically. <span class="autosave-indicator" id="youtubeAutosave"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 13l5 5L19.5 7"/></svg>Saved</span></p>
         <div class="grid" id="youtubeColGrid"></div>
         <button class="addrow" id="youtubeAddColBtn"><span>Add new column</span><span class="icon-plus">+</span></button>
       </div>
@@ -527,7 +527,7 @@
     </div>
   </div>
 
-  <!-- Platform tab (one shared panel, rendered per-platform — the tab bar itself has one button per added platform, see #platformTabsSlot) -->
+  <!-- Platform tab (one shared panel, rendered per-platform: the tab bar itself has one button per added platform, see #platformTabsSlot) -->
   <div class="tab-panel" id="panel-other" style="display:none">
     <div id="otherProfileBody">
       <div class="panelwrap">
@@ -535,7 +535,7 @@
           <button class="lock-pill" id="otherLockPill"><span class="lock-icon">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 7.3-2.3"/></svg>
           </span><span class="lock-label">Choose worksheet</span></button>
-          <p class="copy">Your own columns for <b id="otherProfileNameLabel">this platform</b> — no analysis pipeline behind these yet, so captures still land as plain Prospects entries. This is a planning reference for now. <span class="autosave-indicator" id="otherAutosave"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 13l5 5L19.5 7"/></svg>Saved</span></p>
+          <p class="copy">Your own columns for <b id="otherProfileNameLabel">this platform</b>: no analysis pipeline behind these yet, so captures still land as plain Prospects entries. This is a planning reference for now. <span class="autosave-indicator" id="otherAutosave"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 13l5 5L19.5 7"/></svg>Saved</span></p>
           <div class="grid" id="otherColGrid"></div>
           <button class="addrow" id="otherAddColBtn"><span>Add new column</span><span class="icon-plus">+</span></button>
         </div>
@@ -576,14 +576,14 @@
     </div>
     <div class="settings-section">
       <h3>Recognized platforms</h3>
-      <div class="status-note"><span class="status-dot"></span>YouTube — channel/video links auto-detected</div>
-      <div class="status-note dim"><span class="status-dot dim"></span>Anything captured under Other Platforms is sent as-is — auto-detection is YouTube-specific for now.</div>
+      <div class="status-note"><span class="status-dot"></span>YouTube: channel/video links auto-detected</div>
+      <div class="status-note dim"><span class="status-dot dim"></span>Anything captured under Other Platforms is sent as-is: auto-detection is YouTube-specific for now.</div>
     </div>
     <div class="settings-section">
       <h3>Privacy</h3>
       <div class="status-note dim" style="line-height:1.6;align-items:flex-start;">
         <span class="status-dot dim" style="margin-top:5px;"></span>
-        <span>This extension talks only to the Web App URL you connect above — a script you deploy and control with your own Google account. Nothing is sent to Koli's developer or any third party, no usage analytics are collected, and your locks/columns/activity log stay in this browser (<code style="font-family:var(--font-mono);">chrome.storage</code>), never elsewhere. Source will be published under the MIT license so this can be checked, not just taken on faith.</span>
+        <span>This extension talks only to the Web App URL you connect above: a script you deploy and control with your own Google account. Nothing is sent to Koli's developer or any third party, no usage analytics are collected, and your locks/columns/activity log stay in this browser (<code style="font-family:var(--font-mono);">chrome.storage</code>), never elsewhere. Source will be published under the MIT license so this can be checked, not just taken on faith.</span>
       </div>
     </div>
     <div class="settings-section">
@@ -608,7 +608,7 @@
 <div class="modal-backdrop" id="lockModal">
   <div class="modal">
     <h3 id="lockModalTitle">Choose worksheet</h3>
-    <div class="hint">This connects one Koli spreadsheet — sends from this profile always go here until you unlock it.</div>
+    <div class="hint">This connects one Koli spreadsheet: sends from this profile always go here until you unlock it.</div>
     <label>Connection code</label>
     <textarea id="lockCode" rows="2" placeholder="Paste the code from Koli > Settings > Connection code"></textarea>
     <button type="button" class="link-btn-inline" id="lockCodeDecode">Fill in URL &amp; secret from this code</button>
@@ -632,7 +632,7 @@
 <div class="modal-backdrop" id="applyColumnsModal">
   <div class="modal">
     <h3>Apply to worksheet?</h3>
-    <div class="hint" id="applyColumnsHint">This reorders your real Channels sheet's columns to match what's shown here, and hides any column you removed (nothing is deleted — hidden columns can be unhidden anytime in Sheets). Anyone else viewing this sheet will see the new layout too.</div>
+    <div class="hint" id="applyColumnsHint">This reorders your real Channels sheet's columns to match what's shown here, and hides any column you removed (nothing is deleted: hidden columns can be unhidden anytime in Sheets). Anyone else viewing this sheet will see the new layout too.</div>
     <div class="status" id="applyColumnsStatus"></div>
     <div class="modal-actions">
       <button class="btn-cancel" id="applyColumnsCancel">Cancel</button>
@@ -645,7 +645,7 @@
 <div class="modal-backdrop" id="addPlatformModal">
   <div class="modal">
     <h3>Add a platform</h3>
-    <div class="hint">A name to tell it apart — Instagram, TikTok, whatever fits.</div>
+    <div class="hint">A name to tell it apart: Instagram, TikTok, whatever fits.</div>
     <label>Platform name</label>
     <input type="text" id="newPlatformName" placeholder="e.g. Instagram" />
     <div class="status" id="addPlatformStatus"></div>

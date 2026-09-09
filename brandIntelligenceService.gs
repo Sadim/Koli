@@ -2,15 +2,15 @@
  * brandIntelligenceService.gs
  * Three coupled pieces: normalize sponsor names so "Nike" and "Nike Inc"
  * collapse into one row, a Brand Targets sheet so you can flag which
- * brands actually matter, and the Gap Analysis Engine — which brands
+ * brands actually matter, and the Gap Analysis Engine: which brands
  * sponsor multiple channels similar to a given one, but haven't
  * sponsored that one yet. Pure synthesis over data Koli already
- * collects — no new API calls, no new Gemini calls, no waiting on
+ * collects: no new API calls, no new Gemini calls, no waiting on
  * anything external.
  */
 
 /**
- * Deterministic normalization — strips common suffixes, punctuation,
+ * Deterministic normalization: strips common suffixes, punctuation,
  * and casing differences. Deliberately not Gemini-based: this needs to
  * run on every sponsor write, for free, not add an API call per
  * detection. Catches the large majority of real-world duplicates
@@ -21,7 +21,7 @@ function normalizeBrandName_(raw) {
   let s = String(raw).trim();
   // Strip common corporate suffixes (word-boundary, case-insensitive).
   s = s.replace(/[,.]?\s*\b(inc|incorporated|llc|ltd|limited|co|corp|corporation|company|plc|gmbh)\b\.?\s*$/i, '');
-  s = s.replace(/[,.]?\s*\b(inc|incorporated|llc|ltd|limited|co|corp|corporation|company|plc|gmbh)\b\.?\s*$/i, ''); // catch "X Inc Co" — two suffixes
+  s = s.replace(/[,.]?\s*\b(inc|incorporated|llc|ltd|limited|co|corp|corporation|company|plc|gmbh)\b\.?\s*$/i, ''); // catch "X Inc Co": two suffixes
   s = s.replace(/^\s*the\s+/i, ''); // leading "The "
   s = s.replace(/[.,]+$/, '').trim();
   return s;
@@ -31,7 +31,7 @@ function normalizeBrandName_(raw) {
 function canonicalBrandName_(raw) {
   const normalized = normalizeBrandName_(raw);
   if (!normalized) return '';
-  // Only reshape casing if the original was ALL CAPS — an all-lowercase
+  // Only reshape casing if the original was ALL CAPS: an all-lowercase
   // name is left as-is, since that's frequently intentional branding
   // ("adidas", "e.l.f.") rather than someone just typing carelessly, and
   // guessing wrong here would be worse than leaving it alone. Mixed case
@@ -55,7 +55,7 @@ function normalizeExistingSponsors() {
 
   const lastRow = sheet.getLastRow();
   const data = sheet.getRange(2, 1, lastRow - 1, SPONSOR_HEADERS.length).getValues();
-  // Sample Video (col 7) is a =HYPERLINK() formula — getValues() would
+  // Sample Video (col 7) is a =HYPERLINK() formula: getValues() would
   // flatten it to display text, losing the link. Read formulas
   // separately so the merge can preserve one intact.
   const sampleVideoFormulas = sheet.getRange(2, 7, lastRow - 1, 1).getFormulas().map((r) => r[0]);
@@ -74,7 +74,7 @@ function normalizeExistingSponsors() {
         mentions: Number(row[col('Mentions')]) || 0,
         sampleVideoFormula: sampleVideoFormulas[i] || '', sampleVideoText: row[col('Sample Video')],
         // Posted/Timestamp/Evidence track whichever source row has the
-        // latest Last Seen — same "latest mention wins" rule
+        // latest Last Seen: same "latest mention wins" rule
         // upsertAggregateSponsors_ uses, so merging duplicates never
         // regresses to older evidence.
         lastPosted: row[col('Posted')], lastTimestamp: row[col('Timestamp')], lastEvidence: row[col('Evidence')]
@@ -93,7 +93,7 @@ function normalizeExistingSponsors() {
 
   const before = data.length;
   const after = Object.keys(merged).length;
-  if (before === after) { ui.alert('Nothing to merge — every brand name is already unique per channel.'); return; }
+  if (before === after) { ui.alert('Nothing to merge: every brand name is already unique per channel.'); return; }
 
   sheet.getRange(2, 1, before, SPONSOR_HEADERS.length).clearContent();
   Object.values(merged).forEach((m, i) => {
@@ -107,7 +107,7 @@ function normalizeExistingSponsors() {
     sheet.getRange(row, 8, 1, 3).setValues([[m.lastPosted || '', m.lastTimestamp || '', sanitizeCellText_(m.lastEvidence || '')]]);
   });
 
-  ui.alert('Sponsors normalized', (before - after) + ' duplicate row(s) merged — ' + before + ' rows became ' + after + '.', ui.ButtonSet.OK);
+  ui.alert('Sponsors normalized', (before - after) + ' duplicate row(s) merged: ' + before + ' rows became ' + after + '.', ui.ButtonSet.OK);
 }
 
 // ---------------- Brand Targets ----------------
@@ -147,26 +147,26 @@ function getBrandTargetSet_() {
 /**
  * For a given channel: finds brands sponsoring 2+ *other* channels with
  * the same main niche, that have never sponsored this one. Pure lookup
- * over Channels + Sponsors data already collected — no new API calls.
+ * over Channels + Sponsors data already collected: no new API calls.
  * Brands on the Brand Targets list are called out separately and
  * ranked first, since those are the ones you've said matter most.
  */
 function runGapAnalysis(channelId) {
   const channelsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.CHANNELS);
   const sponsorsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.SPONSORS);
-  if (!channelsSheet || channelsSheet.getLastRow() < 2) throw new Error('No Channels data yet — analyze some channels first.');
-  if (!sponsorsSheet || sponsorsSheet.getLastRow() < 2) throw new Error('No Sponsors data yet — sponsor detection needs to run on some channels first.');
+  if (!channelsSheet || channelsSheet.getLastRow() < 2) throw new Error('No Channels data yet: analyze some channels first.');
+  if (!sponsorsSheet || sponsorsSheet.getLastRow() < 2) throw new Error('No Sponsors data yet: sponsor detection needs to run on some channels first.');
 
   const actualHeaders = channelsSheet.getRange(1, 1, 1, channelsSheet.getLastColumn()).getValues()[0];
   const chCol = (name) => actualHeaders.indexOf(name);
   const channelRows = channelsSheet.getRange(2, 1, channelsSheet.getLastRow() - 1, channelsSheet.getLastColumn()).getValues();
   const targetRow = channelRows.find((r) => r[chCol('ID')] === channelId);
-  if (!targetRow) throw new Error('That channel hasn\'t been analyzed yet — run Channel analysis on it first.');
+  if (!targetRow) throw new Error('That channel hasn\'t been analyzed yet: run Channel analysis on it first.');
 
   const targetName = targetRow[chCol('Channel')];
   const targetNicheRaw = String(targetRow[chCol('Niche')] || '');
   const targetMainNiche = targetNicheRaw.split('(')[0].trim().toLowerCase();
-  if (!targetMainNiche) throw new Error('This channel has no niche recorded yet — re-run Channel analysis on it.');
+  if (!targetMainNiche) throw new Error('This channel has no niche recorded yet: re-run Channel analysis on it.');
 
   // Every OTHER channel sharing the same main niche.
   const similarChannelIds = new Set();
@@ -176,7 +176,7 @@ function runGapAnalysis(channelId) {
     const niche = String(r[chCol('Niche')] || '').split('(')[0].trim().toLowerCase();
     if (niche && niche === targetMainNiche) similarChannelIds.add(id);
   });
-  if (!similarChannelIds.size) throw new Error('No other analyzed channels share this channel\'s main niche yet — Gap Analysis needs at least one other similar channel to compare against.');
+  if (!similarChannelIds.size) throw new Error('No other analyzed channels share this channel\'s main niche yet: Gap Analysis needs at least one other similar channel to compare against.');
 
   const spCol = (name) => SPONSOR_HEADERS.indexOf(name);
   const sponsorRows = sponsorsSheet.getRange(2, 1, sponsorsSheet.getLastRow() - 1, SPONSOR_HEADERS.length).getValues();
@@ -224,8 +224,8 @@ function runGapAnalysisForActiveRow() {
     ui.alert(
       'Gap analysis complete',
       result.gaps.length
-        ? result.gaps.length + ' brand(s) sponsor similar channels but not this one yet — see the Gap Analysis tab.'
-        : 'No gaps found — every brand sponsoring similar channels already sponsors this one, or there\'s not enough comparison data yet.',
+        ? result.gaps.length + ' brand(s) sponsor similar channels but not this one yet: see the Gap Analysis tab.'
+        : 'No gaps found: every brand sponsoring similar channels already sponsors this one, or there\'s not enough comparison data yet.',
       ui.ButtonSet.OK
     );
   } catch (e) {

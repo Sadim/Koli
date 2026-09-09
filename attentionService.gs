@@ -1,25 +1,25 @@
 /**
  * attentionService.gs
- * "Attention" — the thing to open before Channels/Videos/Sponsors, not
+ * "Attention": the thing to open before Channels/Videos/Sponsors, not
  * another data table to skim. Answers "what actually needs me today"
  * instead of requiring you to remember to go check three different
  * sheets and a stale-looking dropdown column.
  *
- * Three sections, each a pure lookup over data Koli already has — no new
+ * Three sections, each a pure lookup over data Koli already has: no new
  * API calls, no new Gemini cost, same "pure synthesis" rule Gap Analysis
  * already follows:
- * 1. Stale Outreach follow-ups — Contacted/Negotiating rows whose Last
+ * 1. Stale Outreach follow-ups: Contacted/Negotiating rows whose Last
  *    Contact hasn't moved in a while (or was never set). The Outreach
  *    column is otherwise write-only: you set it once and nothing ever
  *    looks back at it.
- * 2. Recent sponsor activity — Sponsors rows whose Last Seen landed
+ * 2. Recent sponsor activity: Sponsors rows whose Last Seen landed
  *    since your own configurable window, so a real change surfaces
  *    instead of sitting quietly in a rollup nobody reopens.
- * 3. High-grade, unclaimed channels — Grade A/B channels with zero
+ * 3. High-grade, unclaimed channels: Grade A/B channels with zero
  *    recorded sponsor history yet. A cheap proxy for "promising and
  *    worth pursuing," not a full Gap Analysis run against every channel.
  *
- * Rebuilt fresh every time you open it (not a live formula) — "stale"
+ * Rebuilt fresh every time you open it (not a live formula): "stale"
  * and "recent" are relative to right now, which a formula can't express
  * as cleanly as a script-computed snapshot.
  */
@@ -32,7 +32,7 @@ function showAttentionView() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const channelsSheet = ss.getSheetByName(SHEET_NAMES.CHANNELS);
   if (!channelsSheet || channelsSheet.getLastRow() < 2) {
-    SpreadsheetApp.getUi().alert('No Channels data yet — analyze some channels first, then check back here.');
+    SpreadsheetApp.getUi().alert('No Channels data yet: analyze some channels first, then check back here.');
     return;
   }
 

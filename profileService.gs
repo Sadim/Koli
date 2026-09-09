@@ -7,7 +7,7 @@
 // Apps Script hard-caps any single execution at 6 minutes. Stopping well
 // before that leaves room for the rest of the function (writing the
 // result, updating tracking) to finish cleanly instead of hard-crashing
-// mid-loop with "Exceeded maximum execution time" — which also meant
+// mid-loop with "Exceeded maximum execution time": which also meant
 // updateTrackedLastRun_ never ran, so a naive re-run reprocessed
 // everything from scratch and hit the same wall again.
 const PROFILE_TIME_BUDGET_MS = 4.5 * 60 * 1000;

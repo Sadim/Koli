@@ -4,25 +4,25 @@
  * editable Doc, in case you want to tweak before sending), saved to a
  * "Koli Reports" folder in Drive, linked back into the Report column.
  *
- * Deliberately excludes Outreach status and internal Notes — this
+ * Deliberately excludes Outreach status and internal Notes: this
  * document is meant to go to a brand, not stay in-house. If you want an
  * internal-facing version with that data included later, that's a
  * different template, not a toggle on this one.
  *
- * Drive access: the Advanced Drive Service (Drive API v3, `Drive.*` —
+ * Drive access: the Advanced Drive Service (Drive API v3, `Drive.*`:
  * see appsscript.json's enabledAdvancedServices), not the built-in
  * DriveApp. This is the second attempt at dropping the OAuth scope from
- * full `drive` to `drive.file` — the first attempt (still using DriveApp
+ * full `drive` to `drive.file`: the first attempt (still using DriveApp
  * itself, just hoping the manifest scope alone would narrow it) broke
  * Export live and was reverted, because DriveApp's own implementation
  * forces full `drive` for most of its methods regardless of what's
  * declared. The fix this time is to stop calling DriveApp at all, not
- * just to redeclare the scope — every Drive touch below goes through
+ * just to redeclare the scope: every Drive touch below goes through
  * Drive.Files.* instead. `drive.file` only grants access to files/folders
  * this app itself creates, which is exactly what every function here
  * does (nothing here ever needs to read a file it didn't create).
  * Stated plainly since this is genuinely unverified against a live
- * response — no Google account available to test it here (see
+ * response: no Google account available to test it here (see
  * STATUS.md's "what's verified vs. not"). If Export breaks again after
  * this ships, the fix is either fixing the specific Drive.* call that's
  * wrong, or reverting this commit and going back to full `drive` + CASA.
@@ -40,7 +40,7 @@ function exportCreatorOnePager() {
     writeReportLink_(row, result.pdfUrl);
     showLinkDialog_(
       'One-pager ready',
-      result.channelName + ' — PDF and an editable Doc were saved to the "Koli Reports" folder in Drive. ' +
+      result.channelName + ': PDF and an editable Doc were saved to the "Koli Reports" folder in Drive. ' +
       'A link is also in the Report column on this row.',
       result.pdfUrl, 'Open PDF'
     );
@@ -52,7 +52,7 @@ function exportCreatorOnePager() {
 function buildCreatorOnePager_(row) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.CHANNELS);
   const rowData = getChannelRowData_(sheet, row);
-  if (!rowData.channelId) throw new Error('This row has no Channel ID — run Channel Analysis on it first.');
+  if (!rowData.channelId) throw new Error('This row has no Channel ID: run Channel Analysis on it first.');
 
   const channel = getChannelData(rowData.channelId); // cache-first, cheap if already analyzed
   const aboutSummary = getChannelAboutSummaryCached_(rowData.channelId, channel.description, channel.recentVideos);
@@ -85,12 +85,12 @@ function buildCreatorOnePager_(row) {
   }
 
   body.appendParagraph('About').setHeading(DocumentApp.ParagraphHeading.HEADING2);
-  body.appendParagraph(aboutSummary || 'No summary available yet — run Channel Analysis on this row first.');
+  body.appendParagraph(aboutSummary || 'No summary available yet: run Channel Analysis on this row first.');
 
   body.appendParagraph('Known Sponsor Activity').setHeading(DocumentApp.ParagraphHeading.HEADING2);
   if (sponsors.length) {
     sponsors.slice(0, 8).forEach(function (s) {
-      body.appendListItem(s.brand + ' — ' + s.mentions + ' mention(s), most recent ' + formatDateShort_(s.lastSeen))
+      body.appendListItem(s.brand + ': ' + s.mentions + ' mention(s), most recent ' + formatDateShort_(s.lastSeen))
         .setGlyphType(DocumentApp.GlyphType.BULLET);
     });
   } else {
@@ -118,8 +118,8 @@ function exportDealMemo() {
     const result = buildDealMemo_(row);
     showLinkDialog_(
       'Draft deal memo ready',
-      result.channelName + ' — an editable Doc was saved to the "Koli Reports" folder in Drive. ' +
-      'It\'s a starting draft, not a finished contract — have it reviewed before sending.',
+      result.channelName + ': an editable Doc was saved to the "Koli Reports" folder in Drive. ' +
+      'It\'s a starting draft, not a finished contract: have it reviewed before sending.',
       result.docUrl, 'Open Doc'
     );
   } catch (e) {
@@ -130,7 +130,7 @@ function exportDealMemo() {
 function buildDealMemo_(row) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.CHANNELS);
   const rowData = getChannelRowData_(sheet, row);
-  if (!rowData.channelId) throw new Error('This row has no Channel ID — run Channel Analysis on it first.');
+  if (!rowData.channelId) throw new Error('This row has no Channel ID: run Channel Analysis on it first.');
 
   const folder = getOrCreateReportsFolder_();
   const baseName = rowData.name + ' - Draft Deal Memo';
@@ -138,10 +138,10 @@ function buildDealMemo_(row) {
   const body = doc.getBody();
   body.setMarginTop(50).setMarginBottom(50).setMarginLeft(50).setMarginRight(50);
 
-  const warningPara = body.appendParagraph('DRAFT — NOT LEGAL ADVICE — HAVE COUNSEL REVIEW BEFORE USE');
+  const warningPara = body.appendParagraph('DRAFT · NOT LEGAL ADVICE · HAVE COUNSEL REVIEW BEFORE USE');
   warningPara.editAsText().setBold(true).setForegroundColor('#d93025');
 
-  body.appendParagraph(rowData.name + ' — Creator Partnership Agreement').setHeading(DocumentApp.ParagraphHeading.TITLE);
+  body.appendParagraph(rowData.name + ': Creator Partnership Agreement').setHeading(DocumentApp.ParagraphHeading.TITLE);
   body.appendParagraph('Generated ' + Utilities.formatDate(new Date(), getTimezone_(), 'MMMM d, yyyy'))
     .editAsText().setForegroundColor('#5f6368');
 
@@ -156,7 +156,7 @@ function buildDealMemo_(row) {
 
   body.appendParagraph('Rate').setHeading(DocumentApp.ParagraphHeading.HEADING2);
   body.appendParagraph('Starting point based on ' + (rowData.subs || 'n/a') +
-    ' subscribers and this niche\'s typical rates — a negotiation anchor, not a quote. Final rate: [____].');
+    ' subscribers and this niche\'s typical rates: a negotiation anchor, not a quote. Final rate: [____].');
 
   body.appendParagraph('Payment Terms').setHeading(DocumentApp.ParagraphHeading.HEADING2);
   body.appendParagraph('[Default suggestion: 50% upon acceptance of brief, 50% upon publish. Edit as agreed.]');
@@ -169,7 +169,7 @@ function buildDealMemo_(row) {
 
   body.appendParagraph('Disclosure Requirement').setHeading(DocumentApp.ParagraphHeading.HEADING2);
   body.appendParagraph('Creator must clearly disclose the paid partnership per FTC guidelines (e.g. "#ad" or "Sponsored" ' +
-    'stated in the video and/or on-screen, not buried in a description). This is general awareness, not legal advice — confirm current requirements with counsel.');
+    'stated in the video and/or on-screen, not buried in a description). This is general awareness, not legal advice: confirm current requirements with counsel.');
 
   doc.saveAndClose();
   moveFileToFolder_(doc.getId(), folder);
@@ -178,9 +178,9 @@ function buildDealMemo_(row) {
 }
 
 /**
- * Creates the Reports folder once, remembers its ID, reuses it after —
+ * Creates the Reports folder once, remembers its ID, reuses it after:
  * avoids repeatedly searching Drive for it. Returns the folder ID
- * (a string), not a DriveApp-style Folder object — everything downstream
+ * (a string), not a DriveApp-style Folder object: everything downstream
  * here uses Drive.Files.* (the Advanced Drive Service), which works with
  * IDs. Lands in the user's root Drive rather than next to the
  * spreadsheet, same as before.
@@ -191,7 +191,7 @@ function getOrCreateReportsFolder_() {
     try {
       const existing = Drive.Files.get(storedId, { fields: 'id, trashed' });
       if (!existing.trashed) return existing.id;
-    } catch (e) { /* stored folder no longer reachable — fall through and recreate */ }
+    } catch (e) { /* stored folder no longer reachable: fall through and recreate */ }
   }
   const folder = Drive.Files.create({ name: 'Koli Reports', mimeType: 'application/vnd.google-apps.folder' });
   PropertiesService.getDocumentProperties().setProperty(PROP_KEYS.REPORTS_FOLDER_ID, folder.id);
@@ -199,7 +199,7 @@ function getOrCreateReportsFolder_() {
 }
 
 /**
- * Drive API v3 has no "move" call — reparenting a file means adding the
+ * Drive API v3 has no "move" call: reparenting a file means adding the
  * new parent and removing whatever it had before, in one files.update
  * request. docId is a DocumentApp document's ID, already saved/closed by
  * the caller.
@@ -235,7 +235,7 @@ function formatDateShort_(date) {
 
 /**
  * A small modal with a real "Open" button (opens the document in a new
- * tab) alongside Close — SpreadsheetApp.getUi().alert() can't do this,
+ * tab) alongside Close: SpreadsheetApp.getUi().alert() can't do this,
  * its button sets are fixed (OK/Cancel/Yes/No), no way to attach a URL
  * to one. Used anywhere a generated file's link should be one click away
  * instead of "close this, then go find it."
@@ -263,8 +263,8 @@ function showLinkDialog_(title, message, url, buttonLabel) {
 /**
  * Performance Report: per-video Views/Likes/Eng%/Location/Age/Gender for
  * one channel, pulled from whatever's already in the Profile tab. This
- * is an internal decision-making document — "is this creator worth
- * pursuing" — not the pitch document the One-Pager is. Triggerable from
+ * is an internal decision-making document: "is this creator worth
+ * pursuing": not the pitch document the One-Pager is. Triggerable from
  * either the Channels row or a Profile row for that channel.
  */
 function exportPerformanceReport() {
@@ -293,10 +293,10 @@ function exportPerformanceReport() {
   try {
     const result = buildPerformanceReport_(channelId, channelName);
     if (!result) {
-      ui.alert('No Profile data found for this channel yet — run Profile on it first (Koli > Profile), then try again.');
+      ui.alert('No Profile data found for this channel yet: run Profile on it first (Koli > Profile), then try again.');
       return;
     }
-    showLinkDialog_('Performance report ready', channelName + ' — Doc saved to the "Koli Reports" folder in Drive, based on ' + result.videoCount + ' tracked video(s).', result.docUrl, 'Open Doc');
+    showLinkDialog_('Performance report ready', channelName + ': Doc saved to the "Koli Reports" folder in Drive, based on ' + result.videoCount + ' tracked video(s).', result.docUrl, 'Open Doc');
   } catch (e) {
     ui.alert('Could not generate the performance report: ' + e.message);
   }
@@ -320,9 +320,9 @@ function buildPerformanceReport_(channelId, channelName) {
   const body = doc.getBody();
   body.setMarginTop(50).setMarginBottom(50).setMarginLeft(50).setMarginRight(50);
 
-  body.appendParagraph(channelName + ' — Performance Report').setHeading(DocumentApp.ParagraphHeading.TITLE);
+  body.appendParagraph(channelName + ': Performance Report').setHeading(DocumentApp.ParagraphHeading.TITLE);
   body.appendParagraph('Generated ' + Utilities.formatDate(new Date(), getTimezone_(), 'MMMM d, yyyy') +
-    ' — ' + rows.length + ' video(s) tracked').editAsText().setForegroundColor('#5f6368');
+    ': ' + rows.length + ' video(s) tracked').editAsText().setForegroundColor('#5f6368');
 
   const avg = function (name) {
     const sum = rows.reduce(function (s, r) { return s + (Number(r[col(name)]) || 0); }, 0);

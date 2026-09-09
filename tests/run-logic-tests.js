@@ -1,14 +1,14 @@
 /**
  * run-logic-tests.js
- * Regression tests for Koli's pure/deterministic logic — the parts that
+ * Regression tests for Koli's pure/deterministic logic: the parts that
  * don't touch SpreadsheetApp, UrlFetchApp, or any live API key, so they
  * can run in plain Node without a Google account or a deployed sheet.
  * This is NOT a substitute for live testing (see STATUS.md's "verified
- * vs. not verified" section) — it's the slice of Koli that CAN be
+ * vs. not verified" section): it's the slice of Koli that CAN be
  * verified without one, run automatically instead of by inspection.
  *
  * Each target .gs file is loaded into its own isolated vm context (Apps
- * Script files have no module wrapper — they're just top-level function
+ * Script files have no module wrapper: they're just top-level function
  * declarations, same shape a vm script expects) so functions can be
  * pulled out and called directly, without needing to stub out every
  * SpreadsheetApp/UrlFetchApp global those files never actually invoke at
@@ -27,7 +27,7 @@ function loadGs(relPath) {
 }
 
 /**
- * Loads several .gs files into ONE shared sandbox, in order — mirrors how
+ * Loads several .gs files into ONE shared sandbox, in order: mirrors how
  * Apps Script actually runs (every .gs file in a project shares one
  * global scope), needed whenever the function under test calls a
  * top-level const/function defined in a different file (e.g.
@@ -43,7 +43,7 @@ function loadGsMulti(relPaths, extraGlobals) {
   return sandbox;
 }
 
-// Minimal stub for Apps Script's PropertiesService — enough for getProp_
+// Minimal stub for Apps Script's PropertiesService: enough for getProp_
 // (constants.gs) to resolve to its fallback, simulating "no override
 // configured," the normal case for anything gated behind a Settings toggle.
 const NO_PROPERTIES_STUB = {
@@ -53,7 +53,7 @@ const NO_PROPERTIES_STUB = {
 };
 
 // Minimal stub so computeCommercialFitScore_ (channelMetricsService.gs)
-// hits its own "no Sponsors sheet yet" early return instead of throwing —
+// hits its own "no Sponsors sheet yet" early return instead of throwing:
 // simulates the normal case for a channel with no deal history.
 const NO_SPONSORS_SHEET_STUB = {
   SpreadsheetApp: {
@@ -117,7 +117,7 @@ console.log('captionsService.gs');
     assert.ok(out.indexOf('unrelated') === -1, 'should not include a line far outside the window, got: ' + out);
   });
   test('excerptAroundTimestamp_: falls back to the 5 nearest lines when nothing falls inside the window (caption drift)', () => {
-    // Nothing within 2s of centerSeconds=150 — falls back to whichever
+    // Nothing within 2s of centerSeconds=150: falls back to whichever
     // lines are closest overall, capped at 5, ordered nearest-first, so
     // the single farthest of these 6 lines must be excluded.
     const lines = [
@@ -125,7 +125,7 @@ console.log('captionsService.gs');
       { startSeconds: 300, text: 'd' }, { startSeconds: 50, text: 'e' }, { startSeconds: 5000, text: 'farthest' }
     ];
     const out = m.excerptAroundTimestamp_(lines, 150, 0.5, 900); // window narrow enough that nothing qualifies (closest is 1s away)
-    assert.strictEqual(out, 'a b c e d', 'expected the 5 nearest lines only, nearest first — farthest excluded');
+    assert.strictEqual(out, 'a b c e d', 'expected the 5 nearest lines only, nearest first: farthest excluded');
   });
   test('excerptAroundTimestamp_: respects maxChars', () => {
     const lines = [{ startSeconds: 0, text: 'a'.repeat(50) }];
@@ -188,9 +188,9 @@ console.log('outreachDraftService.gs');
     assert.ok(out.length <= maxChars + 20, 'excerpt should stay near the char budget, got ' + out.length);
     assert.ok(out.indexOf('...') !== -1, 'sampled excerpt should show the "..." join between windows');
     assert.notStrictEqual(out, full.slice(0, maxChars),
-      'a plain truncate-from-start would produce this exact string — sampling must differ from that');
+      'a plain truncate-from-start would produce this exact string: sampling must differ from that');
     // Something from well past where a naive truncation would have
-    // stopped (word ~W059 at 300 chars in) must still show up — proof
+    // stopped (word ~W059 at 300 chars in) must still show up: proof
     // the excerpt actually reaches deep into the video, not just its
     // first few seconds.
     const markers = (out.match(/W(\d{3})/g) || []).map((w) => Number(w.slice(1)));
@@ -211,7 +211,7 @@ console.log('outreachDraftService.gs');
     assert.ok(r.body.length <= 500, 'trimmed body must be <=500 chars, got ' + r.body.length);
     assert.ok(body.startsWith(r.body), 'trimmed body must be a clean prefix of the original, not reworded');
     const nextChar = body.charAt(r.body.length);
-    assert.ok(nextChar === ' ' || nextChar === '', 'must cut at a word boundary, not mid-word — next original char was ' + JSON.stringify(nextChar));
+    assert.ok(nextChar === ' ' || nextChar === '', 'must cut at a word boundary, not mid-word: next original char was ' + JSON.stringify(nextChar));
   });
 
   test('enforceEmailCharLimit_: a single word longer than the limit still hard-caps at 500 (no infinite/empty result)', () => {
@@ -221,7 +221,7 @@ console.log('outreachDraftService.gs');
     assert.ok(r.body.length > 0 && r.body.length <= 500);
   });
 
-  // Note: OUTREACH_EMAIL_MAX_CHARS itself isn't asserted directly here —
+  // Note: OUTREACH_EMAIL_MAX_CHARS itself isn't asserted directly here:
   // top-level `const` in a vm-loaded script isn't exposed as a property
   // on the sandbox object (a Node vm quirk, functions still see it fine
   // via closure). The 500-char requirement is already exercised for real
@@ -250,7 +250,7 @@ console.log('geminiService.gs');
     assert.strictEqual(m.clampAuthenticityScore_(undefined), null);
   });
   test('clampAuthenticityScore_: explicit null ("no comment sample") stays null, not 0-coerced to 1', () => {
-    // Number(null) === 0, not NaN — without an explicit null check this
+    // Number(null) === 0, not NaN: without an explicit null check this
     // silently became 1 (the worst possible score) instead of staying
     // null, defeating computeEngagementQualityScore_'s neutral-50
     // fallback for "no data" in channelMetricsService.gs. Real bug this
@@ -352,7 +352,7 @@ console.log('channelMetricsService.gs');
 
   test('computeGrade_: audienceFit and contentFit are always flagged not-real (crude proxy / unbuilt), capping best-case coverage at 85%', () => {
     // Every other component real (long upload history, authenticity
-    // present, real Sponsors-sheet data) — audienceFit (10%) and
+    // present, real Sponsors-sheet data): audienceFit (10%) and
     // contentFit (5%) can never be "real" today, so 85% is the ceiling,
     // not 100%, no matter how complete everything else is.
     const recentVideos = Array.from({ length: 10 }, (_, i) => ({ publishedAt: new Date(Date.now() - i * 86400000).toISOString() }));
@@ -361,7 +361,7 @@ console.log('channelMetricsService.gs');
     assert.strictEqual(grade.confidence, 'graded');
   });
   test('computeGrade_: thin upload history + no authenticity data drops to "insufficient evidence"', () => {
-    // Only commercialFit (15%) can be real here — momentum/reliability
+    // Only commercialFit (15%) can be real here: momentum/reliability
     // fall back (too few videos), engagementQuality/risk fall back (no
     // authenticity score), audienceFit/contentFit are never real.
     const grade = m.computeGrade_('UC123', 50, null, 0, 'Unknown', []);
@@ -384,7 +384,7 @@ console.log('brandFitService.gs');
     assert.strictEqual(m.clampScore0to100_(-20), 0);
   });
   test('clampScore0to100_: non-numeric defaults to neutral 50, not null/NaN', () => {
-    // Different rule than clampAuthenticityScore_ on purpose — every
+    // Different rule than clampAuthenticityScore_ on purpose: every
     // Brand Fit component must contribute a real number to the weighted
     // composite, there's no "n/a" cell to fall back to display-wise.
     assert.strictEqual(m.clampScore0to100_('nonsense'), 50);
@@ -457,7 +457,7 @@ console.log('brandViewService.gs');
 // ---------- attentionService.gs ----------
 console.log('attentionService.gs');
 {
-  // Minimal SpreadsheetApp/PropertiesService stub — just enough for
+  // Minimal SpreadsheetApp/PropertiesService stub: just enough for
   // findRecentSponsorActivity_/findUnclaimedHighGrade_ to read a fixed
   // set of "Sponsors" rows without touching a real spreadsheet.
   function fakeSpreadsheetApp(sponsorRows) {
@@ -480,7 +480,7 @@ console.log('attentionService.gs');
   };
 
   function loadAttention(sponsorRows) {
-    // reportService.gs supplies formatDateShort_ — its Drive-touching
+    // reportService.gs supplies formatDateShort_: its Drive-touching
     // functions are fine to load unused, they're never called here.
     return loadGsMulti(['constants.gs', 'reportService.gs', 'attentionService.gs'], { SpreadsheetApp: fakeSpreadsheetApp(sponsorRows || []) });
   }
@@ -522,7 +522,7 @@ console.log('attentionService.gs');
     assert.strictEqual(result[0].channelId, 'UC1'); // the D-grade channel never qualifies regardless of sponsor history
   });
   test('findUnclaimedHighGrade_: A/B grade channel that DOES have a Sponsors row is excluded', () => {
-    // Sponsors row shape: [Channel, Channel ID, ...] — only col B (index 1) is read.
+    // Sponsors row shape: [Channel, Channel ID, ...]: only col B (index 1) is read.
     const m = loadAttention([['Test Channel', 'UC1', 'Brand', '', '', 1, '', '', '', '']]);
     const rows = [channelRow({ ID: 'UC1', Grade: 'A' })];
     assert.strictEqual(m.findUnclaimedHighGrade_(rows, col).length, 0);
@@ -536,7 +536,7 @@ console.log('licenseService.gs');
   const sha256Hex = (s) => nodeCrypto.createHash('sha256').update(s).digest('hex');
 
   // Mimics Apps Script's Utilities.computeDigest: returns SIGNED bytes
-  // (-128..127), not the 0..255 unsigned bytes Node's crypto gives you —
+  // (-128..127), not the 0..255 unsigned bytes Node's crypto gives you:
   // hashAccessCode_'s "b < 0 ? b + 256 : b" conversion only matters
   // because of that mismatch, so the stub has to reproduce it faithfully
   // or the test would pass without actually exercising that line.
@@ -557,7 +557,7 @@ console.log('licenseService.gs');
       })
     };
   }
-  // Can't just do loadGsMulti(...).PREMIUM_ACCESS_CODE_HASHES.push(...) —
+  // Can't just do loadGsMulti(...).PREMIUM_ACCESS_CODE_HASHES.push(...):
   // top-level `const` isn't exposed as a property on the returned object
   // (same vm quirk noted earlier in this file), only visible to code
   // that runs INSIDE the same sandbox. So a valid-hashes list gets

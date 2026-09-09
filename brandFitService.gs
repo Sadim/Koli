@@ -1,10 +1,10 @@
 /**
  * brandFitService.gs
- * Brand Fit Score — channel(s) scored against one specific campaign brief
+ * Brand Fit Score: channel(s) scored against one specific campaign brief
  * (brand, target niche, target audience, budget per video). See
  * constants.gs's BRAND_FIT_WEIGHTS for the full reasoning on why these 7
  * components and not Grade's 7. Supports multiple selected Channels rows
- * in one run so a brief can be scored against several creators at once —
+ * in one run so a brief can be scored against several creators at once:
  * the natural setup for "which of these should we pick" comparison.
  */
 
@@ -21,7 +21,7 @@ function showBrandFitScoreDialog() {
 }
 
 /**
- * rowsCsv: comma-joined row numbers (see BrandFitScoreDialog.html — kept
+ * rowsCsv: comma-joined row numbers (see BrandFitScoreDialog.html: kept
  * as a plain string across the template boundary rather than JSON, same
  * "no need for more than this" reasoning as everywhere else in Koli).
  * brief: { brand, targetNiche, targetAudience, budgetPerVideo, includeSafetyCheck }
@@ -37,7 +37,7 @@ function runBrandFitScores(rowsCsv, brief) {
 
     const results = rows.map(function (row) {
       const rowData = getChannelRowData_(channelsSheet, row);
-      if (!rowData.channelId) return { name: rowData.name || ('Row ' + row), ok: false, message: 'No Channel ID — run Channel Analysis on this row first.' };
+      if (!rowData.channelId) return { name: rowData.name || ('Row ' + row), ok: false, message: 'No Channel ID: run Channel Analysis on this row first.' };
       try {
         const scored = computeBrandFitForChannel_(rowData, brief);
         writeBrandFitRow_(sheet, rowData, brief, scored);
@@ -57,14 +57,14 @@ function runBrandFitScores(rowsCsv, brief) {
 function computeBrandFitForChannel_(rowData, brief) {
   const data = getChannelData(rowData.channelId); // cache-first, cheap if already analyzed
   const commentSample = getChannelCommentSample_(data.recentVideos);
-  // Same cache key analyzeChannelOne uses — hits cache instead of a fresh
+  // Same cache key analyzeChannelOne uses: hits cache instead of a fresh
   // Gemini call for any channel already run through Channel Analysis
   // within the last 6h, which is the normal case for a channel you're now
   // scoring against a brief.
   const enrichment = withCache_(cacheKey_('enrichment', rowData.channelId), function () {
     return enrichChannel_(data.description, data.recentVideos, commentSample);
   }, DEFAULTS.CACHE_TTL_SECONDS);
-  // Not cached today (same as Channel analysis's own aggregates step) — a
+  // Not cached today (same as Channel analysis's own aggregates step): a
   // real, bounded extra API cost per channel scored, stated plainly rather
   // than hidden, same as every other speed tradeoff documented in Koli.
   const aggregates = computeChannelAggregates_(data.recentVideos);
@@ -83,7 +83,7 @@ function computeBrandFitForChannel_(rowData, brief) {
     contentFit: briefFit.contentFit, audienceFit: briefFit.audienceFit, engagementQuality: engagementQuality,
     momentum: momentum, budgetFit: budgetFit, reliability: reliability, risk: risk
   };
-  // Same evidence-coverage idea as Grade v2 (channelMetricsService.gs) — a
+  // Same evidence-coverage idea as Grade v2 (channelMetricsService.gs): a
   // component can look like a real number and still be a fallback: a blank
   // brief field gets auto-satisfied rather than actually scored (see
   // scoreBriefFit_'s prompt), no budget entered is neutral not penalized,
@@ -111,7 +111,7 @@ function computeBrandFitForChannel_(rowData, brief) {
 }
 
 /**
- * ONE Gemini call for both brief-relative components — same "merge it
+ * ONE Gemini call for both brief-relative components: same "merge it
  * into one call" rule used everywhere else in Koli (see geminiService.gs).
  */
 function scoreBriefFit_(channelName, enrichment, brief) {
@@ -119,15 +119,15 @@ function scoreBriefFit_(channelName, enrichment, brief) {
   const audienceText = 'Location: ' + enrichment.audience.location + '; Gender: ' + enrichment.audience.gender + '; Age: ' + enrichment.audience.age;
 
   const prompt =
-    'You are scoring how well a YouTube creator fits ONE specific brand campaign brief — not a general ' +
+    'You are scoring how well a YouTube creator fits ONE specific brand campaign brief: not a general ' +
     'quality score, purely a fit-to-this-brief score. Return two scores, 0-100 each:\n' +
     '1. "contentFit": how well the creator\'s niche/content matches the brief\'s target niche.\n' +
     '2. "audienceFit": how well the creator\'s estimated audience matches the brief\'s target audience.\n' +
     'If the brief leaves a field blank, treat that dimension as automatically satisfied (score high on it) ' +
     'rather than penalizing for missing brief detail.\n\n' +
     'Creator: ' + channelName + '\nCreator niche: ' + nicheText + '\nCreator estimated audience: ' + audienceText + '\n\n' +
-    'Campaign brief — target niche: ' + (brief.targetNiche || '(not specified)') +
-    '\nCampaign brief — target audience: ' + (brief.targetAudience || '(not specified)') + '\n\n' +
+    'Campaign brief: target niche: ' + (brief.targetNiche || '(not specified)') +
+    '\nCampaign brief: target audience: ' + (brief.targetAudience || '(not specified)') + '\n\n' +
     'Respond as JSON: {"contentFit": <0-100>, "audienceFit": <0-100>, "notes": "<one sentence on the weaker of the two, or empty string if both are strong>"}';
 
   const result = geminiCallJson_(prompt);
@@ -147,7 +147,7 @@ function clampScore0to100_(raw) {
 
 /**
  * Budget vs. estimated cost, using the high end of the CPM range (the
- * conservative side — better to undersell fit than oversell it against a
+ * conservative side: better to undersell fit than oversell it against a
  * real spend decision). No budget entered = neutral, not a penalty, same
  * pattern as computeCommercialFitScore_ treating zero sponsor history as
  * neutral-low rather than a hard fail.
@@ -167,7 +167,7 @@ function computeBrandFitComposite_(components) {
 }
 
 /**
- * Live brand-safety check as a risk score — deliberately not run on every
+ * Live brand-safety check as a risk score: deliberately not run on every
  * bulk Channel analysis pass (too slow/costly at scale), but worth it here
  * where you're evaluating one specific creator against a real spend
  * decision. Fails soft to neutral: an unrelated Reddit/network hiccup
@@ -194,13 +194,13 @@ function writeBrandFitRow_(sheet, rowData, brief, scored) {
 
   const c = scored.components;
   sheet.getRange(newRow, 4).setNote(
-    'Confidence: ' + scored.confidence.toUpperCase() + ' (' + Math.round(scored.evidenceCoverage * 100) + '% of this score is real measured signal — fill in more of the brief, or include the live safety check, to raise it)\n\n' +
+    'Confidence: ' + scored.confidence.toUpperCase() + ' (' + Math.round(scored.evidenceCoverage * 100) + '% of this score is real measured signal: fill in more of the brief, or include the live safety check, to raise it)\n\n' +
     'Composite: ' + Math.round(scored.composite) + '/100 vs. "' + brief.brand + '"\n' +
     'Content fit ' + Math.round(c.contentFit) + ' (20%) · Audience fit ' + Math.round(c.audienceFit) + ' (20%) · ' +
     'Engagement quality ' + Math.round(c.engagementQuality) + ' (15%) · Momentum ' + Math.round(c.momentum) + ' (15%) · ' +
     'Budget fit ' + Math.round(c.budgetFit) + ' (15%) · Reliability ' + Math.round(c.reliability) + ' (10%) · ' +
     'Risk ' + Math.round(c.risk) + ' (5%, higher = lower risk)\n' +
     'Estimated CPM: $' + scored.estimatedCPM.low + '-$' + scored.estimatedCPM.high + '\n' +
-    'Not a standard external metric — Koli\'s own formula, tunable in constants.gs (BRAND_FIT_WEIGHTS).'
+    'Not a standard external metric: Koli\'s own formula, tunable in constants.gs (BRAND_FIT_WEIGHTS).'
   );
 }

@@ -8,10 +8,10 @@ const SHEET_NAMES = {
   CHANNELS: 'Channels',
   VIDEOS: 'Videos',
   SPONSORS: 'Sponsors',
-  // Retired — Posted/Timestamp/Evidence moved into SPONSORS itself (see
+  // Retired: Posted/Timestamp/Evidence moved into SPONSORS itself (see
   // SPONSOR_HEADERS). Kept only as a name to recognize a pre-existing
   // "Sponsor Mentions" tab from before this change; Koli never writes to
-  // it again and never deletes it — safe to archive/delete by hand.
+  // it again and never deletes it: safe to archive/delete by hand.
   SPONSOR_MENTIONS: 'Sponsor Mentions',
   DASHBOARD: 'Dashboard',
   PROFILE: 'Profile',
@@ -25,31 +25,31 @@ const SHEET_NAMES = {
   BRAND_VIEW: 'Brand View',
   PROFILE_VIEW: 'Profile View',
   ATTENTION: 'Attention',
-  SNAPSHOTS: '_SubscriberSnapshots',       // hidden — sub-count log for New Subscribers diffing
-  TRACKED_PROFILES: '_TrackedProfiles'      // hidden — control sheet for Profile tracking
+  SNAPSHOTS: '_SubscriberSnapshots',       // hidden: sub-count log for New Subscribers diffing
+  TRACKED_PROFILES: '_TrackedProfiles'      // hidden: control sheet for Profile tracking
 };
 
 const INBOX_HEADERS = ['Status', 'Type', 'Value', 'Page Title', 'Source URL', 'Captured'];
 
 // "Manage": one row per active deal. Stage is a dropdown, same pattern as
-// Outreach — Sheets has no native Kanban view, so a staged-status column
+// Outreach: Sheets has no native Kanban view, so a staged-status column
 // is the closest fit; a real drag-and-drop board is a natural fit for
 // the extension sidebar later, not attempted here.
 const CAMPAIGN_HEADERS = ['Channel', 'Channel ID', 'Brand', 'Stage', 'Deliverables', 'Value', 'Deadline', 'Notes', 'Created', 'Updated'];
 const CAMPAIGN_STAGES = ['Briefed', 'In Production', 'Delivered', 'Payment Pending', 'Paid', 'Complete', 'Cancelled'];
 
-// Outreach draft generator (Batch 3) — one row per generated draft, not
+// Outreach draft generator (Batch 3): one row per generated draft, not
 // one row per channel, since re-drafting a channel (new videos since last
 // time) should add a new attempt rather than overwrite the last one.
 const OUTREACH_DRAFT_HEADERS = ['Channel', 'Channel ID', 'Video Referenced', 'Subject', 'Email Body', 'Chars', 'Status', 'Generated'];
 const OUTREACH_DRAFT_STATUSES = ['Draft', 'Reviewed', 'Sent'];
 
-// One row per (channel, brand) scoring event, not one row per channel —
+// One row per (channel, brand) scoring event, not one row per channel:
 // the same channel scored against two different brands are two different
 // answers, both worth keeping (same reasoning as Outreach Drafts).
 const BRAND_FIT_HEADERS = ['Channel', 'Channel ID', 'Brand', 'Score', 'Grade', 'Notes', 'Scored'];
 
-// Column index (1-based) of the hidden ID key column, per sheet — used by
+// Column index (1-based) of the hidden ID key column, per sheet: used by
 // findRowByKey_ and by hideColumns() calls in sheetWriter.gs.
 const KEY_COL = {
   CHANNELS: 3,
@@ -62,15 +62,15 @@ const CHANNEL_HEADERS = [
   'Post Times', 'Grade', 'Outreach', 'Last Contact', 'Notes', 'Report'
 ];
 
-// Grade weighting — growth matters most (rewards small channels with real
+// Grade weighting: growth matters most (rewards small channels with real
 // momentum), quality/authenticity second, Tier-1 English-market audience
 // a smaller bonus. Documented here since it's a judgment call, not a
-// standard metric — tune these weights directly if the balance feels off.
-// Grade v2 — 7-component framework (Audience fit, Content fit, Engagement
+// standard metric: tune these weights directly if the balance feels off.
+// Grade v2: 7-component framework (Audience fit, Content fit, Engagement
 // quality, Momentum, Commercial fit, Reliability, Risk), each 0-100,
 // combined by these weights. 5 of 7 are real signals computed from data
 // Koli already collects; 2 (Content fit, and Risk to a lesser extent) are
-// honestly-flagged placeholders until their proper inputs exist — see
+// honestly-flagged placeholders until their proper inputs exist: see
 // channelMetricsService.gs for exactly which is which and why.
 const GRADE_WEIGHTS = {
   momentum: 0.25, engagementQuality: 0.20, commercialFit: 0.15,
@@ -81,13 +81,13 @@ const GRADE_BANDS = [
   { min: 40, letter: 'D' }, { min: 0, letter: 'F' }
 ];
 
-// Evidence-coverage confidence tiers for Grade v2 and Brand Fit Score —
+// Evidence-coverage confidence tiers for Grade v2 and Brand Fit Score:
 // same idea as a source-grounded-audit tool grading its own evidence
 // coverage before trusting a score: a composite built partly on honestly-
 // flagged placeholders (Grade's contentFit, a blank Brand Fit brief field
 // auto-satisfied instead of scored) can still look like a full-confidence
 // number with no way to tell from the letter/score alone. Thresholds are
-// a judgment call, not a standard — tune here if they feel wrong once
+// a judgment call, not a standard: tune here if they feel wrong once
 // there's real usage to judge against. See channelMetricsService.gs's
 // computeEvidenceCoverage_/classifyEvidenceCoverage_ for how this is used.
 const EVIDENCE_COVERAGE_BANDS = [
@@ -96,37 +96,37 @@ const EVIDENCE_COVERAGE_BANDS = [
   { min: 0, label: 'insufficient evidence' }
 ];
 
-// Brand Fit Score — the "not a Grade rewrite" item from ROADMAP.md's queued
+// Brand Fit Score: the "not a Grade rewrite" item from ROADMAP.md's queued
 // list: Grade is channel-intrinsic (same for every brand); this is
 // channel-vs-a-specific-campaign-brief. It exists specifically to replace
 // two things Grade's own comments already flag as placeholders once a real
-// target exists — see channelMetricsService.gs's computeGrade_: contentFit
+// target exists: see channelMetricsService.gs's computeGrade_: contentFit
 // was a flat neutral 50 ("inherently relative to a specific target niche/
 // campaign... genuinely meaningless to fake a real number here"), and
 // audienceFit was a binary Tier-1-country check, not a real audience match.
-// The other 4 components are reused as-is from Grade — momentum,
+// The other 4 components are reused as-is from Grade: momentum,
 // engagement quality, and reliability don't change per brief, so
 // recomputing a second opinion on them would be noise, not signal.
 // budgetFit is new: brief's stated per-video budget vs. this channel's
 // estimated CPM cost (cpmService.gs) at its typical view count. risk here
 // uses a live checkBrandSafety() Reddit check instead of Grade's
-// authenticity-only proxy — worth the extra API call when you're about to
+// authenticity-only proxy: worth the extra API call when you're about to
 // make a real spend decision on one specific creator, not worth running on
 // every bulk Channel analysis pass. Weights are Koli's own judgment call,
-// same as GRADE_WEIGHTS — tune here once real outcomes justify it.
+// same as GRADE_WEIGHTS: tune here once real outcomes justify it.
 const BRAND_FIT_WEIGHTS = {
   contentFit: 0.20, audienceFit: 0.20, engagementQuality: 0.15, momentum: 0.15,
   budgetFit: 0.15, reliability: 0.10, risk: 0.05
 };
 // Rank is Koli's own relative ranking across channels you've analyzed, not
-// a global YouTube figure — no public API exposes that. Grows more useful
+// a global YouTube figure: no public API exposes that. Grows more useful
 // as more channels get analyzed, by design.
 const TIER1_COUNTRY_HINTS = ['united states', 'u.s.', 'usa', 'america', 'united kingdom', 'u.k.', 'britain',
   'australia', 'canada'];
-const RECENT_VIDEOS_FOR_METRICS = 20; // batched videos.list costs 1 unit regardless of count — this isn't quota-constrained, it's a recency-vs-noise tradeoff (see channelMetricsService.gs)
+const RECENT_VIDEOS_FOR_METRICS = 20; // batched videos.list costs 1 unit regardless of count: this isn't quota-constrained, it's a recency-vs-noise tradeoff (see channelMetricsService.gs)
 const GROWTH_RECENT_WINDOW_DAYS = 45; // "recent" window for growth comparison; compared against the same-length window immediately before it
 
-// Outreach column (Channels col 10) — native dropdown, same pattern as the
+// Outreach column (Channels col 10): native dropdown, same pattern as the
 // Data Validation reference image from the original spec.
 const OUTREACH_STATUSES = [
   'Not Contacted', 'Contacted', 'Replied', 'Negotiating',
@@ -140,11 +140,11 @@ const VIDEO_HEADERS = [
   'Eng %', 'Posted', 'Day', 'New Subs', 'Location', 'Age', 'Gender', 'Updated'
 ];
 
-// Sponsor Mentions (per-mention detail log) retired — Posted/Timestamp/
+// Sponsor Mentions (per-mention detail log) retired: Posted/Timestamp/
 // Evidence folded directly into the Sponsors rollup instead of living in
 // a second, near-identical sheet. Each of the 3 borrowed columns reflects
 // the MOST RECENT mention for that (channel, brand) pair, same "latest
-// known state" semantics Last Seen already had — this is a deliberate
+// known state" semantics Last Seen already had: this is a deliberate
 // simplification (full mention-by-mention history is no longer kept),
 // not an oversight. See sponsorService.gs.
 const SPONSOR_HEADERS = [
@@ -177,22 +177,22 @@ const PROP_KEYS = {
   COMMENT_SAMPLE_SIZE: 'COMMENT_SAMPLE_SIZE',
   CPM_NICHE_OVERRIDE: 'CPM_NICHE_OVERRIDE',
   SCAN_CHANNEL_SPONSORS: 'SCAN_CHANNEL_SPONSORS',       // checkbox, default on
-  // LOG_SPONSOR_MENTIONS retired along with the Sponsor Mentions sheet —
+  // LOG_SPONSOR_MENTIONS retired along with the Sponsor Mentions sheet:
   // Posted/Timestamp/Evidence are now core Sponsors columns, always on,
   // nothing left to toggle.
-  ATTEMPT_SPONSOR_TIMESTAMP: 'ATTEMPT_SPONSOR_TIMESTAMP', // checkbox, default off — gates the caption-fuzzy-match fallback only; SponsorBlock-verified timestamps are free and always attempted
+  ATTEMPT_SPONSOR_TIMESTAMP: 'ATTEMPT_SPONSOR_TIMESTAMP', // checkbox, default off: gates the caption-fuzzy-match fallback only; SponsorBlock-verified timestamps are free and always attempted
   INBOX_SHARED_SECRET: 'INBOX_SHARED_SECRET', // checked against the browser extension's POSTs
-  REPORTS_FOLDER_ID: 'REPORTS_FOLDER_ID', // remembered once created — avoids needing to search Drive (see reportService.gs)
+  REPORTS_FOLDER_ID: 'REPORTS_FOLDER_ID', // remembered once created: avoids needing to search Drive (see reportService.gs)
   MISTRAL_API_KEY: 'MISTRAL_API_KEY', // optional fallback when Gemini's own retries are exhausted
   GROQ_API_KEY: 'GROQ_API_KEY', // optional fallback, tried after Mistral
-  TIMEZONE: 'TIMEZONE', // e.g. 'America/New_York', 'Etc/UTC' — user-set, never assumed
-  ACCESS_CODE: 'ACCESS_CODE', // premium-tier unlock — see licenseService.gs
-  DEFAULT_TARGET_REGIONS: 'DEFAULT_TARGET_REGIONS' // comma-joined ISO 3166-1 alpha-2 codes (e.g. "US,GB,CA,AU") — see discoverService.gs
+  TIMEZONE: 'TIMEZONE', // e.g. 'America/New_York', 'Etc/UTC': user-set, never assumed
+  ACCESS_CODE: 'ACCESS_CODE', // premium-tier unlock: see licenseService.gs
+  DEFAULT_TARGET_REGIONS: 'DEFAULT_TARGET_REGIONS' // comma-joined ISO 3166-1 alpha-2 codes (e.g. "US,GB,CA,AU"): see discoverService.gs
 };
 
-// Bump with every shipped round — matches ROADMAP.md's "round N" numbering.
+// Bump with every shipped round: matches ROADMAP.md's "round N" numbering.
 // Shown in Settings and Run Diagnostics so it's always clear which build is live.
-// Neutral default — was previously hardcoded to Africa/Lagos, inferred from
+// Neutral default: was previously hardcoded to Africa/Lagos, inferred from
 // unrelated ventures and never confirmed. Fixed to a real Settings field
 // instead of swapping one unilateral guess for another.
 const DEFAULT_TIMEZONE = 'Etc/UTC';
@@ -235,12 +235,12 @@ const SUBCOUNT_MULTIPLIER_TIERS = [
 
 /**
  * Document-scoped, not script-scoped: getScriptProperties() is shared
- * across every spreadsheet a published Add-on ever runs against — every
+ * across every spreadsheet a published Add-on ever runs against: every
  * installer would share the same stored API keys and settings, which
  * defeats BYOK entirely the moment this is published rather than just
  * copy-pasted per customer. getDocumentProperties() is isolated per
  * bound spreadsheet automatically, with no manual multi-tenancy logic
- * needed — Apps Script scopes it based on which document the script is
+ * needed: Apps Script scopes it based on which document the script is
  * bound to, including when triggered via the Web App.
  */
 function getProp_(key, fallback) {

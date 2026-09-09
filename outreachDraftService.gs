@@ -1,16 +1,16 @@
 /**
  * outreachDraftService.gs
- * Outreach draft generator (Batch 3) — one Channels row -> a short,
+ * Outreach draft generator (Batch 3): one Channels row -> a short,
  * personalized cold-outreach email, hooked on a specific detail from one
  * of the creator's best-performing RECENT videos (by views, not just
- * whichever is newest — see pickBestPerformingVideos_) instead of generic
+ * whichever is newest: see pickBestPerformingVideos_) instead of generic
  * "love your content!" filler.
  *
  * Positioning matters here, stated explicitly since it changes the whole
  * email: this is an agency reaching out to OFFER a creator well-matched
- * sponsor opportunities and handle the relationship long-term — not a
+ * sponsor opportunities and handle the relationship long-term: not a
  * brand cold-pitching a creator for a one-off promo. The email leads with
- * what's in it for the creator (a real pain point solved — inconsistent
+ * what's in it for the creator (a real pain point solved: inconsistent
  * sponsor income, generic deals that don't fit their content, time spent
  * chasing brands instead of making videos) rather than what's being asked
  * of them.
@@ -18,7 +18,7 @@
  * Tone, revised after the first version still read as templated: the goal
  * isn't just "not salesy," it's that the email shouldn't read as
  * AI-written or as a research report on the creator. It should read like
- * it came from someone who actually watches this channel — the specific
+ * it came from someone who actually watches this channel: the specific
  * detail woven in as familiarity, not cited as proof of research, and
  * with no explicit ask for a reply at the end (the specificity is what
  * earns the reply, not a "worth a quick reply?" nudge). See
@@ -27,7 +27,7 @@
  *
  * "Watching" a video here means the same thing it means everywhere else
  * in Koli: reading its public auto-caption transcript (captionsService.gs
- * — the same best-effort, unofficial endpoint already used for sponsor
+ *: the same best-effort, unofficial endpoint already used for sponsor
  * timestamps) plus its description. Apps Script has no way to actually
  * decode video or audio. Falls back to the description alone when a
  * video has no captions available; a missing transcript never blocks a
@@ -36,18 +36,18 @@
  * Where available, the hook is pulled from around the exact timestamp the
  * video's own "Most Replayed" heatmap identifies as a real rewatch spike
  * (heatmapService.gs) rather than an evenly-sampled guess at the
- * transcript — a spike is proof something specific landed with viewers,
+ * transcript: a spike is proof something specific landed with viewers,
  * not just Koli's own sampling. Most videos don't have one (YouTube only
  * draws it past a view floor), so this silently falls back to the
  * existing sampled-excerpt approach when it's not available.
  *
- * Output lands in a new "Outreach Drafts" sheet, not a Doc — cells are
+ * Output lands in a new "Outreach Drafts" sheet, not a Doc: cells are
  * natively editable (the whole point: these are drafts, not a locked
  * export), and the Chars column is a live LEN() formula so it keeps
  * tracking the character limit as you hand-edit the draft afterward.
  */
 
-const OUTREACH_EMAIL_MAX_CHARS = 500; // hard cap on the body — the part a recipient actually reads as "the email"
+const OUTREACH_EMAIL_MAX_CHARS = 500; // hard cap on the body: the part a recipient actually reads as "the email"
 const OUTREACH_TRANSCRIPT_SAMPLE_CHARS = 900; // per video, prompt budget
 
 function showDraftOutreachEmail() {
@@ -61,10 +61,10 @@ function showDraftOutreachEmail() {
     const result = buildOutreachDraft_(row);
     showLinkDialog_(
       'Outreach draft ready',
-      result.channelName + ' — hook: "' + result.hookVideoTitle + '"\n\n' +
+      result.channelName + ': hook: "' + result.hookVideoTitle + '"\n\n' +
       'Subject: ' + result.subject + '\n\n' + result.body +
       '\n\n(' + result.bodyChars + '/' + OUTREACH_EMAIL_MAX_CHARS + ' characters' +
-      (result.truncated ? ', trimmed to fit — edit freely in the sheet' : '') + ')',
+      (result.truncated ? ', trimmed to fit: edit freely in the sheet' : '') + ')',
       result.link, 'Open draft'
     );
   } catch (e) {
@@ -75,7 +75,7 @@ function showDraftOutreachEmail() {
 function buildOutreachDraft_(row) {
   const channelsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.CHANNELS);
   const rowData = getChannelRowData_(channelsSheet, row);
-  if (!rowData.channelId) throw new Error('This row has no Channel ID — run Channel Analysis on it first.');
+  if (!rowData.channelId) throw new Error('This row has no Channel ID: run Channel Analysis on it first.');
 
   const channel = getChannelData(rowData.channelId); // cache-first, cheap if already analyzed
   const topVideos = pickBestPerformingVideos_(channel.recentVideos || [], 3);
@@ -87,9 +87,9 @@ function buildOutreachDraft_(row) {
 
     // Prefer the exact moment the "Most Replayed" heatmap identifies as a
     // real rewatch spike over an evenly-sampled guess at what's worth
-    // referencing — a spike is proof something specific landed, not just
+    // referencing: a spike is proof something specific landed, not just
     // Koli's own sampling. Falls back to the old sampling when a video
-    // has no heatmap (most don't — it only shows up past a view floor).
+    // has no heatmap (most don't: it only shows up past a view floor).
     const heatmap = fetchVideoHeatmap_(v.videoId);
     const peak = heatmap.length ? findHeatmapPeak_(heatmap) : null;
     const usingPeak = !!(peak && lines.length);
@@ -122,7 +122,7 @@ function buildOutreachDraft_(row) {
   sheet.getRange(newRow, 1).setFormula(hyperlinkFormula_(channelUrl_(rowData.channelId), rowData.name));
   sheet.getRange(newRow, 3).setFormula(hyperlinkFormula_(videoUrl_(hookVideo.videoId), hookVideo.title));
   sheet.getRange(newRow, 5).setWrap(true);
-  sheet.getRange(newRow, 6).setFormula('=LEN(E' + newRow + ')'); // live count — keeps tracking the limit as you hand-edit the draft
+  sheet.getRange(newRow, 6).setFormula('=LEN(E' + newRow + ')'); // live count: keeps tracking the limit as you hand-edit the draft
   sheet.getRange(newRow, 8).setNumberFormat('yyyy-mm-dd hh:mm');
 
   const link = SpreadsheetApp.getActiveSpreadsheet().getUrl() + '#gid=' + sheet.getSheetId() + '&range=A' + newRow;
@@ -134,7 +134,7 @@ function buildOutreachDraft_(row) {
 }
 
 /**
- * Evenly-spaced sampling instead of just the first N characters — video
+ * Evenly-spaced sampling instead of just the first N characters: video
  * intros are almost always generic ("hey guys, welcome back"), so reading
  * only the start would starve Gemini of anything actually specific to
  * hook the email on.
@@ -152,12 +152,12 @@ function sampleTranscriptExcerpt_(lines, maxChars) {
 }
 
 /**
- * Best-performing, not just most-recent — a creator's newest upload might
+ * Best-performing, not just most-recent: a creator's newest upload might
  * be an off week; the video that actually landed with their audience is
  * better proof the hook came from real familiarity, and more likely to
  * be something worth referencing at all. Sampled from up to
  * RECENT_VIDEOS_FOR_METRICS (channelMetricsService.gs) recent uploads,
- * not their whole catalog — recent enough that referencing it doesn't
+ * not their whole catalog: recent enough that referencing it doesn't
  * feel like digging up something old. Fails soft to most-recent if the
  * stats fetch comes back empty (API hiccup) rather than blocking the
  * whole draft over it.
@@ -170,10 +170,10 @@ function pickBestPerformingVideos_(recentVideos, count) {
 
 function draftOutreachEmailCopy_(rowData, aboutSummary, videoExcerpts) {
   const videoBlock = videoExcerpts.map(function (v, i) {
-    const performanceNote = typeof v.views === 'number' ? ' — one of their best-performing recent uploads' : '';
+    const performanceNote = typeof v.views === 'number' ? ': one of their best-performing recent uploads' : '';
     const sourceNote = v.fromHeatmapPeak
-      ? 'the exact moment (' + v.peakTimestamp + ') their own audience rewatched most — a real engagement spike, not a guess'
-      : (v.fromCaptions ? 'transcript excerpt, evenly sampled — no rewatch-spike data available for this one' : 'description only, no captions available');
+      ? 'the exact moment (' + v.peakTimestamp + ') their own audience rewatched most: a real engagement spike, not a guess'
+      : (v.fromCaptions ? 'transcript excerpt, evenly sampled: no rewatch-spike data available for this one' : 'description only, no captions available');
     return (i + 1) + '. "' + v.title + '"' + performanceNote + ' (' + sourceNote + '):\n' + v.excerpt;
   }).join('\n\n');
   const anyHeatmapPeaks = videoExcerpts.some(function (v) { return v.fromHeatmapPeak; });
@@ -181,64 +181,64 @@ function draftOutreachEmailCopy_(rowData, aboutSummary, videoExcerpts) {
   const prompt =
     'You work at a boutique creator-partnerships agency. Draft a short outreach email to a YouTube ' +
     'creator. You are NOT a brand cold-pitching for a promo, and this is NOT a generic sponsorship ' +
-    'request — you represent brands and bring the creator well-matched sponsor opportunities, handling ' +
+    'request: you represent brands and bring the creator well-matched sponsor opportunities, handling ' +
     'the vetting and negotiation so they don\'t have to chase deals themselves. You\'re offering to build ' +
     'an ongoing relationship, not close a one-off transaction.\n\n' +
     'The single most important thing: write like someone who actually watches this creator\'s videos, ' +
     'not like someone who researched them for this email. Do not narrate that you watched or noticed ' +
-    'something — never "I noticed...", "I saw...", "I came across...", "I was watching...", or any ' +
+    'something: never "I noticed...", "I saw...", "I came across...", "I was watching...", or any ' +
     'variant. Reference the specific detail the way you\'d bring it up mid-conversation with someone ' +
     'whose work you already know, not the way you\'d cite a source. The detail should feel incidental to ' +
     'the email, not the reason you\'re allowed to send it.\n\n' +
-    'This draft will be rejected if it uses any of these — they\'re the tells that make an email read as ' +
+    'This draft will be rejected if it uses any of these: they\'re the tells that make an email read as ' +
     'AI-written or templated: em dashes used as sentence connectors; "I hope this email finds you well"; ' +
     '"I wanted to reach out" or any "reaching out" phrasing; "resonate(s/d)"; "elevate"; "unlock"; ' +
     '"seamless"; "delve"; "leverage"; "in today\'s [landscape/world/climate]"; "not only... but also" ' +
     'constructions; opening with "As a [creator/YouTuber/content creator]..."; superlatives like ' +
     '"incredible/amazing/phenomenal/huge"; a neatly parallel three-item list; exclamation points; or a ' +
     'closing line that explicitly asks for a reply ("worth a quick reply?", "let me know your thoughts", ' +
-    '"would love to hear from you", "interested in chatting?"). Use contractions. Vary sentence length — ' +
+    '"would love to hear from you", "interested in chatting?"). Use contractions. Vary sentence length: ' +
     'a real email doesn\'t have uniform, polished rhythm; a short blunt sentence next to a longer one ' +
     'reads more human than three sentences of the same shape in a row.\n\n' +
     'Mandatory tone rules:\n' +
-    '- Open on the specific detail itself — no greeting, no "great video" framing, no compliment first.\n' +
+    '- Open on the specific detail itself: no greeting, no "great video" framing, no compliment first.\n' +
     '- Frame this as the start of a long-term relationship, not a single deal.\n' +
-    '- Name ONE real, specific pain point this creator likely has — inconsistent sponsor income, generic ' +
+    '- Name ONE real, specific pain point this creator likely has: inconsistent sponsor income, generic ' +
     'brand deals that don\'t fit their content, time spent pitching brands instead of making videos, or ' +
-    'negotiating alone with no agent — and speak directly to that one, not a list of several.\n' +
+    'negotiating alone with no agent: and speak directly to that one, not a list of several.\n' +
     '- Do not end with a direct ask for a reply (see the rejected list above). End on something specific ' +
-    'enough that replying is the obvious next move without asking for it — trail off on the offer itself, ' +
+    'enough that replying is the obvious next move without asking for it: trail off on the offer itself, ' +
     'or a genuine, specific observation about their work. Never a scheduling or "are you interested" ' +
     'question.\n' +
     '- No corporate jargon, no "synergy," no filler.\n\n' +
     'Creator: ' + rowData.name + '\nNiche: ' + (rowData.niche || 'unknown') + '\n' +
     'About: ' + (aboutSummary || 'n/a') + '\n\n' +
     'Below are excerpts from ' + videoExcerpts.length + ' of this creator\'s best-performing RECENT videos ' +
-    '(by views, not just whichever is newest). Pick exactly ONE specific, concrete detail — a moment, ' +
-    'technique, opinion, choice, or result — from ONE excerpt to build the email around.' +
+    '(by views, not just whichever is newest). Pick exactly ONE specific, concrete detail: a moment, ' +
+    'technique, opinion, choice, or result: from ONE excerpt to build the email around.' +
     (anyHeatmapPeaks
       ? ' At least one excerpt below is the exact moment that video\'s own audience rewatched most (a real ' +
-        'engagement spike, not a sample) — strongly prefer building the email around one of those over an ' +
+        'engagement spike, not a sample): strongly prefer building the email around one of those over an ' +
         'evenly-sampled excerpt when you have the choice; a real spike is proof something specific landed, ' +
         'an even sample is just Koli\'s guess.'
       : '') +
     ' Ignore generic intro greetings and generic subscribe/outro requests. If an excerpt is description-' +
     'only (no transcript), you may reference its stated topic, just don\'t claim to quote a specific line ' +
-    'from it. Never state or imply a view count, a rewatch spike, or any statistic in the email itself — ' +
+    'from it. Never state or imply a view count, a rewatch spike, or any statistic in the email itself: ' +
     'knowing it performed well (or got rewatched) is context for you to pick a good hook, not something to ' +
     'mention; stating it would read as a research report, not familiarity.\n\n' +
     videoBlock + '\n\n' +
     'Respond as JSON: {"subject": "...", "body": "...", "referencedVideoIndex": <0-based index into the ' +
     'excerpts above>}\n' +
-    '- "subject": must be built from the same specific detail as the body — never a generic line about ' +
+    '- "subject": must be built from the same specific detail as the body: never a generic line about ' +
     'sponsorship or opportunity. Understated. Under 70 characters. Reads like a real subject line from a ' +
     'person, not a pitch headline.\n' +
     '- "body": opens on the specific detail (no "I noticed" framing), then in one sentence connects that ' +
     'detail to the pain point and what you\'re offering to solve it (well-matched, long-term sponsor ' +
-    'opportunities you\'d bring and manage — not "we want to sponsor you") — the connection should feel ' +
+    'opportunities you\'d bring and manage, not "we want to sponsor you"). The connection should feel ' +
     'earned by the detail, not bolted on after it. Closes without an explicit ask for a reply. Signs off with ' +
     '"[Your name]" on its own line. HARD LIMIT ' + OUTREACH_EMAIL_MAX_CHARS + ' characters total, no ' +
-    'exceptions — count as you write and stop well under the limit rather than padding to it.\n' +
+    'exceptions: count as you write and stop well under the limit rather than padding to it.\n' +
     '- "referencedVideoIndex": which excerpt the hook came from.';
 
   const result = geminiCallJson_(prompt);
@@ -252,7 +252,7 @@ function draftOutreachEmailCopy_(rowData, aboutSummary, videoExcerpts) {
 }
 
 /**
- * Backstop, not the primary control — the prompt already asks Gemini to
+ * Backstop, not the primary control: the prompt already asks Gemini to
  * self-limit, but nothing on its end enforces that (same reasoning as
  * clampAuthenticityScore_ in geminiService.gs: never trust an LLM's stated
  * constraint without checking it). Trims at the last whole word inside the

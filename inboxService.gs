@@ -2,11 +2,11 @@
  * inboxService.gs
  * Receiving side for the "Send to Koli" browser extension. Deploy this
  * project as a Web App (Deploy > New deployment > Web app) to get a URL
- * the extension POSTs to — see README for the deployment steps, they're
+ * the extension POSTs to: see README for the deployment steps, they're
  * different from anything else in Koli so far.
  *
  * Channel/video captures run full analysis inline now (a deliberate
- * choice — fewer steps to get from "found it" to "it's analyzed," at
+ * choice: fewer steps to get from "found it" to "it's analyzed," at
  * the cost of each capture waiting on real YouTube+Gemini calls instead
  * of being instant). A 'note' capture (plain link, text selection, or a
  * non-YouTube platform) has nothing to analyze, so those still just
@@ -19,17 +19,17 @@
  * { secret, action, ...action-specific fields }
  *
  * `action` defaults to 'capture' (the original "Send to Koli" extension
- * behavior — {type, value, pageTitle, sourceUrl}), so the existing
+ * behavior: {type, value, pageTitle, sourceUrl}), so the existing
  * extension keeps working unchanged. Everything else here is a vetted,
  * fixed set of Koli's own functions reachable over HTTP for whatever
- * calls this Web App outside the Sheet — never arbitrary code.
+ * calls this Web App outside the Sheet: never arbitrary code.
  *
- * This is Koli's only genuinely internet-facing surface — anyone with the
+ * This is Koli's only genuinely internet-facing surface: anyone with the
  * URL can send a request, gated only by the shared secret. Two defenses
  * beyond the secret itself: constant-time comparison (a naive !== check
  * leaks timing information about how many leading characters matched,
  * which is a real if narrow attack surface), and a short lockout after
- * repeated failures (blunt — it can't tell attackers from someone who
+ * repeated failures (blunt: it can't tell attackers from someone who
  * mistyped their secret, so it trades a small self-inflicted delay for
  * raising the cost of brute-forcing a weak secret).
  */
@@ -43,7 +43,7 @@ function doPost(e) {
     const expectedSecret = getProp_(PROP_KEYS.INBOX_SHARED_SECRET, '');
 
     if (!expectedSecret) {
-      return jsonResponse_({ ok: false, error: 'No shared secret set in Koli yet — set one in Settings first.' });
+      return jsonResponse_({ ok: false, error: 'No shared secret set in Koli yet: set one in Settings first.' });
     }
     if (!constantTimeEquals_(String(body.secret || ''), expectedSecret)) {
       recordFailedAttempt_();
@@ -60,7 +60,7 @@ function routeWebAppAction_(action, body) {
   switch (action) {
     case 'capture': {
       if (!body.value) return { ok: false, error: 'Missing value.' };
-      // Channel/video links go straight to full analysis — no Prospects
+      // Channel/video links go straight to full analysis: no Prospects
       // detour. This trades speed (each capture now waits on real
       // YouTube+Gemini calls, seconds not instant) for one less step to
       // get from "found it" to "it's analyzed." A 'note' capture (a
@@ -99,11 +99,11 @@ function routeWebAppAction_(action, body) {
     }
 
     case 'profile': {
-      // Same runProfile() the Sidebar's own Profile tab uses — including
+      // Same runProfile() the Sidebar's own Profile tab uses: including
       // its built-in 4.5-minute time budget (PROFILE_TIME_BUDGET_MS,
       // profileService.gs), safely under the Web App's ~6-minute execution
       // ceiling. A wide date range on a high-upload-frequency channel can
-      // still come back with stoppedEarly: true — that's not a bug, it's
+      // still come back with stoppedEarly: true: that's not a bug, it's
       // the same "re-run to continue where it left off" behavior the
       // Sidebar has always had, just now reachable from one call instead
       // of a client-side loop.
@@ -132,13 +132,13 @@ function routeWebAppAction_(action, body) {
       return { ok: true, name: SpreadsheetApp.getActiveSpreadsheet().getName() };
 
     case 'list_tabs':
-      // Powers the extension's destination-tab picker — real tab names,
+      // Powers the extension's destination-tab picker: real tab names,
       // not a hand-typed one that could typo into creating a stray sheet.
       return { ok: true, tabs: SpreadsheetApp.getActiveSpreadsheet().getSheets().map(function (s) { return s.getName(); }) };
 
     case 'apply_channel_columns': {
       // Reorders and hides real Channels columns to match what the
-      // extension's Channels column editor has saved — a genuinely
+      // extension's Channels column editor has saved: a genuinely
       // worksheet-modifying action, not the cosmetic local-only reference
       // this used to be. See applyColumnLayout_ for why hide, not delete.
       if (!Array.isArray(body.columns) || !body.columns.length) return { ok: false, error: 'No column list provided.' };
@@ -146,7 +146,7 @@ function routeWebAppAction_(action, body) {
     }
 
     case 'apply_video_columns': {
-      // Same operation, the Videos sheet's own (different) header set —
+      // Same operation, the Videos sheet's own (different) header set:
       // kept as its own action rather than a flag on apply_channel_columns
       // since Channels and Videos have never been interchangeable here.
       if (!Array.isArray(body.columns) || !body.columns.length) return { ok: false, error: 'No column list provided.' };
@@ -158,7 +158,7 @@ function routeWebAppAction_(action, body) {
   }
 }
 
-/** Reachability check — also returns the spreadsheet's name/URL, useful once there's more than one saved connection to tell apart. */
+/** Reachability check: also returns the spreadsheet's name/URL, useful once there's more than one saved connection to tell apart. */
 function doGet(e) {
   let name = '', url = '';
   try {
@@ -217,7 +217,7 @@ function addToInbox_(type, value, pageTitle, sourceUrl, targetTab) {
 /**
  * Koli menu action: runs Channel/Video analysis on every "New" Inbox row,
  * marks each Done/Error, and leaves plain "note" captures alone (nothing
- * to auto-analyze — those are just your own reminders).
+ * to auto-analyze: those are just your own reminders).
  */
 function processInbox() {
   const sheet = getOrCreateSheet_(SHEET_NAMES.INBOX, INBOX_HEADERS);
@@ -245,7 +245,7 @@ function processInbox() {
         formatStatusCell_(sheet.getRange(sheetRow, 1), result.ok ? 'Done' : 'Error: ' + result.message);
         result.ok ? processed++ : errors++;
       } else {
-        skipped++; // 'note' type — nothing to auto-analyze
+        skipped++; // 'note' type: nothing to auto-analyze
       }
     } catch (err) {
       formatStatusCell_(sheet.getRange(sheetRow, 1), 'Error: ' + err.message);

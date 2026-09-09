@@ -5,7 +5,7 @@
  * Speed note: getChannelData()/getVideoData() are cache-first (see cache.gs).
  * prefetchChannels()/prefetchVideos() populate that cache for a whole batch
  * in one or two parallel round trips (UrlFetchApp.fetchAll) instead of one
- * round trip per item — call one of these once before looping items.
+ * round trip per item: call one of these once before looping items.
  */
 
 const YT_API_BASE = 'https://www.googleapis.com/youtube/v3';
@@ -114,7 +114,7 @@ function resolveChannelId(rawInput) {
  * Resolves + batch-fetches (channels.list, up to 50 IDs per call, run in
  * parallel via fetchAll) every input in one go, warming the cache that
  * getChannelData() reads from. Handle/legacy/search inputs still resolve
- * one at a time first (no batch endpoint for that) — only the actual
+ * one at a time first (no batch endpoint for that): only the actual
  * channels.list + playlistItems.list calls get batched/parallelized.
  * Returns { resolved: {input: channelId}, errors: {input: message} }.
  */
@@ -170,7 +170,7 @@ function prefetchChannels(rawInputs) {
       channelId: id, name: item.snippet.title, description: item.snippet.description || '',
       subCount: item.statistics.hiddenSubscriberCount ? null : Number(item.statistics.subscriberCount || 0),
       videoCount: Number(item.statistics.videoCount || 0), recentVideos: uploadsByChannel[id] || [],
-      country: item.snippet.country || '' // self-declared by the channel owner, often unset — free from the same part=snippet call, no extra API cost
+      country: item.snippet.country || '' // self-declared by the channel owner, often unset: free from the same part=snippet call, no extra API cost
     };
     cachePut_(cacheKey_('channel', id), channelData, DEFAULTS.CACHE_TTL_SECONDS);
   });
@@ -195,7 +195,7 @@ function getChannelData(channelId) {
       channelId: channelId, name: item.snippet.title, description: item.snippet.description || '',
       subCount: item.statistics.hiddenSubscriberCount ? null : Number(item.statistics.subscriberCount || 0),
       videoCount: Number(item.statistics.videoCount || 0), recentVideos: recentVideos,
-      country: item.snippet.country || '' // self-declared by the channel owner, often unset — free from the same part=snippet call, no extra API cost
+      country: item.snippet.country || '' // self-declared by the channel owner, often unset: free from the same part=snippet call, no extra API cost
     };
   }, DEFAULTS.CACHE_TTL_SECONDS);
 }
@@ -314,7 +314,7 @@ function getCommentSample_(videoId, key, sampleSize) {
 }
 
 /**
- * For channel-level authenticity scoring — tries the 2 most recent
+ * For channel-level authenticity scoring: tries the 2 most recent
  * videos in turn (some have comments disabled) and returns the first
  * non-empty sample. Fed into enrichChannel_'s single call as extra
  * context rather than triggering a separate Gemini call.
@@ -330,7 +330,7 @@ function getChannelCommentSample_(recentVideos) {
 
 /**
  * Videos published by `channelId` between startDate and endDate (inclusive),
- * newest first — used by Feature "Profile". Pages through the uploads
+ * newest first: used by Feature "Profile". Pages through the uploads
  * playlist since search.list-by-date costs far more quota per result.
  */
 function getVideosInDateRange(channelId, startDate, endDate) {

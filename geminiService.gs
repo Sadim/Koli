@@ -2,7 +2,7 @@
  * geminiService.gs
  * All calls to the Gemini API. Channel analysis and video analysis each
  * make exactly ONE Gemini call now (previously 1 + up to 5 for channels,
- * and 3 for videos) — everything that call used to ask separately is now
+ * and 3 for videos): everything that call used to ask separately is now
  * one JSON schema in one prompt. Estimate fields stay labeled as such
  * downstream in sheetWriter.gs regardless of how the call is shaped.
  */
@@ -13,7 +13,7 @@ function geminiApiKey_() {
   return key;
 }
 
-/** Gemini 429 responses often include a suggested wait time — use it when present instead of guessing. */
+/** Gemini 429 responses often include a suggested wait time: use it when present instead of guessing. */
 function parseRetryDelayMs_(body) {
   try {
     const parsed = JSON.parse(body);
@@ -29,9 +29,9 @@ function parseRetryDelayMs_(body) {
 /**
  * Public entry point every caller in Koli already uses. Tries Gemini
  * first (with its own internal retry/backoff, unchanged); if that's
- * exhausted, falls through to Mistral, then Groq — only for providers
+ * exhausted, falls through to Mistral, then Groq: only for providers
  * with a key actually configured (BYOK, optional fallback, not
- * required). Transparent to every existing caller — none of them
+ * required). Transparent to every existing caller: none of them
  * needed to change for this.
  */
 function geminiCallJson_(prompt) {
@@ -98,7 +98,7 @@ function callGeminiJson_(prompt) {
     throw new Error('Gemini API ' + code + ': ' + body.slice(0, 300));
   }
   if (wasRateLimited) {
-    throw new Error('Gemini API rate limit (429) — your key\'s quota was still exceeded after retrying. ' +
+    throw new Error('Gemini API rate limit (429): your key\'s quota was still exceeded after retrying. ' +
       'This is common on free-tier Gemini keys under back-to-back requests. Wait a minute and try again, ' +
       'or check your tier at https://aistudio.google.com/apikey.');
   }
@@ -155,7 +155,7 @@ function callGroqJson_(prompt) {
  * detection scanned across up to 5 recent videos (Feature 4 signal).
  */
 /**
- * Gemini is asked for an int 1-10, but nothing enforces that on its end —
+ * Gemini is asked for an int 1-10, but nothing enforces that on its end:
  * an occasional out-of-range or malformed value flowing through
  * unclamped was the actual cause of a real bug (a negative authenticity
  * score pushed Grade's composite below every band's threshold, so
@@ -164,12 +164,12 @@ function callGroqJson_(prompt) {
  * checking it.
  */
 function clampAuthenticityScore_(rawScore) {
-  // Number(null) is 0, not NaN — without this explicit check, a genuine
+  // Number(null) is 0, not NaN: without this explicit check, a genuine
   // "no comment sample" null (returned on purpose when there's nothing to
   // score) silently became a real score of 1, the worst possible value,
   // instead of staying null. That defeated the neutral-50 fallback
   // computeEngagementQualityScore_ specifically has for this case (see
-  // channelMetricsService.gs) — a channel with no data was scoring as if
+  // channelMetricsService.gs): a channel with no data was scoring as if
   // its comments looked bot-farmed.
   if (rawScore === null || rawScore === undefined || rawScore === '') return null;
   const n = Number(rawScore);
@@ -194,7 +194,7 @@ function enrichChannel_(description, recentVideos, commentSample) {
     '(phrases like "sponsored by", "thanks to X for supporting", branded discount codes, "#ad"). ' +
     'Do not guess brands only mentioned in passing. Use [] for a video with no sponsor found.\n' +
     '5. "audience": {"topLocations": ["Country1","Country2"], "genderSplit": "e.g. 65% M / 35% F", ' +
-    '"ageBracket": "e.g. 18-24"} — an ESTIMATE from description/titles/comment-language signals, not ' +
+    '"ageBracket": "e.g. 18-24"}: an ESTIMATE from description/titles/comment-language signals, not ' +
     'real analytics.\n' +
     '6. "authenticity": {"score": <int 1-10, 1=bot/spam-farmed comments, 10=genuine organic>} based on ' +
     'the comment sample below (from the channel\'s most recent video with comments). If no comment ' +
@@ -205,7 +205,7 @@ function enrichChannel_(description, recentVideos, commentSample) {
     'Channel description:\n' + description.slice(0, 1500) + '\n\n' +
     'Recent video titles (for niche only):\n' + titleList.join('\n') + '\n\n' +
     'Recent videos (for sponsor scan, indexed):\n' +
-    sponsorScanVideos.map(function (v, i) { return i + ': ' + v.title + ' — ' + v.description.slice(0, 500); }).join('\n---\n') +
+    sponsorScanVideos.map(function (v, i) { return i + ': ' + v.title + ': ' + v.description.slice(0, 500); }).join('\n---\n') +
     (commentText ? '\n\nComment sample (for authenticity only):\n' + commentText.slice(0, 3000) : '');
 
   const result = geminiCallJson_(prompt);
@@ -236,9 +236,9 @@ function enrichVideo_(video) {
     '1. "authenticity": {"score": <int 1-10, 1=bot/spam-farmed comments, 10=genuine organic>, ' +
     '"justification": "<one sentence>"} based on the comment sample below. If no comments, score: null.\n' +
     '2. "audience": {"topLocations": ["Country1","Country2"], "genderSplit": "e.g. 65% M / 35% F", ' +
-    '"ageBracket": "e.g. 18-24"} — an ESTIMATE from title/description/niche/comment-language signals only, ' +
+    '"ageBracket": "e.g. 18-24"}: an ESTIMATE from title/description/niche/comment-language signals only, ' +
     'not real analytics.\n' +
-    '3. "sponsors": [{"brand": "...", "evidence": "short quote or paraphrase"}] — any brand sponsorships/' +
+    '3. "sponsors": [{"brand": "...", "evidence": "short quote or paraphrase"}]: any brand sponsorships/' +
     'paid promotions/affiliate deals/discount codes/#ad mentioned in the description or comments below. ' +
     '[] if none found.\n\n' +
     'Respond as JSON: {"authenticity": {...}, "audience": {...}, "sponsors": [...]}\n\n' +
@@ -266,7 +266,7 @@ function enrichVideo_(video) {
 /**
  * Standalone 300-char About/content-type summary, cached per channel so
  * multiple videos from the same channel (Video analysis) don't re-trigger
- * this — see cacheKey_('aboutSummary', channelId) in sheetWriter.gs.
+ * this: see cacheKey_('aboutSummary', channelId) in sheetWriter.gs.
  */
 function deriveAboutSummary_(description, recentTitles) {
   const prompt =

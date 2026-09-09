@@ -3,16 +3,16 @@
  * Thin wrapper around CacheService so every service reads/writes cache
  * the same way, with JSON handled centrally and a single TTL default.
  *
- * Deliberately script-scoped (getScriptCache()), not document-scoped —
+ * Deliberately script-scoped (getScriptCache()), not document-scoped:
  * everything cached here (YouTube channel/video data, resolved IDs,
  * Gemini-derived niche/about text, SponsorBlock, Reddit signals) is
  * public data about YouTube channels, not anything private to one
  * customer's spreadsheet. Sharing this cache across every document a
- * multi-tenant deployment serves is a genuine efficiency win — two
+ * multi-tenant deployment serves is a genuine efficiency win: two
  * different customers analyzing the same popular channel both benefit
- * from one cached fetch — not a privacy leak. Anything genuinely
+ * from one cached fetch: not a privacy leak. Anything genuinely
  * tenant-specific (settings, secrets, the webhook lockout counter) uses
- * Document Properties/Cache instead — see constants.gs and inboxService.gs.
+ * Document Properties/Cache instead: see constants.gs and inboxService.gs.
  */
 
 function cacheGet_(key) {
@@ -30,7 +30,7 @@ function cachePut_(key, value, ttlSeconds) {
   try {
     CacheService.getScriptCache().put(key, JSON.stringify(value), Math.min(ttl, 21600));
   } catch (e) {
-    // Cache values over 100KB throw — fail silently, caller just refetches next time.
+    // Cache values over 100KB throw: fail silently, caller just refetches next time.
   }
 }
 

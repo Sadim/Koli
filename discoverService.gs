@@ -3,9 +3,9 @@
  * "Find channels/videos like this one." No official similarity API exists,
  * so this derives search keywords from the seed via Gemini, pulls a
  * candidate pool via search.list, scores each candidate against whichever
- * filters are enabled (with a tolerance margin — matches don't need to be
+ * filters are enabled (with a tolerance margin: matches don't need to be
  * exact), and keeps the top N. This is the most expensive-per-run feature
- * in Koli by design (search.list plus per-candidate stat fetches) — that's
+ * in Koli by design (search.list plus per-candidate stat fetches): that's
  * why the result count is hard-capped.
  */
 
@@ -46,7 +46,7 @@ function getExcludedChannelIds_() {
   const actualHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   const idCol = actualHeaders.indexOf('ID') + 1;
   const outreachCol = actualHeaders.indexOf('Outreach') + 1;
-  if (!idCol || !outreachCol) return excluded; // this layout has no ID or Outreach column — nothing to exclude by
+  if (!idCol || !outreachCol) return excluded; // this layout has no ID or Outreach column: nothing to exclude by
   const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
   data.forEach(function (row) {
     if (OUTREACH_EXCLUDE_FROM_DISCOVER.indexOf(row[outreachCol - 1]) !== -1) excluded.add(row[idCol - 1]);
@@ -81,7 +81,7 @@ function scoreChannelCandidates_(channelIds, seed, filters) {
   const seedAvgPosts = computeAvgPostsPerMonth_(seedChannel.recentVideos, Number(getProp_(PROP_KEYS.LOOKBACK_DAYS, DEFAULTS.LOOKBACK_DAYS)));
 
   // Default target regions (Settings) steer results toward those countries
-  // whenever set — on by default, not a per-run toggle yet, so filters
+  // whenever set: on by default, not a per-run toggle yet, so filters
   // doesn't need its own matchRegion flag; pass filters.matchRegion:false
   // to opt out of even the configured default for one run.
   const targetRegions = getDefaultTargetRegions_();
@@ -129,7 +129,7 @@ function scoreChannelCandidates_(channelIds, seed, filters) {
 }
 
 /**
- * No default-region steering here (unlike scoreChannelCandidates_) — a
+ * No default-region steering here (unlike scoreChannelCandidates_): a
  * video candidate's channel country isn't in the data this already
  * fetches (getVideoData's snippet has no country field, only the channel
  * resource does), and fetching it would mean one more API call per
@@ -191,7 +191,7 @@ function estimateSeedEngagement_(seed) {
   if (seed.video) {
     return seed.video.views > 0 ? ((seed.video.likes + seed.video.commentCount) / seed.video.views) * 100 : 3;
   }
-  return 3; // no per-video stats cheaply available for a channel seed — use category baseline
+  return 3; // no per-video stats cheaply available for a channel seed: use category baseline
 }
 
 /**
@@ -225,11 +225,11 @@ function scoreCandidate_(opts) {
     }
   });
 
-  // Categorical (non-numeric) checks — currently just target-region
+  // Categorical (non-numeric) checks: currently just target-region
   // matching. A candidate with no known value for the field is scored
   // neutral, not penalized: most YouTube channels never set their
   // declared country, so "unknown" is the common case, not a red flag.
-  // A KNOWN value outside the allowed list scores low — the whole point
+  // A KNOWN value outside the allowed list scores low: the whole point
   // is to actively steer results toward the configured regions, not just
   // mildly prefer them.
   (opts.categoricalChecks || []).forEach(function (check) {
@@ -237,6 +237,6 @@ function scoreCandidate_(opts) {
     parts.push(check.allowedValues.indexOf(check.value) !== -1 ? 1 : 0.15);
   });
 
-  if (!parts.length) return 1; // no filters enabled — everything found is a "match"
+  if (!parts.length) return 1; // no filters enabled: everything found is a "match"
   return Math.round((parts.reduce(function (a, b) { return a + b; }, 0) / parts.length) * 100) / 100;
 }
