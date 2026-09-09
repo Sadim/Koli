@@ -186,6 +186,7 @@ async function refreshCurrentPageCard() {
     [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   } catch (e) { /* no active tab (rare) */ }
   currentTab = tab ? { url: tab.url || '', title: tab.title || '' } : { url: '', title: '' };
+  hidePreviewCard_(); // a different page is now current — the last card's numbers no longer apply to it
 
   titleEl.textContent = resolveDisplayName_(currentTab.title, currentTab.url) || 'No page detected';
   const kind = classifyUrl(currentTab.url);
@@ -204,32 +205,90 @@ async function refreshCurrentPageCard() {
   }
   notConnectedEl.hidden = true;
 
-  const makeBtn = (label, cls, onClick) => {
+  const makeBtn = (label, cls, sendType) => {
     const b = document.createElement('button');
     b.className = cls;
     b.textContent = label;
-    b.onclick = onClick;
+    b.onclick = () => quickSend(sendType, b);
     return b;
   };
   if (kind === 'channel') {
-    actionsEl.appendChild(makeBtn('Send as Channel', 'btn-fill', () => quickSend('channel')));
-    actionsEl.appendChild(makeBtn('Send as Note', 'btn-outline', () => quickSend('note')));
+    actionsEl.appendChild(makeBtn('Send as Channel', 'btn-fill', 'channel'));
+    actionsEl.appendChild(makeBtn('Send as Note', 'btn-outline', 'note'));
   } else if (kind === 'video') {
-    actionsEl.appendChild(makeBtn('Send as Video', 'btn-fill', () => quickSend('video')));
-    actionsEl.appendChild(makeBtn('Send as Note', 'btn-outline', () => quickSend('note')));
+    actionsEl.appendChild(makeBtn('Send as Video', 'btn-fill', 'video'));
+    actionsEl.appendChild(makeBtn('Send as Note', 'btn-outline', 'note'));
   } else {
-    actionsEl.appendChild(makeBtn('Send as Note', 'btn-fill', () => quickSend('note')));
+    actionsEl.appendChild(makeBtn('Send as Note', 'btn-fill', 'note'));
   }
 }
 
-async function quickSend(type) {
+async function quickSend(type, buttonEl) {
   if (!currentTab || !currentTab.url) return;
-  const resp = await chrome.runtime.sendMessage({
-    kind: 'koli-send', type, value: currentTab.url, pageTitle: currentTab.title,
-    sourceUrl: currentTab.url, silent: false, lockId: 'youtube'
-  });
-  await refreshStatTiles();
-  return resp;
+  const originalLabel = buttonEl ? buttonEl.textContent : null;
+  if (buttonEl) {
+    buttonEl.disabled = true;
+    // Channel/video sends run Koli's real analysis pipeline (live YouTube
+    // + Gemini calls) — genuinely several seconds, not instant, so the
+    // button needs its own loading state rather than just the browser
+    // notification background.js already sends (easy to miss/dismiss).
+    buttonEl.textContent = (type === 'channel' || type === 'video') ? 'Analyzing…' : 'Sending…';
+  }
+  hidePreviewCard_();
+  try {
+    const resp = await chrome.runtime.sendMessage({
+      kind: 'koli-send', type, value: currentTab.url, pageTitle: currentTab.title,
+      sourceUrl: currentTab.url, silent: false, lockId: 'youtube'
+    });
+    await refreshStatTiles();
+    if (resp && resp.ok && resp.preview) renderPreviewCard_(resp);
+    return resp;
+  } finally {
+    if (buttonEl) { buttonEl.disabled = false; buttonEl.textContent = originalLabel; }
+  }
+}
+
+const GRADE_LABELS = { A: 'Excellent', B: 'Good', C: 'Fair', D: 'Below average', F: 'Poor' };
+
+function hidePreviewCard_() {
+  document.getElementById('previewCard').hidden = true;
+}
+
+/** Renders the result of a manual channel send as a rich card — grade, stats, suggested rate — instead of leaving the person to go check the Sheet to see what Koli actually found. */
+function renderPreviewCard_(resp) {
+  const p = resp.preview;
+  const card = document.getElementById('previewCard');
+
+  const badge = document.getElementById('previewGradeBadge');
+  badge.textContent = p.gradeLetter || '—';
+  badge.className = 'preview-grade' + (p.gradeLetter ? ' grade-' + p.gradeLetter.toLowerCase() : '');
+  document.getElementById('previewGradeLabel').textContent = (GRADE_LABELS[p.gradeLetter] || 'Analyzed') + ' · Grade ' + (p.gradeLetter || '?');
+  document.getElementById('previewConfidence').textContent = p.gradeConfidence || '';
+
+  const viewLink = document.getElementById('previewViewLink');
+  if (resp.link) { viewLink.href = resp.link; viewLink.hidden = false; } else { viewLink.hidden = true; }
+
+  document.getElementById('previewSubs').textContent = formatCompactNumber_(p.subCount);
+  document.getElementById('previewEngagement').textContent = (typeof p.engagementRatio === 'number' ? p.engagementRatio.toFixed(1) : '—') + '%';
+  document.getElementById('previewViews').textContent = formatCompactNumber_(p.avgViews);
+  document.getElementById('previewPosts').textContent = (typeof p.avgPostsPerMonth === 'number' ? p.avgPostsPerMonth.toFixed(1) : '—');
+
+  const rateEl = document.getElementById('previewRate');
+  rateEl.innerHTML = (typeof p.suggestedRateLow === 'number' && typeof p.suggestedRateHigh === 'number')
+    ? 'Suggested rate: <b>$' + p.suggestedRateLow.toLocaleString() + ' – $' + p.suggestedRateHigh.toLocaleString() + '</b> per video (est., not a real ad-market feed)'
+    : '';
+
+  const contactEl = document.getElementById('previewContact');
+  if (p.contactEmail) { contactEl.textContent = p.contactEmail; contactEl.hidden = false; } else { contactEl.hidden = true; }
+
+  card.hidden = false;
+}
+
+function formatCompactNumber_(n) {
+  if (typeof n !== 'number') return '—';
+  if (n >= 1000000) return (n / 1000000).toFixed(n >= 10000000 ? 0 : 1) + 'M';
+  if (n >= 1000) return (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'K';
+  return String(n);
 }
 
 async function refreshStatTiles() {

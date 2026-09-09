@@ -152,6 +152,30 @@
   .page-card .not-connected { font-size: 11px; color: var(--ink-500); margin-top: 10px; line-height: 1.5; }
   .page-card .not-connected a { color: var(--green-600); font-weight: 600; cursor: pointer; }
 
+  /* ---------- Preview card — result of a manual "Send as Channel," shown
+     right after Koli's real analysis finishes (not an instant/auto
+     preview — the underlying pipeline is a real YouTube+Gemini pass,
+     deliberately not run on every page you merely browse to). ---------- */
+  .preview-card { margin: 14px 16px 0; padding: 14px 15px; border-radius: var(--radius-lg); background: var(--surface-sunken); border: 1px solid var(--border-soft); animation: rowIn .2s var(--ease-out); }
+  .preview-head { display: flex; align-items: center; gap: 10px; }
+  .preview-grade {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 800; color: #fff; background: linear-gradient(155deg, var(--green-500), var(--green-600));
+  }
+  .preview-grade.grade-d, .preview-grade.grade-f { background: linear-gradient(155deg, var(--error), #B0392F); }
+  .preview-grade.grade-c { background: linear-gradient(155deg, var(--amber), #9A6A1E); }
+  .preview-head-text { flex: 1; min-width: 0; }
+  .preview-grade-label { font-size: 12.5px; font-weight: 700; color: var(--ink-900); }
+  .preview-confidence { font-size: 10.5px; color: var(--ink-500); text-transform: capitalize; }
+  .preview-view-link { font-size: 11px; font-weight: 700; color: var(--teal-600); white-space: nowrap; flex-shrink: 0; }
+  .preview-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 12px; }
+  .preview-stats div { display: flex; flex-direction: column; }
+  .preview-stats b { font-size: 14px; font-weight: 800; color: var(--ink-900); font-variant-numeric: tabular-nums; }
+  .preview-stats span { font-size: 10px; color: var(--ink-500); }
+  .preview-rate { margin-top: 11px; padding-top: 11px; border-top: 1px dashed var(--border); font-size: 12px; }
+  .preview-rate b { color: var(--green-600); font-weight: 800; }
+  .preview-contact { margin-top: 6px; font-size: 11px; color: var(--ink-500); }
+
   /* ---------- Stat tiles ---------- */
   .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 16px 0; }
   .stat-tile { background: var(--surface-raised); border: 1px solid var(--border-soft); border-radius: var(--radius-md); padding: 11px 13px; }
@@ -402,6 +426,25 @@
       <span class="badge other" id="pageBadge"></span>
       <div class="page-actions" id="pageActions"></div>
       <div class="not-connected" id="pageNotConnected" hidden>Not connected yet — <a id="pageConnectLink">connect a worksheet in Settings</a> first.</div>
+    </div>
+
+    <div class="preview-card" id="previewCard" hidden>
+      <div class="preview-head">
+        <div class="preview-grade" id="previewGradeBadge">—</div>
+        <div class="preview-head-text">
+          <div class="preview-grade-label" id="previewGradeLabel"></div>
+          <div class="preview-confidence" id="previewConfidence"></div>
+        </div>
+        <a class="preview-view-link" id="previewViewLink" target="_blank" rel="noopener">View in Sheet</a>
+      </div>
+      <div class="preview-stats">
+        <div><b id="previewSubs">—</b><span>Subscribers</span></div>
+        <div><b id="previewEngagement">—</b><span>Engagement</span></div>
+        <div><b id="previewViews">—</b><span>Avg views</span></div>
+        <div><b id="previewPosts">—</b><span>Posts/mo</span></div>
+      </div>
+      <div class="preview-rate" id="previewRate"></div>
+      <div class="preview-contact" id="previewContact" hidden></div>
     </div>
 
     <div class="stat-grid">

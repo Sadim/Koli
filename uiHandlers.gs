@@ -270,7 +270,25 @@ function analyzeChannelOne(rawInput) {
       });
     }
 
-    return { ok: true, name: data.name };
+    // Everything below is cheap (pure math / already-fetched data, no new
+    // API or Gemini calls) — built so a caller like the extension's Home
+    // tab can render a rich result card right after a manual send,
+    // instead of just a "sent" toast. Grade recomputed here rather than
+    // threaded out of writeChannelRow's internals, same real formula
+    // computeGrade_ everywhere else uses.
+    const grade = computeGrade_(channelId, aggregates.growthScore, enrichment.authenticity,
+      aggregates.engagementRatio, enrichment.audience.location, data.recentVideos);
+    const cpmRaw = estimateCPMRaw_(enrichment.mainNiche, data.subCount, aggregates.engagementRatio);
+    const preview = {
+      subCount: data.subCount, avgViews: aggregates.avgViews, engagementRatio: aggregates.engagementRatio,
+      avgPostsPerMonth: avgPosts, mainNiche: enrichment.mainNiche,
+      gradeLetter: grade.letter, gradeScore: grade.score, gradeConfidence: grade.confidence,
+      suggestedRateLow: Math.round(cpmRaw.low * aggregates.avgViews / 1000),
+      suggestedRateHigh: Math.round(cpmRaw.high * aggregates.avgViews / 1000),
+      contactEmail: (contact && contact.email) || ''
+    };
+
+    return { ok: true, name: data.name, preview: preview };
   } catch (e) {
     if (e.skip) {
       writeChannelError_(rawInput, STATUS.SKIPPED + ': ' + e.message);

@@ -149,7 +149,7 @@ async function send(type, value, pageTitle, sourceUrl, silent, lockId) {
 
   if (!lock || !lock.locked || !lock.url || !lock.secret) {
     if (!silent) notify('Not connected', 'Open the extension and lock a worksheet for ' + profileLabel + ' first.');
-    return false;
+    return { ok: false, error: 'Not connected — lock a worksheet for ' + profileLabel + ' first.' };
   }
 
   const resolvedName = resolveDisplayName_(pageTitle, value);
@@ -185,17 +185,17 @@ async function send(type, value, pageTitle, sourceUrl, silent, lockId) {
     if (data.ok) {
       if (!silent) notify('Sent to ' + profileLabel, resolvedName + ' added to your worksheet. Click to view.', data.link);
       await logActivity_({ type, value, pageTitle, resolvedName, profileLabel, success: true, link: data.link });
-      return true;
+      return data; // full response, not just true — carries `preview` (channel/video analysis stats) when present, for the side panel's Home tab to render
     } else {
       if (!silent) notify(profileLabel + ' rejected this', data.error || 'Unknown error.');
       await logActivity_({ type, value, pageTitle, resolvedName, profileLabel, success: false, message: data.error });
-      return false;
+      return { ok: false, error: data.error };
     }
   } catch (e) {
     console.error('[Koli] fetch failed:', e);
     if (!silent) notify('Could not reach ' + profileLabel, e.message);
     await logActivity_({ type, value, pageTitle, resolvedName, profileLabel, success: false, message: e.message });
-    return false;
+    return { ok: false, error: e.message };
   }
 }
 
@@ -228,6 +228,7 @@ chrome.notifications.onClicked.addListener((notificationId) => {
 // identically and show up in the same Log tab the same way.
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || msg.kind !== 'koli-send') return false;
-  send(msg.type, msg.value, msg.pageTitle, msg.sourceUrl, msg.silent, msg.lockId).then((ok) => sendResponse({ ok }));
+  send(msg.type, msg.value, msg.pageTitle, msg.sourceUrl, msg.silent, msg.lockId)
+    .then((result) => sendResponse(result || { ok: false })); // send() already resolves with a proper {ok, ...} shape in every branch
   return true; // keep the message channel open for the async response
 });

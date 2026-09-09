@@ -69,7 +69,11 @@ function routeWebAppAction_(action, body) {
       if (body.type === 'channel') {
         const result = analyzeChannelOne(body.value);
         return result.ok
-          ? { ok: true, link: SpreadsheetApp.getActiveSpreadsheet().getUrl() + '#gid=' + SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.CHANNELS).getSheetId() }
+          ? {
+              ok: true,
+              link: SpreadsheetApp.getActiveSpreadsheet().getUrl() + '#gid=' + SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.CHANNELS).getSheetId(),
+              name: result.name, preview: result.preview
+            }
           : { ok: false, error: result.message };
       }
       if (body.type === 'video') {
