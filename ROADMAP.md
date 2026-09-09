@@ -747,6 +747,88 @@ just internal reasoning — see below.
   would suggest. Not started, not scoped in detail — a real pivot
   decision, not a sprint.
 - 5 new logic tests (hashAccessCode_, hasPremiumAccess_), 44/44 passing.
+- **Template Sheet live**: clasp wired up (`.clasp.json`/`.claspignore`
+  committed), pushed to a real deployed Sheet+script for the first time.
+  `clasp push` from this repo now updates that Sheet directly — no more
+  manual 25-file copy-paste for this instance. Distribute via that
+  Sheet's `/copy` URL, per round 13.
+
+## Vision backlog — from the founder, round 16
+
+Captured in one pass, deliberately not built yet — recorded now so
+nothing gets lost, not because any of it is scoped or prioritized. Three
+different tiers of ambition here, worth keeping visually distinct so a
+future look at this doesn't confuse "quick add" with "second company."
+
+**Real, near-term feature gaps in Koli-as-it-exists:**
+- **Region filtering on Profile/audience data** — let the user pick a
+  region or combination (US/UK/CAN/AUS named specifically, but should be
+  any combination, not a fixed 4-country checkbox) to focus audience
+  estimates against. Concrete, scoped, a real gap — Gemini's audience
+  inference currently has no region-relevance concept at all.
+- **Campaign management depth** — current Campaigns is one Stage
+  dropdown + free-text fields (campaignService.gs). Founder's read: not
+  great, could be meaningfully better. No specific redesign scoped yet.
+- **Real contract templates** — Draft Deal Memo today is one fixed
+  placeholder-fill template. TalentSheets' "50+ contracts in a few
+  clicks" (round 15's research) is the direct comparison point — a
+  template library, not just the one draft, is a legitimate gap.
+- **Brand-side adoption** — founder's own read: Koli doesn't yet have
+  what it takes for a BRAND (not an agency) to choose it directly, but
+  believes brand-side traction would strengthen the whole platform for
+  agencies too. Positioning/trust question as much as a feature one —
+  ties into "enterprise grade" below.
+- **"Enterprise grade" as something discovered, not claimed** — explicit
+  design directive: the product should never say it's enterprise-grade,
+  the experience should make someone conclude it on their own partway
+  through using it. A UX/copy/polish philosophy to hold future design
+  work to, not a single feature.
+- **UI/UX still limited** — founder's own assessment, general, not
+  itemized beyond what's already tracked (setup friction, first-run
+  nudge, multi-creator comparison from round 14).
+
+**Real operational features missing — each roughly its own subsystem,
+not a quick add, closer to "Phase 2 of the workflow layer" than a
+feature request:**
+- **Gifting** — tracking product sent to a creator as part of a deal.
+- **Payments** — actually paying creators (or tracking that they've been
+  paid) rather than just noting a rate in a memo.
+- **Affiliate tracking** — UTM/promo-code-driven attribution back to a
+  specific creator/deal.
+- **UGC collection** — gathering and rights-managing creator-produced
+  content for a brand's own reuse.
+  These are the kind of features GRIN/CreatorIQ (round 15's competitive
+  research) charge enterprise prices partly *for*. Real value, real
+  scope — each deserves its own design pass, not a bullet-point build.
+
+**The bigger platform bet — same shape as round 15's Univer/GenOffice
+conversation, arrived at from a different direction, worth naming as
+the same pattern rather than four separate ideas:**
+- An **invisible AI agent** the user never directly converses with
+  (contrast with the removed Assistant tab, which was the opposite: a
+  visible, explicit chat surface) — ambient, does things intuitively in
+  the background instead.
+- **[WebLLM](https://github.com/mlc-ai/web-llm)** — runs an LLM
+  client-side in-browser via WebGPU, genuinely relevant to "local AI, no
+  API key, no per-call cost" — the same BYOK-adjacent idea from round
+  15's Univer conversation, from the browser-native angle instead of the
+  self-hosted-server angle.
+- A **plugin/API warehouse** — a marketplace where a user searches for
+  and connects free or paid third-party APIs, rather than Koli hand-
+  wiring each integration itself.
+- **Sheetgo**-style cross-spreadsheet workflow automation.
+- **Activepieces**-style general automation/precision-orchestration
+  sitting inside Koli.
+  All four of these are pieces of the same underlying idea: Koli
+  becomes a platform other capabilities plug into, not a fixed feature
+  set. That's the same order of ambition as the Univer/agent-native-
+  spreadsheet conversation two rounds back — a different company than
+  "Koli, the creator-vetting tool," built with Koli as a flagship
+  vertical on top of it. Worth pursuing on its own merits, but it
+  deserves to be scoped and resourced as its own initiative when the
+  time comes, not absorbed piecemeal into Koli's existing roadmap where
+  it would compete for attention against much smaller, faster, real
+  near-term wins.
 
 ## On Groq / Mistral / HF Serverless / Cloudflare Workers AI
 
