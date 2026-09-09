@@ -231,70 +231,125 @@ function prefetchVideoBatch(rawInputs) {
 
 // ---------- Channel analysis (one input line per call; cache already warmed by prefetch) ----------
 
+/**
+ * Pure analysis: fetches + computes everything a channel row needs, but
+ * writes nothing. Returns a bundle carrying both the display-ready
+ * `preview` object and everything commitChannelAnalysis_ needs to write
+ * the real row later, without re-fetching or re-running Gemini. Split out
+ * of analyzeChannelOne specifically so the extension's Home tab can offer
+ * a real "pull stats first, decide, then add to sheet" flow — Koli's
+ * pipeline never had a preview-without-committing mode before this.
+ */
+function analyzeChannelCore_(channelId) {
+  const data = getChannelData(channelId);
+
+  const lookback = Number(getProp_(PROP_KEYS.LOOKBACK_DAYS, DEFAULTS.LOOKBACK_DAYS));
+  const avgPosts = computeAvgPostsPerMonth_(data.recentVideos, lookback);
+  const contact = findContact(data.description);
+  const commentSample = getChannelCommentSample_(data.recentVideos);
+  // Enrichment is the slowest single step (the one Gemini call): cache
+  // it per channel so resending the same channel within the cache
+  // window (a very normal thing to do while testing, or if a link
+  // gets captured twice) skips it entirely instead of re-running a
+  // full Gemini call for an answer that hasn't changed.
+  const enrichment = withCache_(cacheKey_('enrichment', channelId), function () {
+    return enrichChannel_(data.description, data.recentVideos, commentSample);
+  }, 21600); // 6h: matches the existing raw-data cache TTL
+  const aggregates = computeChannelAggregates_(data.recentVideos);
+  const cpm = estimateCPM(enrichment.mainNiche, data.subCount, aggregates.engagementRatio);
+
+  const grade = computeGrade_(channelId, aggregates.growthScore, enrichment.authenticity,
+    aggregates.engagementRatio, enrichment.audience.location, data.recentVideos);
+  const cpmRaw = estimateCPMRaw_(enrichment.mainNiche, data.subCount, aggregates.engagementRatio);
+  const preview = {
+    subCount: data.subCount, avgViews: aggregates.avgViews, engagementRatio: aggregates.engagementRatio,
+    avgPostsPerMonth: avgPosts, mainNiche: enrichment.mainNiche,
+    gradeLetter: grade.letter, gradeScore: grade.score, gradeConfidence: grade.confidence,
+    suggestedRateLow: Math.round(cpmRaw.low * aggregates.avgViews / 1000),
+    suggestedRateHigh: Math.round(cpmRaw.high * aggregates.avgViews / 1000),
+    contactEmail: (contact && contact.email) || ''
+  };
+
+  return {
+    channelId: channelId, name: data.name, data: data, avgPosts: avgPosts, contact: contact,
+    enrichment: enrichment, aggregates: aggregates, cpm: cpm, preview: preview
+  };
+}
+
+/** The actual sheet-mutating half of what analyzeChannelOne used to do in one step — writes the Channels row and records any sponsor mentions found. */
+function commitChannelAnalysis_(bundle) {
+  const data = bundle.data, enrichment = bundle.enrichment, aggregates = bundle.aggregates;
+
+  writeChannelRow({
+    channelId: bundle.channelId, name: data.name, mainNiche: enrichment.mainNiche, subNiches: enrichment.subNiches,
+    avgPostsPerMonth: bundle.avgPosts, contact: bundle.contact, subCount: data.subCount, cpm: bundle.cpm,
+    aboutSummary: enrichment.aboutSummary, avgViews: aggregates.avgViews, avgLikes: aggregates.avgLikes,
+    avgComments: aggregates.avgComments, engagementRatio: aggregates.engagementRatio,
+    postingPattern: aggregates.postingPattern, growthScore: aggregates.growthScore,
+    authenticity: enrichment.authenticity, audience: enrichment.audience, recentVideos: data.recentVideos
+  });
+
+  if (getBoolProp_(PROP_KEYS.SCAN_CHANNEL_SPONSORS, true)) {
+    const sponsorVideos = data.recentVideos.slice(0, 5);
+    enrichment.sponsorsByVideo.forEach(function (entry) {
+      const v = sponsorVideos[entry.index];
+      if (v && entry.sponsors && entry.sponsors.length) {
+        recordSponsorMentions(bundle.channelId, data.name, { videoId: v.videoId, title: v.title, publishedAt: v.publishedAt }, entry.sponsors);
+      }
+    });
+  }
+}
+
+/** Unchanged public behavior: analyze AND commit in one step — used by bulk Channel Analysis, Process Prospects, and anything that doesn't need a look-first-decide-later flow. */
 function analyzeChannelOne(rawInput) {
   try {
     const channelId = resolveChannelId(rawInput);
-    const data = getChannelData(channelId);
-
-    const lookback = Number(getProp_(PROP_KEYS.LOOKBACK_DAYS, DEFAULTS.LOOKBACK_DAYS));
-    const avgPosts = computeAvgPostsPerMonth_(data.recentVideos, lookback);
-    const contact = findContact(data.description);
-    const commentSample = getChannelCommentSample_(data.recentVideos);
-    // Enrichment is the slowest single step (the one Gemini call): cache
-    // it per channel so resending the same channel within the cache
-    // window (a very normal thing to do while testing, or if a link
-    // gets captured twice) skips it entirely instead of re-running a
-    // full Gemini call for an answer that hasn't changed.
-    const enrichment = withCache_(cacheKey_('enrichment', channelId), function () {
-      return enrichChannel_(data.description, data.recentVideos, commentSample);
-    }, 21600); // 6h: matches the existing raw-data cache TTL
-    const aggregates = computeChannelAggregates_(data.recentVideos);
-    const cpm = estimateCPM(enrichment.mainNiche, data.subCount, aggregates.engagementRatio);
-
-    writeChannelRow({
-      channelId: channelId, name: data.name, mainNiche: enrichment.mainNiche, subNiches: enrichment.subNiches,
-      avgPostsPerMonth: avgPosts, contact: contact, subCount: data.subCount, cpm: cpm,
-      aboutSummary: enrichment.aboutSummary, avgViews: aggregates.avgViews, avgLikes: aggregates.avgLikes,
-      avgComments: aggregates.avgComments, engagementRatio: aggregates.engagementRatio,
-      postingPattern: aggregates.postingPattern, growthScore: aggregates.growthScore,
-      authenticity: enrichment.authenticity, audience: enrichment.audience, recentVideos: data.recentVideos
-    });
-
-    if (getBoolProp_(PROP_KEYS.SCAN_CHANNEL_SPONSORS, true)) {
-      const sponsorVideos = data.recentVideos.slice(0, 5);
-      enrichment.sponsorsByVideo.forEach(function (entry) {
-        const v = sponsorVideos[entry.index];
-        if (v && entry.sponsors && entry.sponsors.length) {
-          recordSponsorMentions(channelId, data.name, { videoId: v.videoId, title: v.title, publishedAt: v.publishedAt }, entry.sponsors);
-        }
-      });
-    }
-
-    // Everything below is cheap (pure math / already-fetched data, no new
-    // API or Gemini calls): built so a caller like the extension's Home
-    // tab can render a rich result card right after a manual send,
-    // instead of just a "sent" toast. Grade recomputed here rather than
-    // threaded out of writeChannelRow's internals, same real formula
-    // computeGrade_ everywhere else uses.
-    const grade = computeGrade_(channelId, aggregates.growthScore, enrichment.authenticity,
-      aggregates.engagementRatio, enrichment.audience.location, data.recentVideos);
-    const cpmRaw = estimateCPMRaw_(enrichment.mainNiche, data.subCount, aggregates.engagementRatio);
-    const preview = {
-      subCount: data.subCount, avgViews: aggregates.avgViews, engagementRatio: aggregates.engagementRatio,
-      avgPostsPerMonth: avgPosts, mainNiche: enrichment.mainNiche,
-      gradeLetter: grade.letter, gradeScore: grade.score, gradeConfidence: grade.confidence,
-      suggestedRateLow: Math.round(cpmRaw.low * aggregates.avgViews / 1000),
-      suggestedRateHigh: Math.round(cpmRaw.high * aggregates.avgViews / 1000),
-      contactEmail: (contact && contact.email) || ''
-    };
-
-    return { ok: true, name: data.name, preview: preview };
+    const bundle = analyzeChannelCore_(channelId);
+    commitChannelAnalysis_(bundle);
+    return { ok: true, name: bundle.name, preview: bundle.preview };
   } catch (e) {
     if (e.skip) {
       writeChannelError_(rawInput, STATUS.SKIPPED + ': ' + e.message);
       return { ok: false, skipped: true, message: e.message };
     }
     writeChannelError_(rawInput, e.message);
+    return { ok: false, message: e.message };
+  }
+}
+
+/**
+ * Analyzes without writing anything to the sheet — the actual "pull
+ * stats first" half of the extension's Home-tab flow. Caches the full
+ * bundle (30 min: long enough to look at the card and decide, short
+ * enough not to go stale) so a follow-up commitChannelOne can write the
+ * exact thing that was previewed without re-fetching YouTube or
+ * re-running the Gemini call. If the bundle is too large for
+ * CacheService's per-key limit, cachePut_ already fails silently by
+ * design (see cache.gs) — commitChannelOne falls back to a fresh
+ * analysis rather than erroring, so this never blocks the flow, it just
+ * occasionally costs a re-fetch.
+ */
+function previewChannelOne(rawInput) {
+  try {
+    const channelId = resolveChannelId(rawInput);
+    const bundle = analyzeChannelCore_(channelId);
+    cachePut_(cacheKey_('pendingCommit', channelId), bundle, 1800);
+    return { ok: true, channelId: channelId, name: bundle.name, preview: bundle.preview };
+  } catch (e) {
+    return { ok: false, message: e.message };
+  }
+}
+
+/** Commits a previously-previewed channel — reuses the cached bundle when it's still there, otherwise re-analyzes fresh (fail-soft, not an error) so a slow decision never just breaks. */
+function commitChannelOne(channelId) {
+  try {
+    const cached = cacheGet_(cacheKey_('pendingCommit', channelId));
+    const bundle = cached || analyzeChannelCore_(channelId);
+    commitChannelAnalysis_(bundle);
+    const link = SpreadsheetApp.getActiveSpreadsheet().getUrl() + '#gid=' + SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.CHANNELS).getSheetId();
+    return { ok: true, name: bundle.name, link: link };
+  } catch (e) {
+    writeChannelError_(channelId, e.message);
     return { ok: false, message: e.message };
   }
 }

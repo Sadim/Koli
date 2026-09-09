@@ -213,7 +213,11 @@ async function refreshCurrentPageCard() {
     return b;
   };
   if (kind === 'channel') {
-    actionsEl.appendChild(makeBtn('Send as Channel', 'btn-fill', 'channel'));
+    const pullBtn = document.createElement('button');
+    pullBtn.className = 'btn-fill';
+    pullBtn.textContent = 'Pull Stats';
+    pullBtn.onclick = () => pullStats_(pullBtn);
+    actionsEl.appendChild(pullBtn);
     actionsEl.appendChild(makeBtn('Send as Note', 'btn-outline', 'note'));
   } else if (kind === 'video') {
     actionsEl.appendChild(makeBtn('Send as Video', 'btn-fill', 'video'));
@@ -223,16 +227,18 @@ async function refreshCurrentPageCard() {
   }
 }
 
+// Used for 'note' and 'video' — immediate send, no preview-first step.
+// Channel now goes through pullStats_/previewAddBtn instead (see above).
 async function quickSend(type, buttonEl) {
   if (!currentTab || !currentTab.url) return;
   const originalLabel = buttonEl ? buttonEl.textContent : null;
   if (buttonEl) {
     buttonEl.disabled = true;
-    // Channel/video sends run Koli's real analysis pipeline (live YouTube
-    // + Gemini calls): genuinely several seconds, not instant, so the
-    // button needs its own loading state rather than just the browser
+    // Video sends still run Koli's real analysis pipeline (live YouTube +
+    // Gemini calls): genuinely several seconds, not instant, so the button
+    // needs its own loading state rather than just the browser
     // notification background.js already sends (easy to miss/dismiss).
-    buttonEl.textContent = (type === 'channel' || type === 'video') ? 'Analyzing…' : 'Sending…';
+    buttonEl.textContent = type === 'video' ? 'Analyzing…' : 'Sending…';
   }
   hidePreviewCard_();
   try {
@@ -241,7 +247,6 @@ async function quickSend(type, buttonEl) {
       sourceUrl: currentTab.url, silent: false, lockId: 'youtube'
     });
     await refreshStatTiles();
-    if (resp && resp.ok && resp.preview) renderPreviewCard_(resp);
     return resp;
   } finally {
     if (buttonEl) { buttonEl.disabled = false; buttonEl.textContent = originalLabel; }
@@ -250,13 +255,97 @@ async function quickSend(type, buttonEl) {
 
 const GRADE_LABELS = { A: 'Excellent', B: 'Good', C: 'Fair', D: 'Below average', F: 'Poor' };
 
+// Set once a "Pull Stats" preview succeeds — the channel this card is
+// currently showing, uncommitted. Cleared on page navigation or once
+// "Add to Sheet" actually commits it. Koli's own analysis pipeline caches
+// the full analysis server-side under this same id for ~30 min
+// (uiHandlers.gs's previewChannelOne/commitChannelOne), so committing
+// doesn't re-run YouTube/Gemini calls a second time.
+let pendingPreviewChannelId = null;
+
 function hidePreviewCard_() {
   document.getElementById('previewCard').hidden = true;
+  pendingPreviewChannelId = null;
 }
 
-/** Renders the result of a manual channel send as a rich card (grade, stats, suggested rate) instead of leaving the person to go check the Sheet to see what Koli actually found. */
-function renderPreviewCard_(resp) {
-  const p = resp.preview;
+/**
+ * "Pull Stats" — analyzes the current page's channel WITHOUT writing
+ * anything to the Sheet, and shows the result as a card with its own
+ * "Add to Sheet" action. Posts directly to the Web App (like Profile/
+ * Discover do) rather than through background.js's send()/koliLog
+ * pipeline, since a preview that's never committed isn't a "sent" entry.
+ */
+async function pullStats_(buttonEl) {
+  if (!currentTab || !currentTab.url) return;
+  const lock = state.locks.youtube;
+  if (!lock || !lock.locked) return;
+
+  const originalLabel = buttonEl.textContent;
+  buttonEl.disabled = true;
+  buttonEl.textContent = 'Analyzing…'; // a real YouTube + Gemini pass, genuinely several seconds
+  hidePreviewCard_();
+  try {
+    const resp = await fetch(lock.url, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ secret: lock.secret, action: 'preview_channel', value: currentTab.url })
+    });
+    const data = await resp.json();
+    if (data.ok && data.preview) {
+      pendingPreviewChannelId = data.channelId;
+      renderPreviewCard_(data.preview, 'preview');
+    } else {
+      notifyInline_(data.error || 'Could not analyze this channel.');
+    }
+  } catch (e) {
+    notifyInline_('Could not reach your worksheet: ' + e.message);
+  } finally {
+    buttonEl.disabled = false; buttonEl.textContent = originalLabel;
+  }
+}
+
+// Minimal inline error surface for pullStats_ failures — reuses the same
+// card's status line the commit step uses, so there's one place on the
+// Home tab errors show up rather than only a background notification.
+function notifyInline_(message) {
+  const status = document.getElementById('previewActionStatus');
+  status.className = 'preview-action-status err';
+  status.textContent = message;
+  status.hidden = false;
+}
+
+document.getElementById('previewAddBtn').onclick = async () => {
+  if (!pendingPreviewChannelId) return;
+  const lock = state.locks.youtube;
+  const btn = document.getElementById('previewAddBtn');
+  const status = document.getElementById('previewActionStatus');
+  status.hidden = true;
+  btn.disabled = true; btn.textContent = 'Adding…';
+  try {
+    const resp = await fetch(lock.url, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ secret: lock.secret, action: 'commit_channel', channelId: pendingPreviewChannelId })
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      const resolvedName = data.name || pendingPreviewChannelId;
+      await logActivityLocal_({ type: 'channel', value: pendingPreviewChannelId, resolvedName, profileLabel: 'YouTube', success: true, link: data.link });
+      await refreshStatTiles();
+      btn.hidden = true;
+      const viewLink = document.getElementById('previewViewLink');
+      if (data.link) { viewLink.href = data.link; viewLink.hidden = false; }
+      pendingPreviewChannelId = null;
+    } else {
+      status.className = 'preview-action-status err'; status.textContent = data.error || 'Could not add to sheet.'; status.hidden = false;
+    }
+  } catch (e) {
+    status.className = 'preview-action-status err'; status.textContent = 'Could not reach your worksheet: ' + e.message; status.hidden = false;
+  } finally {
+    btn.disabled = false; if (!btn.hidden) btn.textContent = '+ Add to Sheet';
+  }
+};
+
+/** Renders a channel analysis as a rich card (grade, stats, suggested rate) — always starts in "preview" state (Add to Sheet visible, not yet committed). */
+function renderPreviewCard_(p, mode) {
   const card = document.getElementById('previewCard');
 
   const badge = document.getElementById('previewGradeBadge');
@@ -264,9 +353,6 @@ function renderPreviewCard_(resp) {
   badge.className = 'preview-grade' + (p.gradeLetter ? ' grade-' + p.gradeLetter.toLowerCase() : '');
   document.getElementById('previewGradeLabel').textContent = (GRADE_LABELS[p.gradeLetter] || 'Analyzed') + ' · Grade ' + (p.gradeLetter || '?');
   document.getElementById('previewConfidence').textContent = p.gradeConfidence || '';
-
-  const viewLink = document.getElementById('previewViewLink');
-  if (resp.link) { viewLink.href = resp.link; viewLink.hidden = false; } else { viewLink.hidden = true; }
 
   document.getElementById('previewSubs').textContent = formatCompactNumber_(p.subCount);
   document.getElementById('previewEngagement').textContent = (typeof p.engagementRatio === 'number' ? p.engagementRatio.toFixed(1) : 'N/A') + '%';
@@ -280,6 +366,13 @@ function renderPreviewCard_(resp) {
 
   const contactEl = document.getElementById('previewContact');
   if (p.contactEmail) { contactEl.textContent = p.contactEmail; contactEl.hidden = false; } else { contactEl.hidden = true; }
+
+  const addBtn = document.getElementById('previewAddBtn');
+  const viewLink = document.getElementById('previewViewLink');
+  addBtn.hidden = mode !== 'preview';
+  addBtn.disabled = false; addBtn.textContent = '+ Add to Sheet';
+  viewLink.hidden = true;
+  document.getElementById('previewActionStatus').hidden = true;
 
   card.hidden = false;
 }

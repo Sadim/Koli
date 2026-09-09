@@ -86,6 +86,22 @@ function routeWebAppAction_(action, body) {
       return { ok: true, link: captured.link };
     }
 
+    case 'preview_channel': {
+      // "Pull stats" — the extension's Home-tab flow when the person wants
+      // to look at a channel before deciding whether it's worth adding.
+      // Writes nothing; see commit_channel for the follow-up that does.
+      if (!body.value) return { ok: false, error: 'Missing value.' };
+      return previewChannelOne(body.value);
+    }
+
+    case 'commit_channel': {
+      // The other half of preview_channel — actually writes the row,
+      // reusing the cached analysis from the preview so nothing gets
+      // re-fetched or re-run through Gemini a second time.
+      if (!body.channelId) return { ok: false, error: 'Missing channelId.' };
+      return commitChannelOne(body.channelId);
+    }
+
     case 'analyze_channel':
       return analyzeChannelOne(body.value);
 

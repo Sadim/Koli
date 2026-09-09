@@ -175,6 +175,22 @@
   .preview-rate { margin-top: 11px; padding-top: 11px; border-top: 1px dashed var(--border); font-size: 12px; }
   .preview-rate b { color: var(--green-600); font-weight: 800; }
   .preview-contact { margin-top: 6px; font-size: 11px; color: var(--ink-500); }
+  .preview-action-row { margin-top: 12px; }
+  .preview-add-btn {
+    width: 100%; padding: 10px; border-radius: var(--radius-sm); border: none; font-size: 12.5px; font-weight: 700;
+    background: linear-gradient(155deg, var(--green-500), var(--green-600)); color: #fff; cursor: pointer; box-shadow: var(--shadow-sm);
+    transition: transform .15s var(--ease);
+  }
+  .preview-add-btn:hover { transform: translateY(-1px); }
+  .preview-add-btn:active:not(:disabled) { transform: translateY(0) scale(0.97); }
+  .preview-add-btn:disabled { opacity: .6; cursor: default; transform: none; }
+  .preview-view-link {
+    display: block; text-align: center; padding: 10px; border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 700;
+    background: var(--green-50); color: var(--green-700); text-decoration: none;
+  }
+  .preview-action-status { margin-top: 8px; font-size: 11px; }
+  .preview-action-status.err { color: var(--error); }
+  .preview-action-status.ok { color: var(--green-600); }
 
   /* ---------- Stat tiles ---------- */
   .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 16px 0; }
@@ -435,7 +451,6 @@
           <div class="preview-grade-label" id="previewGradeLabel"></div>
           <div class="preview-confidence" id="previewConfidence"></div>
         </div>
-        <a class="preview-view-link" id="previewViewLink" target="_blank" rel="noopener">View in Sheet</a>
       </div>
       <div class="preview-stats">
         <div><b id="previewSubs">N/A</b><span>Subscribers</span></div>
@@ -445,6 +460,11 @@
       </div>
       <div class="preview-rate" id="previewRate"></div>
       <div class="preview-contact" id="previewContact" hidden></div>
+      <div class="preview-action-row">
+        <button class="preview-add-btn" id="previewAddBtn">+ Add to Sheet</button>
+        <a class="preview-view-link" id="previewViewLink" target="_blank" rel="noopener" hidden>View in Sheet</a>
+      </div>
+      <div class="preview-action-status" id="previewActionStatus" hidden></div>
     </div>
 
     <div class="stat-grid">
