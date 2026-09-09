@@ -307,6 +307,27 @@ async function pullStats_(buttonEl) {
 // card's status line the commit step uses, so there's one place on the
 // Home tab errors show up rather than only a background notification.
 function notifyInline_(message) {
+  // The status line lives inside #previewCard, which starts `hidden` —
+  // un-hiding just the status line does nothing while its parent stays
+  // hidden (a hidden ancestor hides everything inside it regardless of
+  // the child's own hidden state). Real bug: a pullStats_ failure was
+  // generating this message correctly but it was never actually visible,
+  // making a real error look like "nothing happened."
+  document.getElementById('previewCard').hidden = false;
+  document.getElementById('previewAddBtn').hidden = true;
+  document.getElementById('previewViewLink').hidden = true;
+  // Clear any stats left over from a previous successful preview so an
+  // error never appears to sit alongside a different channel's numbers.
+  document.getElementById('previewGradeBadge').textContent = '?';
+  document.getElementById('previewGradeBadge').className = 'preview-grade';
+  document.getElementById('previewGradeLabel').textContent = '';
+  document.getElementById('previewConfidence').textContent = '';
+  document.getElementById('previewSubs').textContent = 'N/A';
+  document.getElementById('previewEngagement').textContent = 'N/A';
+  document.getElementById('previewViews').textContent = 'N/A';
+  document.getElementById('previewPosts').textContent = 'N/A';
+  document.getElementById('previewRate').innerHTML = '';
+  document.getElementById('previewContact').hidden = true;
   const status = document.getElementById('previewActionStatus');
   status.className = 'preview-action-status err';
   status.textContent = message;
