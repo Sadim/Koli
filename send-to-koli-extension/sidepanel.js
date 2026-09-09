@@ -207,7 +207,7 @@ document.getElementById('profileRunBtn').onclick = async () => {
   const lock = state.locks.youtube;
   const btn = document.getElementById('profileRunBtn');
   const result = document.getElementById('profileResult');
-  result.className = 'result-card'; result.style.display = 'none';
+  result.className = 'result-card'; result.removeAttribute('style');
 
   if (!lock || !lock.locked) {
     result.className = 'result-card err'; result.textContent = 'Lock a worksheet for YouTube first (Columns tab, or Settings).';
@@ -271,7 +271,7 @@ document.getElementById('discoverRunBtn').onclick = async () => {
   const lock = state.locks.youtube;
   const btn = document.getElementById('discoverRunBtn');
   const result = document.getElementById('discoverResult');
-  result.className = 'result-card'; result.style.display = 'none';
+  result.className = 'result-card'; result.removeAttribute('style');
 
   if (!lock || !lock.locked) {
     result.className = 'result-card err'; result.textContent = 'Lock a worksheet for YouTube first (Columns tab, or Settings).';
