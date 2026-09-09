@@ -249,7 +249,7 @@ document.getElementById('profileRunBtn').onclick = async () => {
   result.className = 'result-card'; result.removeAttribute('style');
 
   if (!lock || !lock.locked) {
-    result.className = 'result-card err'; result.textContent = 'Lock a worksheet for YouTube first (Columns tab, or Settings).';
+    result.className = 'result-card err'; result.textContent = 'Lock a worksheet for YouTube first (YouTube tab, or Settings).';
     return;
   }
   const channelInput = document.getElementById('profileInput').value.trim() || (currentTab && currentTab.url) || '';
@@ -297,6 +297,9 @@ document.querySelectorAll('#discoverTypeToggle button').forEach((btn) => {
     document.getElementById('discoverPostsRow').style.display = discoverType === 'channel' ? 'flex' : 'none';
   };
 });
+document.getElementById('discoverFViews').addEventListener('change', (e) => {
+  document.getElementById('discoverViewsRange').style.display = e.target.checked ? 'flex' : 'none';
+});
 document.getElementById('discoverCountMinus').onclick = () => {
   discoverCount = Math.max(1, discoverCount - 1);
   document.getElementById('discoverCountDisplay').textContent = String(discoverCount);
@@ -313,7 +316,7 @@ document.getElementById('discoverRunBtn').onclick = async () => {
   result.className = 'result-card'; result.removeAttribute('style');
 
   if (!lock || !lock.locked) {
-    result.className = 'result-card err'; result.textContent = 'Lock a worksheet for YouTube first (Columns tab, or Settings).';
+    result.className = 'result-card err'; result.textContent = 'Lock a worksheet for YouTube first (YouTube tab, or Settings).';
     return;
   }
   const seedInput = document.getElementById('discoverInput').value.trim() || (currentTab && currentTab.url) || '';
@@ -326,7 +329,9 @@ document.getElementById('discoverRunBtn').onclick = async () => {
     matchNiche: document.getElementById('discoverFNiche').checked,
     matchEngagement: document.getElementById('discoverFEngagement').checked,
     matchPostsPerMonth: document.getElementById('discoverFPosts').checked,
-    matchViews: document.getElementById('discoverFViews').checked
+    matchViews: document.getElementById('discoverFViews').checked,
+    viewsMin: Number(document.getElementById('discoverViewsMin').value) || 0,
+    viewsMax: Number(document.getElementById('discoverViewsMax').value) || 0
   };
 
   btn.disabled = true; btn.textContent = 'Running…';
@@ -367,7 +372,7 @@ async function logActivityLocal_(entry) {
 }
 
 // ==================================================================
-// Columns tab (Channels / Videos / Profile / Discover column editors)
+// YouTube tab (Channels / Videos / Profile / Discover column editors)
 // ==================================================================
 function renderColumnGrid(gridEl, columns, opts) {
   gridEl.innerHTML = '';

@@ -445,6 +445,10 @@
         <div class="chk-row"><input type="checkbox" id="discoverFEngagement" /><label for="discoverFEngagement">Engagement rate</label></div>
         <div class="chk-row" id="discoverPostsRow"><input type="checkbox" id="discoverFPosts" /><label for="discoverFPosts">Posts per month</label></div>
         <div class="chk-row"><input type="checkbox" id="discoverFViews" /><label for="discoverFViews">View range</label></div>
+        <div class="field-row" id="discoverViewsRange" style="display:none;margin:0 0 10px 21px;">
+          <div><input type="number" id="discoverViewsMin" placeholder="Min views" min="0" /></div>
+          <div><input type="number" id="discoverViewsMax" placeholder="Max views" min="0" /></div>
+        </div>
         <button class="run-btn" id="discoverRunBtn" style="margin-top:10px;"><svg width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="M7 4.5l13 7.5-13 7.5z"/></svg>Run Discover</button>
         <div class="result-card" id="discoverResult"></div>
       </div>
