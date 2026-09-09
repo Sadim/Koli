@@ -108,16 +108,51 @@ async function saveLocks() {
 }
 
 // ---------- Top tab switching ----------
-document.querySelectorAll('#mainTabs .tab').forEach((btn) => {
-  btn.onclick = () => {
-    document.querySelectorAll('#mainTabs .tab').forEach((b) => b.classList.remove('active'));
-    btn.classList.add('active');
-    ['home', 'columns', 'other', 'log'].forEach((name) => {
-      document.getElementById('panel-' + name).style.display = name === btn.dataset.tab ? 'block' : 'none';
-    });
-    if (btn.dataset.tab === 'log') renderLogTab();
-    if (btn.dataset.tab === 'home') refreshHomeTab();
-  };
+// Tab identity is 'home' | 'youtube' | 'log' for the three fixed tabs, or a
+// platform's own id (state.locks.other[i].id) for a dynamic platform tab —
+// one real tab per added platform, not a chip row inside a shared "Other
+// Platforms" tab like the popup-era design had. #platformTabsSlot holds
+// those dynamic buttons plus a trailing "+" to add another.
+let activeMainTab = 'home';
+
+function showMainTab_(key) {
+  activeMainTab = key;
+  const isPlatform = state.locks.other.some((p) => p.id === key);
+  const panelName = key === 'home' ? 'home' : key === 'youtube' ? 'youtube' : key === 'log' ? 'log' : 'other';
+  ['home', 'youtube', 'other', 'log'].forEach((name) => {
+    document.getElementById('panel-' + name).style.display = name === panelName ? 'block' : 'none';
+  });
+  renderTabBar_();
+  if (key === 'log') renderLogTab();
+  if (key === 'home') refreshHomeTab();
+  if (isPlatform) { activeOtherProfileId = key; renderOtherTab(); }
+}
+
+/** Rebuilds the dynamic platform tabs + "+" button, and syncs .active across every tab (static and dynamic). Called on every tab switch and whenever a platform is added/deleted. */
+function renderTabBar_() {
+  document.querySelectorAll('#mainTabs .tab[data-tab]').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.tab === activeMainTab);
+  });
+  const slot = document.getElementById('platformTabsSlot');
+  slot.innerHTML = '';
+  state.locks.other.forEach((p) => {
+    const btn = document.createElement('button');
+    btn.className = 'tab' + (p.id === activeMainTab ? ' active' : '');
+    btn.textContent = p.name;
+    btn.title = p.name;
+    btn.onclick = () => showMainTab_(p.id);
+    slot.appendChild(btn);
+  });
+  const addBtn = document.createElement('button');
+  addBtn.className = 'tab tab-add';
+  addBtn.title = 'Add a platform';
+  addBtn.textContent = '+';
+  addBtn.onclick = () => openAddPlatformModal();
+  slot.appendChild(addBtn);
+}
+
+document.querySelectorAll('#mainTabs .tab[data-tab]').forEach((btn) => {
+  btn.onclick = () => showMainTab_(btn.dataset.tab);
 });
 
 // ---------- Home / Settings screen switching ----------
@@ -484,40 +519,16 @@ function updateLockPill(pillEl, lock, defaultLabel) {
 }
 
 // ==================================================================
-// Other Platforms tab
+// Platform tabs — one shared panel (#panel-other), rendered for whichever
+// platform's own tab is active (activeOtherProfileId, set by showMainTab_).
 // ==================================================================
 function renderOtherTab() {
-  const row = document.getElementById('profileRow');
-  row.innerHTML = '';
-  state.locks.other.forEach((p) => {
-    const chip = document.createElement('button');
-    chip.className = 'profile-chip' + (p.id === activeOtherProfileId ? ' active' : '');
-    chip.textContent = p.name;
-    chip.onclick = () => { activeOtherProfileId = p.id; renderOtherTab(); };
-    row.appendChild(chip);
-  });
-  const addChip = document.createElement('button');
-  addChip.className = 'profile-chip add-new';
-  addChip.textContent = '+ Add platform';
-  addChip.onclick = () => openAddPlatformModal();
-  row.appendChild(addChip);
-
-  const hasProfiles = state.locks.other.length > 0;
-  document.getElementById('otherEmptyState').style.display = hasProfiles ? 'none' : 'block';
-  row.style.display = hasProfiles ? 'flex' : 'none';
-
-  if (hasProfiles && !state.locks.other.find((p) => p.id === activeOtherProfileId)) {
-    activeOtherProfileId = state.locks.other[0].id;
-  }
   const profile = state.locks.other.find((p) => p.id === activeOtherProfileId);
-  document.getElementById('otherProfileBody').style.display = profile ? 'block' : 'none';
-  if (!profile) return;
-
+  if (!profile) return; // no platform tab is the active one right now — nothing to render
   document.getElementById('otherProfileNameLabel').textContent = profile.name;
   renderColumnGrid(document.getElementById('otherColGrid'), profile.columns, { editable: true, indicatorId: 'otherAutosave' });
   updateLockPill(document.getElementById('otherLockPill'), profile, 'Prospects');
 }
-document.getElementById('addFirstProfileBtn').onclick = () => openAddPlatformModal();
 document.getElementById('otherLockPill').onclick = () => openLockModal(activeOtherProfileId);
 document.getElementById('otherAddColBtn').onclick = () => {
   const profile = state.locks.other.find((p) => p.id === activeOtherProfileId);
@@ -526,11 +537,12 @@ document.getElementById('otherAddColBtn').onclick = () => {
   autoSave('otherAutosave');
 };
 document.getElementById('deleteProfileLink').onclick = async () => {
-  if (!confirm('Delete this platform? Its column setup and worksheet lock will be removed.')) return;
+  const profile = state.locks.other.find((p) => p.id === activeOtherProfileId);
+  if (!profile || !confirm('Delete "' + profile.name + '"? Its column setup, worksheet lock, and tab will be removed.')) return;
   state.locks.other = state.locks.other.filter((p) => p.id !== activeOtherProfileId);
   activeOtherProfileId = null;
   await saveLocks();
-  renderOtherTab();
+  showMainTab_('youtube'); // the just-deleted tab no longer exists — fall back rather than leave a dead tab selected
 };
 
 function openAddPlatformModal() {
@@ -551,10 +563,9 @@ document.getElementById('addPlatformConfirm').onclick = async () => {
     name, locked: false, url: '', secret: '', tab: '', columns: CHANNEL_DEFAULT_COLUMNS.slice()
   };
   state.locks.other.push(profile);
-  activeOtherProfileId = profile.id;
   await saveLocks();
   document.getElementById('addPlatformModal').classList.remove('open');
-  renderOtherTab();
+  showMainTab_(profile.id); // jump straight to the new platform's own tab, now sitting right after YouTube
 };
 
 // ==================================================================
@@ -680,7 +691,7 @@ function renderSettingsScreen() {
   document.getElementById('ytSummaryTarget').textContent = yt.locked ? (yt.tab || 'Channels/Videos') : 'Not connected';
   document.getElementById('ytSummaryEdit').onclick = () => {
     showScreen('home');
-    document.querySelector('.tab[data-tab="columns"]').click();
+    showMainTab_('youtube');
     openLockModal('youtube');
   };
 
@@ -693,7 +704,7 @@ function renderSettingsScreen() {
       (p.locked ? escapeHtml(p.tab || 'Prospects') : 'Not connected') + '</div></div>';
     const btn = document.createElement('button');
     btn.textContent = 'Edit';
-    btn.onclick = () => { showScreen('home'); document.querySelector('.tab[data-tab="other"]').click(); activeOtherProfileId = p.id; renderOtherTab(); openLockModal(p.id); };
+    btn.onclick = () => { showScreen('home'); showMainTab_(p.id); openLockModal(p.id); };
     row.appendChild(btn);
     wrap.appendChild(row);
   });
@@ -794,6 +805,7 @@ function timeAgo(ts) {
 function escapeHtml(s) { return String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
 
 function refreshAllPanels() {
+  renderTabBar_(); // must run at least once even before any tab switch — this is what first populates the "+" add-platform button
   renderColumnsTab();
   renderOtherTab();
   refreshHomeTab();

@@ -25,11 +25,12 @@ browse instead of closing every time you click away.
    tap **"Fill in URL & secret from this code"** (or paste the URL/secret
    separately if you'd rather). Pick a destination tab if you don't want the
    default (Prospects). Tap **Test & Lock**.
-4. That's it for YouTube. Repeat for any other platform via the
-   **Other Platforms** tab → **+ Add platform** — each one gets its own
-   independent lock, so an Instagram profile can point at a completely
-   different worksheet (or a different tab in the same one) than YouTube,
-   and the two are guaranteed not to collide.
+4. That's it for YouTube. Repeat for any other platform by tapping the
+   **+** tab at the end of the tab bar — each named platform (Instagram,
+   TikTok, whatever) gets its own tab, right after YouTube, and its own
+   independent lock, so it can point at a completely different worksheet
+   (or a different tab in the same one) than YouTube, guaranteed not to
+   collide.
 
 ## Use it
 
@@ -41,9 +42,9 @@ browse instead of closing every time you click away.
 - Right-click anywhere on a page (no selection) → **Send this page to
   Worksheet → Channel** or **→ Video** — same explicit choice, for
   whichever page you're currently on.
-- Once you've added an Other-Platforms profile, a matching **"Send to
-  [Platform Name]"** item appears in the same right-click menu automatically
-  (still a single generic capture — no channel/video split for those yet).
+- Once you've added a platform, a matching **"Send to [Platform Name]"**
+  item appears in the same right-click menu automatically (still a single
+  generic capture — no channel/video split for those yet).
 - Or open the side panel's **Home** tab: it shows whatever page you're on
   (auto-classified as a YouTube channel/video where recognized) with a
   one-click send, plus **Profile** (pull one channel over a date range) and
@@ -58,13 +59,16 @@ browse instead of closing every time you click away.
   toggle) and a **Discover** mini-form (seed link, channel/video toggle,
   result count, match filters) — each posts straight to your Koli Web App
   and reports back inline.
-- **Columns tab**: a **Channels / Videos / Profile / Discover** switcher —
+- **YouTube tab**: a **Channels / Videos / Profile / Discover** switcher —
   each has its own real column layout, edited and applied independently.
   Drag to reorder or delete what you don't need; this only changes what
   the panel *shows* you until you tap Apply.
-- **Other Platforms tab**: one or more named profiles (Instagram, TikTok,
-  whatever), each with its own fully editable column set (starts pre-filled
-  from Channels' defaults, edit or delete freely) and its own worksheet lock.
+- **One tab per added platform** (Instagram, TikTok, whatever) — sits
+  right after the YouTube tab, in the order you added them. Each has its
+  own fully editable column set (starts pre-filled from Channels'
+  defaults, edit or delete freely) and its own worksheet lock. Tap **+**
+  at the end of the tab bar to add another; "Delete this platform" on a
+  platform's own tab removes it (and its tab) for good.
 - **Activity tab**: every send (including Profile/Discover runs), paginated,
   with the resolved name (YouTube page titles have " - YouTube" stripped
   automatically), which platform it went to, and quick view/delete actions

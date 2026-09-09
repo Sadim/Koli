@@ -71,10 +71,20 @@
   .hdr h1 { font-size: 17px; font-weight: 800; color: var(--navy); letter-spacing: -.01em; }
 
   /* ---------- Top tabs ---------- */
-  .tabs { display: flex; justify-content: center; gap: 20px; padding-top: 10px; border-bottom: 1px solid var(--border-soft); flex-shrink: 0; }
+  /* justify-content:flex-start + overflow-x:auto instead of a centered
+     fixed row — the tab count is no longer fixed (Home/YouTube/Activity
+     plus one tab per added platform plus "+"), so it needs to scroll
+     rather than wrap or overflow once there are more than a handful. */
+  .tabs {
+    display: flex; justify-content: flex-start; align-items: center; gap: 18px; padding: 10px 14px 0;
+    border-bottom: 1px solid var(--border-soft); flex-shrink: 0; overflow-x: auto; flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  #platformTabsSlot { display: contents; } /* lets its dynamically-inserted <button> children lay out as direct flex items of .tabs, not as one wrapped block */
   .tab {
     position: relative; font-size: 12px; font-weight: 600; color: var(--ink-300); padding: 4px 2px 11px;
-    cursor: pointer; background: none; border: none; transition: color .18s var(--ease);
+    cursor: pointer; background: none; border: none; transition: color .18s var(--ease); white-space: nowrap; flex-shrink: 0;
   }
   .tab:hover { color: var(--ink-500); }
   .tab.active { color: var(--ink-900); }
@@ -83,6 +93,8 @@
     height: 2.5px; border-radius: 2px; background: var(--teal); transition: transform .22s var(--ease-out);
   }
   .tab.active::after { transform: translateX(-50%) scaleX(1); }
+  .tab.tab-add { color: var(--teal-600); font-weight: 800; font-size: 14px; padding-bottom: 9px; }
+  .tab.tab-add::after { display: none; } /* an action, not a section — never shows the active underline */
 
   .body-scroll { flex: 1; overflow-y: auto; min-height: 0; }
   .screen { display: none; }
@@ -369,8 +381,8 @@
 <div class="screen active" id="screen-home">
   <div class="tabs" id="mainTabs">
     <button class="tab active" data-tab="home">Home</button>
-    <button class="tab" data-tab="columns">Columns</button>
-    <button class="tab" data-tab="other">Other Platforms</button>
+    <button class="tab" data-tab="youtube">YouTube</button>
+    <span id="platformTabsSlot"></span>
     <button class="tab" data-tab="log">Activity</button>
   </div>
 
@@ -441,8 +453,8 @@
     <div style="height:16px;"></div>
   </div>
 
-  <!-- Columns tab (Channels / Videos / Profile / Discover column editors) -->
-  <div class="tab-panel" id="panel-columns" style="display:none">
+  <!-- YouTube tab (Channels / Videos / Profile / Discover column editors) -->
+  <div class="tab-panel" id="panel-youtube" style="display:none">
     <p class="type-toggle-hint">Which sheet's columns are you editing? (What actually gets sent — Channel, Video, Profile, or Discover — is chosen from the Home tab or the right-click "Send to Worksheet" menu.)</p>
     <div class="profile-row" id="youtubeTypeToggle" style="padding-top:0;">
       <button class="profile-chip active" data-coltype="channel">Channels</button>
@@ -468,14 +480,9 @@
     </div>
   </div>
 
-  <!-- Other Platforms tab -->
+  <!-- Platform tab (one shared panel, rendered per-platform — the tab bar itself has one button per added platform, see #platformTabsSlot) -->
   <div class="tab-panel" id="panel-other" style="display:none">
-    <div class="profile-row" id="profileRow"></div>
-    <div id="otherEmptyState" class="no-profiles" style="display:none">
-      No platform profiles yet — Instagram, TikTok, wherever else you capture from.
-      <br><button id="addFirstProfileBtn">+ Add a platform</button>
-    </div>
-    <div id="otherProfileBody" style="display:none">
+    <div id="otherProfileBody">
       <div class="panelwrap">
         <div class="panel">
           <button class="lock-pill" id="otherLockPill"><span class="lock-icon">
