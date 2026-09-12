@@ -12,13 +12,34 @@
  * tune there if the balance feels wrong once there's real data to judge it against.
  */
 
-/** Batch-fetches views/likes/commentCount (+ publishedAt, carried through for date-windowed growth) for up to RECENT_VIDEOS_FOR_METRICS recent video IDs. */
+// YouTube's own Shorts length cap (as of the 2024 extension from 60s to
+// 3 minutes), plus a small buffer for rounding. Used to separate Shorts
+// from full-length videos in the metrics sample below: a sponsor rate is
+// for a full-video integration, and Shorts have a completely different
+// view/engagement profile (often much higher raw view counts, but not
+// comparable ad inventory), so mixing them into "average views" distorts
+// the estimate hard for any channel that posts both, in either direction.
+const SHORT_MAX_DURATION_SECONDS = 183;
+
+/** "PT4M13S" / "PT45S" / "PT1H2M3S" -> seconds. Returns 0 if unparseable (treated as "not a Short" by isLikelyShort_ below, the safer default). */
+function parseIso8601DurationSeconds_(iso) {
+  const m = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(String(iso || ''));
+  if (!m) return 0;
+  const hours = Number(m[1] || 0), minutes = Number(m[2] || 0), seconds = Number(m[3] || 0);
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+function isLikelyShort_(durationSeconds) {
+  return durationSeconds > 0 && durationSeconds <= SHORT_MAX_DURATION_SECONDS;
+}
+
+/** Batch-fetches views/likes/commentCount/duration (+ publishedAt, carried through for date-windowed growth) for up to RECENT_VIDEOS_FOR_METRICS recent video IDs. */
 function fetchRecentVideoStats_(recentVideos) {
   const sample = recentVideos.slice(0, RECENT_VIDEOS_FOR_METRICS);
   const ids = sample.map(function (v) { return v.videoId; });
   if (!ids.length) return [];
   const key = ytApiKey_();
-  const url = YT_API_BASE + '/videos?part=statistics&id=' + ids.join(',') + '&key=' + key;
+  const url = YT_API_BASE + '/videos?part=statistics,contentDetails&id=' + ids.join(',') + '&key=' + key;
   let data;
   try { data = ytFetch_(url); } catch (e) { return []; }
   if (!data.items) return [];
@@ -27,7 +48,8 @@ function fetchRecentVideoStats_(recentVideos) {
     statsById[item.id] = {
       views: Number(item.statistics.viewCount || 0),
       likes: Number(item.statistics.likeCount || 0),
-      comments: Number(item.statistics.commentCount || 0)
+      comments: Number(item.statistics.commentCount || 0),
+      durationSeconds: parseIso8601DurationSeconds_(item.contentDetails && item.contentDetails.duration)
     };
   });
   // Preserve recentVideos' newest-first order, dropping any video stats didn't return (private/deleted).
@@ -39,7 +61,11 @@ function fetchRecentVideoStats_(recentVideos) {
     .filter(function (v) { return statsById[v.videoId]; })
     .map(function (v) {
       const s = statsById[v.videoId];
-      return { videoId: v.videoId, title: v.title, description: v.description, views: s.views, likes: s.likes, comments: s.comments, publishedAt: v.publishedAt };
+      return {
+        videoId: v.videoId, title: v.title, description: v.description, views: s.views, likes: s.likes,
+        comments: s.comments, publishedAt: v.publishedAt, durationSeconds: s.durationSeconds,
+        isShort: isLikelyShort_(s.durationSeconds)
+      };
     });
 }
 
@@ -98,10 +124,16 @@ function computeGrowthScore_(stats) {
 }
 
 function computeChannelAggregates_(recentVideos) {
-  const stats = fetchRecentVideoStats_(recentVideos);
-  if (!stats.length) {
+  const allStats = fetchRecentVideoStats_(recentVideos);
+  if (!allStats.length) {
     return { avgViews: 0, avgLikes: 0, avgComments: 0, engagementRatio: 0, postingPattern: computePostingTimePattern_(recentVideos), growthScore: 50 };
   }
+  // Suggested rate and engagement are meant to describe a full-length
+  // video (what a sponsor integration actually buys); Shorts get folded
+  // back in only if a channel posts nothing else, so a Shorts-only
+  // channel still gets real numbers instead of an empty result.
+  const longFormStats = allStats.filter(function (v) { return !v.isShort; });
+  const stats = longFormStats.length ? longFormStats : allStats;
   const sum = function (key) { return stats.reduce(function (s, v) { return s + v[key]; }, 0); };
   const n = stats.length;
   const avgViews = Math.round(sum('views') / n);

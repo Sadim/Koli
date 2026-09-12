@@ -21,6 +21,15 @@ function parseChannelInput_(input) {
   if ((m = s.match(/youtube\.com\/@([\w.-]+)/))) return { type: 'handle', value: '@' + m[1] };
   if ((m = s.match(/youtube\.com\/c\/([\w.-]+)/))) return { type: 'legacy', value: m[1] };
   if ((m = s.match(/youtube\.com\/user\/([\w.-]+)/))) return { type: 'user', value: m[1] };
+
+  // A pasted VIDEO link/ID resolves to that video's own channel, rather
+  // than falling through to 'search' (which would search for a channel
+  // literally named after a video URL, and always fail -- this was the
+  // actual bug: Profile/Discover/anywhere else that accepts "a channel
+  // or video link" only ever handled the channel half).
+  const videoId = parseVideoInput_(s);
+  if (videoId) return { type: 'video', value: videoId };
+
   return { type: 'search', value: s.replace(/^@/, '') };
 }
 
@@ -96,6 +105,12 @@ function resolveChannelId(rawInput) {
     const key = ytApiKey_();
     let url;
     if (parsed.type === 'id') return parsed.value;
+    if (parsed.type === 'video') {
+      url = YT_API_BASE + '/videos?part=snippet&id=' + encodeURIComponent(parsed.value) + '&key=' + key;
+      const videoData = ytFetch_(url);
+      if (!videoData.items || !videoData.items.length) throw new Error('Video not found for "' + rawInput + '"');
+      return videoData.items[0].snippet.channelId;
+    }
     if (parsed.type === 'handle') {
       url = YT_API_BASE + '/channels?part=id&forHandle=' + encodeURIComponent(parsed.value.replace(/^@/, '')) + '&key=' + key;
     } else if (parsed.type === 'user') {

@@ -9,15 +9,27 @@
  */
 
 function showBrandFitScoreDialog() {
-  if (!hasPremiumAccess_()) { showUpgradeAlert_('Brand Fit Score'); return; }
-  const rows = getActiveChannelRows_();
-  if (!rows.length) {
-    SpreadsheetApp.getUi().alert('Select one or more rows on the Channels sheet first (click a cell, or drag/ctrl-click across several rows), then run this again.');
-    return;
+  // Wrapped end to end (unlike most show*Dialog functions, which only wrap
+  // their own risky step) specifically because this one has been throwing
+  // a raw, uncaught "You do not have permission to perform that action."
+  // straight from Apps Script's own platform toast -- which means it's
+  // failing somewhere in here before reaching any of our own error
+  // handling. e.stack (available on V8 runtime Error objects) can reveal
+  // the actual file/line even when e.message alone is this generic.
+  try {
+    if (!hasPremiumAccess_()) { showUpgradeAlert_('Brand Fit Score'); return; }
+    const rows = getActiveChannelRows_();
+    if (!rows.length) {
+      SpreadsheetApp.getUi().alert('Select one or more rows on the Channels sheet first (click a cell, or drag/ctrl-click across several rows), then run this again.');
+      return;
+    }
+    const t = HtmlService.createTemplateFromFile('BrandFitScoreDialog');
+    t.rows = rows;
+    SpreadsheetApp.getUi().showModalDialog(t.evaluate().setWidth(440).setHeight(600), 'Brand Fit Score');
+  } catch (e) {
+    console.error('[Koli] showBrandFitScoreDialog failed: ' + errMsg_(e) + (e && e.stack ? '\n' + e.stack : ''));
+    SpreadsheetApp.getUi().alert('Brand Fit Score failed', errMsg_(e) + (e && e.stack ? '\n\n' + e.stack : ''), SpreadsheetApp.getUi().ButtonSet.OK);
   }
-  const t = HtmlService.createTemplateFromFile('BrandFitScoreDialog');
-  t.rows = rows;
-  SpreadsheetApp.getUi().showModalDialog(t.evaluate().setWidth(440).setHeight(600), 'Brand Fit Score');
 }
 
 /**
@@ -43,14 +55,16 @@ function runBrandFitScores(rowsCsv, brief) {
         writeBrandFitRow_(sheet, rowData, brief, scored);
         return { name: scored.channelName, ok: true, score: Math.round(scored.composite), letter: scored.letter };
       } catch (e) {
-        return { name: rowData.name, ok: false, message: e.message };
+        console.error('[Koli] runBrandFitScores row ' + row + ' failed: ' + errMsg_(e) + (e && e.stack ? '\n' + e.stack : ''));
+        return { name: rowData.name, ok: false, message: errMsg_(e) };
       }
     });
 
     const link = SpreadsheetApp.getActiveSpreadsheet().getUrl() + '#gid=' + sheet.getSheetId();
     return { ok: true, results: results, link: link };
   } catch (e) {
-    return { ok: false, message: e.message };
+    console.error('[Koli] runBrandFitScores failed: ' + errMsg_(e) + (e && e.stack ? '\n' + e.stack : ''));
+    return { ok: false, message: errMsg_(e) };
   }
 }
 

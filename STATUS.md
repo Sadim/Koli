@@ -144,6 +144,42 @@ not something the test suite closes.
 
 ## Recent changelog
 
+- **2026-09-12: Brand Discovery shipped** (`brandDiscoveryService.gs`,
+  new) — the actual missing half of the acquisition pipeline: until now a
+  brand only entered Koli if you already knew its name or it happened to
+  already sponsor a tracked channel (Gap Analysis, itself bounded to
+  brands already in the Sponsors tab). Koli > Brand Intelligence >
+  Discover New Brands searches YouTube directly for a niche/keyword (no
+  seed channel required), scans the candidate videos' descriptions for
+  sponsor mentions in one merged Gemini call, and surfaces only brands
+  not already in Brand Targets or Sponsors — a genuine "what's new" feed,
+  not a re-listing of what Gap Analysis already finds. Deliberately
+  lighter than Discover/enrichVideo_: a dedicated snippet-only batch
+  fetch (`getVideoSnippetsBatch_`) skips comments and statistics
+  entirely, since this feature only ever reads title+description.
+  Premium-gated, same tier as Gap Analysis/Brand Fit Score. Untested
+  against a live account (no Google account in this environment) — the
+  usual caveat, test it for real before trusting it.
+- **2026-09-12: publishing prep for both stores, plus a batch of real bugs
+  found via live testing.** Chrome Web Store: 5 current screenshots
+  (replacing stale pre-rewrite ones), listing/privacy/terms text fixed up,
+  both legal docs now hosted at live URLs, full upload zip assembled.
+  Workspace Marketplace: `addOns` manifest block + a real (not stub)
+  CardService homepage card (`addOnHomepage.gs`), Koli's own Privacy
+  Policy/Terms (distinct from the extension's) hosted live, listing copy +
+  icon + 2 screenshots. Still open either way: the demo video and $5 fee
+  (account-holder only), and an explicit call on multi-client-installable
+  vs. public Marketplace listing (see ROADMAP.md's publishing checklist).
+  Real bugs found and fixed this round, now that live testing is
+  happening: `getActiveRangeList()` throwing "You do not have permission"
+  on a full-row selection (root cause of the Brand Fit Score/Shortlist
+  Report failures — fixed with a fallback to `getActiveRange()`); three
+  view-rebuild functions (`showAttentionView`, `showBrandView`,
+  `sendProfileSelectionToView`) losing the default font/format on every
+  `sheet.clear()` refresh; the About-page Links section (Facebook/
+  Instagram/a real business email) now feeding `findContact` alongside
+  the description-text parser, since the public YouTube API never
+  exposed that field at all.
 - **Premium-tier access-code gate live** (licenseService.gs): Gap
   Analysis, Brand Fit Score, Draft Outreach Email, every Export,
   Campaigns, Brand View, and the new **Profile View** (Koli > Export >

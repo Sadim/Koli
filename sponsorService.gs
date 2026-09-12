@@ -109,6 +109,100 @@ function findSponsorRow_(data, channelId, brand) {
   return -1;
 }
 
+/**
+ * Deliberately opt-in, not automatic on every sponsor detection: this
+ * makes one real Gemini call per brand and asks it to name a specific
+ * human decision-maker, which is exactly the kind of question an LLM
+ * will confidently answer wrong for a brand it doesn't have reliable
+ * knowledge of. The prompt explicitly gives permission to say "unknown"
+ * instead of inventing a plausible name, and the note written to the
+ * sheet repeats the "unverified, confirm independently" caveat
+ * regardless of what comes back -- undermining trust in Koli's outreach
+ * with one wrong name would cost more than this feature is worth.
+ */
+function researchSponsorContacts() {
+  if (!hasPremiumAccess_()) { showUpgradeAlert_('Research Sponsor Contacts'); return; }
+  const ui = SpreadsheetApp.getUi();
+  const sheet = SpreadsheetApp.getActiveSheet();
+  if (sheet.getName() !== SHEET_NAMES.SPONSORS) {
+    ui.alert('Select one or more rows on the Sponsors sheet first, then run this again.');
+    return;
+  }
+  const ranges = getActiveRangesSafe_();
+  const rows = new Set();
+  ranges.forEach(function (range) {
+    if (!range) return;
+    for (let r = range.getRow(); r < range.getRow() + range.getNumRows(); r++) { if (r >= 2) rows.add(r); }
+  });
+  if (!rows.size) {
+    ui.alert('Select one or more data rows on Sponsors first, then run this again.');
+    return;
+  }
+
+  let done = 0, failed = 0;
+  [...rows].sort(function (a, b) { return a - b; }).forEach(function (row) {
+    const brand = sheet.getRange(row, 3).getValue();
+    if (!brand || /^Unknown \(SponsorBlock-confirmed\)/.test(brand)) { failed++; return; }
+    try {
+      const research = researchBrandContacts_(brand);
+      sheet.getRange(row, 3).setNote(formatBrandContactsNote_(research));
+      done++;
+    } catch (e) {
+      failed++;
+    }
+  });
+  ui.alert('Researched ' + done + ' brand(s)' + (failed ? ', skipped ' + failed + ' (no usable brand name)' : '') + '. Check the note on each Brand cell.');
+}
+
+function researchBrandContacts_(brand) {
+  const prompt =
+    'You are researching public information about a company for a creator-partnerships agency deciding who to ' +
+    'contact about a sponsorship opportunity.\n\n' +
+    'Brand name: ' + brand + '\n\n' +
+    '1. If you have reliable knowledge of this company\'s official website domain, state it. If you are not ' +
+    'confident, say "unknown" rather than guessing a plausible-sounding domain.\n' +
+    '2. Name the ROLES most likely to own creator/influencer sponsorship decisions at a company like this (e.g. ' +
+    'CMO, Head of Marketing, Brand Partnerships Lead, Growth Marketing) -- general guidance for this type of ' +
+    'company, not a claim about specific people.\n' +
+    '3. ONLY if you have specific, reliable knowledge of a named individual CURRENTLY holding one of these roles ' +
+    'at THIS exact company, name them with their title and, if known, a public handle (X/Twitter, LinkedIn, etc) ' +
+    'they use professionally. People change jobs; if you are not confident this is current, do not include them. ' +
+    'If you have no specific, reliable knowledge of who currently holds these roles at this exact company, return ' +
+    'an empty list -- do NOT invent a plausible name.\n\n' +
+    'Respond as JSON: {"website": "... or unknown", "targetRoles": ["...", "..."], ' +
+    '"namedContacts": [{"name": "...", "title": "...", "handle": "... or none", "confidence": "low, medium, or high"}], ' +
+    '"note": "one honest sentence on how confident this information actually is"}';
+
+  const result = geminiCallJson_(prompt);
+  return {
+    brand: brand,
+    website: String(result.website || 'unknown').trim(),
+    targetRoles: Array.isArray(result.targetRoles) ? result.targetRoles : [],
+    namedContacts: Array.isArray(result.namedContacts) ? result.namedContacts : [],
+    note: String(result.note || '').trim()
+  };
+}
+
+function formatBrandContactsNote_(r) {
+  const lines = [];
+  lines.push('Website: ' + r.website);
+  lines.push('');
+  lines.push('Likely decision-maker roles for sponsorship: ' + (r.targetRoles.length ? r.targetRoles.join(', ') : 'n/a'));
+  lines.push('');
+  if (r.namedContacts.length) {
+    lines.push('Possible named contacts (UNVERIFIED -- confirm independently before reaching out):');
+    r.namedContacts.forEach(function (c) {
+      lines.push('- ' + c.name + ', ' + c.title + ' -- ' + (c.handle && c.handle !== 'none' ? c.handle : 'no public handle found') + ' (confidence: ' + c.confidence + ')');
+    });
+  } else {
+    lines.push('No specific named contact found with reliable confidence. Reach out via the general roles above instead.');
+  }
+  if (r.note) { lines.push(''); lines.push(r.note); }
+  lines.push('');
+  lines.push('Generated ' + Utilities.formatDate(new Date(), getTimezone_(), 'MMM d, yyyy') + '. AI-inferred, not sourced from a directory -- treat as a starting point, not a fact.');
+  return lines.join('\n');
+}
+
 function getSponsorsForChannel(channelId) {
   const sheet = getOrCreateSheet_(SHEET_NAMES.SPONSORS, SPONSOR_HEADERS);
   const data = sheet.getDataRange().getValues();

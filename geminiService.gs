@@ -92,7 +92,13 @@ function callGeminiJson_(prompt) {
       lastError = new Error('Gemini API ' + code);
       const suggested = code === 429 ? parseRetryDelayMs_(body) : null;
       const waitMs = suggested || (Math.pow(2, attempt) * 1000 + Math.floor(Math.random() * 300));
-      Utilities.sleep(Math.min(waitMs, 20000));
+      // Capped well under the ~30s window a synchronous Web App request
+      // (the extension's Pull Stats call) survives before the client
+      // sees a stale-connection HTML error instead of our JSON — a slow
+      // retry that "succeeds" past that window is indistinguishable from
+      // failure to the caller anyway, so failing fast with a real,
+      // visible error is strictly better than a silent multi-minute hang.
+      Utilities.sleep(Math.min(waitMs, 4000));
       attempt++; continue;
     }
     throw new Error('Gemini API ' + code + ': ' + body.slice(0, 300));
@@ -101,6 +107,61 @@ function callGeminiJson_(prompt) {
     throw new Error('Gemini API rate limit (429): your key\'s quota was still exceeded after retrying. ' +
       'This is common on free-tier Gemini keys under back-to-back requests. Wait a minute and try again, ' +
       'or check your tier at https://aistudio.google.com/apikey.');
+  }
+  throw lastError || new Error('Gemini API request failed after retries');
+}
+
+/**
+ * Multimodal variant of callGeminiJson_: same JSON-mode/retry shape, but
+ * sends an inline file (image or PDF, base64) alongside the prompt text
+ * -- Gemini's actual vision/document input, not just text. Used for Brand
+ * Kit enrichment (reading a PDF/image a brand sent and extracting
+ * structured fields from it), which a text-only prompt can't do at all.
+ * No Mistral/Groq fallback here: their OpenAI-compatible chat APIs would
+ * need a different multimodal payload shape per provider, not worth
+ * building until this is a real bottleneck rather than a single feature.
+ */
+function callGeminiVisionJson_(prompt, base64Data, mimeType) {
+  const key = geminiApiKey_();
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/' +
+    DEFAULTS.GEMINI_MODEL + ':generateContent?key=' + key;
+  const payload = {
+    contents: [{
+      parts: [
+        { text: prompt },
+        { inline_data: { mime_type: mimeType, data: base64Data } }
+      ]
+    }],
+    generationConfig: { temperature: 0.2, responseMimeType: 'application/json' }
+  };
+
+  let attempt = 0, lastError;
+  while (attempt < DEFAULTS.GEMINI_MAX_RETRIES) {
+    const resp = UrlFetchApp.fetch(url, {
+      method: 'post', contentType: 'application/json',
+      payload: JSON.stringify(payload), muteHttpExceptions: true
+    });
+    const code = resp.getResponseCode();
+    const body = resp.getContentText();
+
+    if (code === 200) {
+      try {
+        const data = JSON.parse(body);
+        const text = data.candidates[0].content.parts[0].text;
+        const cleaned = text.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+        return JSON.parse(cleaned);
+      } catch (e) {
+        throw new Error('Gemini returned unparseable JSON for this file: ' + e.message);
+      }
+    }
+    if (code === 429 || code >= 500) {
+      lastError = new Error('Gemini API ' + code);
+      const suggested = code === 429 ? parseRetryDelayMs_(body) : null;
+      const waitMs = suggested || (Math.pow(2, attempt) * 1000 + Math.floor(Math.random() * 300));
+      Utilities.sleep(Math.min(waitMs, 4000));
+      attempt++; continue;
+    }
+    throw new Error('Gemini API ' + code + ': ' + body.slice(0, 300));
   }
   throw lastError || new Error('Gemini API request failed after retries');
 }
@@ -132,7 +193,11 @@ function callGroqJson_(prompt) {
   const key = getProp_(PROP_KEYS.GROQ_API_KEY, '');
   if (!key) throw new Error('no key configured');
   const payload = {
-    model: 'llama-3.3-70b-versatile',
+    // llama-3.3-70b-versatile is Enterprise-tier on Groq: a standard key
+    // gets a 404 "does not exist or you do not have access to it" against
+    // it, not because the model is gone. gpt-oss-120b has no such tier
+    // restriction and is comparable in capability for JSON extraction.
+    model: 'openai/gpt-oss-120b',
     messages: [{ role: 'user', content: prompt }],
     response_format: { type: 'json_object' },
     temperature: 0.2

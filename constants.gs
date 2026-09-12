@@ -4,6 +4,43 @@
  * nothing else in the codebase hardcodes a header name or property key.
  */
 
+/**
+ * Every catch block in Koli assumes e.message is a real, non-empty string
+ * and surfaces it straight to the user (an alert, a Web App JSON response,
+ * a sheet error cell). That assumption breaks for a thrown non-Error value
+ * (a string, a plain object, a Google API error body re-thrown as-is) --
+ * e.message is then undefined, JSON.stringify drops the key entirely, and
+ * an extension card ends up showing a hardcoded generic fallback instead
+ * of anything that points at the real cause. This is the one place that
+ * guarantees a real string either way.
+ */
+function errMsg_(e) {
+  if (e && e.message) return e.message;
+  if (typeof e === 'string') return e;
+  try { return JSON.stringify(e); } catch (ignored) { return String(e); }
+}
+
+/**
+ * SpreadsheetApp.getActiveRangeList() has been observed to throw "You do
+ * not have permission to perform that action" for a plain row-header
+ * click (a full-row selection) even for a user who genuinely has edit
+ * rights -- confirmed via a real Apps Script stack trace. getActiveRange()
+ * alone (a single range, not a list) reliably succeeds for the same
+ * selection, so every selected-row feature (Brand Fit Score, Add Selected
+ * Sponsors to Brand Targets, Research Sponsor Contacts, ...) should read
+ * the active selection through this instead of calling
+ * getActiveRangeList() directly.
+ */
+function getActiveRangesSafe_() {
+  try {
+    const list = SpreadsheetApp.getActiveRangeList();
+    return list ? list.getRanges() : [SpreadsheetApp.getActiveRange()];
+  } catch (e) {
+    const single = SpreadsheetApp.getActiveRange();
+    return single ? [single] : [];
+  }
+}
+
 const SHEET_NAMES = {
   CHANNELS: 'Channels',
   VIDEOS: 'Videos',
@@ -20,13 +57,16 @@ const SHEET_NAMES = {
   CAMPAIGNS: 'Campaigns',
   BRAND_TARGETS: 'Brand Targets',
   GAP_ANALYSIS: 'Gap Analysis',
+  BRAND_DISCOVERY: 'Brand Discovery',
   OUTREACH_DRAFTS: 'Outreach Drafts',
   BRAND_FIT_SCORES: 'Brand Fit Scores',
   BRAND_VIEW: 'Brand View',
   PROFILE_VIEW: 'Profile View',
   ATTENTION: 'Attention',
   SNAPSHOTS: '_SubscriberSnapshots',       // hidden: sub-count log for New Subscribers diffing
-  TRACKED_PROFILES: '_TrackedProfiles'      // hidden: control sheet for Profile tracking
+  TRACKED_PROFILES: '_TrackedProfiles',      // hidden: control sheet for Profile tracking
+  PUBLISHED_PAGES: '_PublishedPages',        // hidden: token -> Drive file lookup for publishService.gs
+  EMAIL_OPENS: '_EmailOpens'                // hidden: tracking-pixel token -> open log
 };
 
 const INBOX_HEADERS = ['Status', 'Type', 'Value', 'Page Title', 'Source URL', 'Captured'];
@@ -41,7 +81,7 @@ const CAMPAIGN_STAGES = ['Briefed', 'In Production', 'Delivered', 'Payment Pendi
 // Outreach draft generator (Batch 3): one row per generated draft, not
 // one row per channel, since re-drafting a channel (new videos since last
 // time) should add a new attempt rather than overwrite the last one.
-const OUTREACH_DRAFT_HEADERS = ['Channel', 'Channel ID', 'Video Referenced', 'Subject', 'Email Body', 'Chars', 'Status', 'Generated'];
+const OUTREACH_DRAFT_HEADERS = ['Channel', 'Channel ID', 'Video Referenced', 'Subject', 'Email Body', 'Chars', 'Status', 'Generated', 'Sent Date', 'Last Reply', 'Reply Category', 'Reply Draft'];
 const OUTREACH_DRAFT_STATUSES = ['Draft', 'Reviewed', 'Sent'];
 
 // One row per (channel, brand) scoring event, not one row per channel:
@@ -59,7 +99,13 @@ const KEY_COL = {
 
 const CHANNEL_HEADERS = [
   'Status', 'Channel', 'ID', 'Niche', 'Posts/Mo', 'Contact', 'Subs', 'Avg Views',
-  'Post Times', 'Grade', 'Outreach', 'Last Contact', 'Notes', 'Report'
+  'Post Times', 'Grade', 'Outreach', 'Last Contact', 'Notes', 'Report',
+  // Appended, not inserted: writeChannelRow looks columns up by name against
+  // each sheet's actual header row, so these are additive for both brand-new
+  // sheets (created with this full list) and already-populated ones (backfilled
+  // by ensureChannelsExtraColumns_ in sheetWriter.gs) without reordering
+  // anything existing callers already depend on by position.
+  'Engagement %', 'Suggested Rate'
 ];
 
 // Grade weighting: growth matters most (rewards small channels with real
@@ -165,7 +211,7 @@ const DISCOVER_HEADERS = [
   'Type', 'Name', 'Channel', 'Subs/Views', 'Posts/Mo', 'Eng %', 'Match Score', 'Found Via'
 ];
 
-const SNAPSHOT_HEADERS = ['Channel ID', 'Date', 'Sub Count'];
+const SNAPSHOT_HEADERS = ['Channel ID', 'Date', 'Sub Count', 'Avg Views', 'Avg Likes', 'Avg Comments'];
 
 const TRACKED_PROFILE_HEADERS = ['Channel ID', 'Channel Name', 'Tracked', 'Start Date', 'Last Run'];
 
@@ -183,11 +229,14 @@ const PROP_KEYS = {
   ATTEMPT_SPONSOR_TIMESTAMP: 'ATTEMPT_SPONSOR_TIMESTAMP', // checkbox, default off: gates the caption-fuzzy-match fallback only; SponsorBlock-verified timestamps are free and always attempted
   INBOX_SHARED_SECRET: 'INBOX_SHARED_SECRET', // checked against the browser extension's POSTs
   REPORTS_FOLDER_ID: 'REPORTS_FOLDER_ID', // remembered once created: avoids needing to search Drive (see reportService.gs)
+  BRAND_KITS_FOLDER_ID: 'BRAND_KITS_FOLDER_ID', // same pattern, separate folder (see brandKitService.gs)
+  PUBLISHED_PAGES_FOLDER_ID: 'PUBLISHED_PAGES_FOLDER_ID', // same pattern, separate folder (see publishService.gs)
   MISTRAL_API_KEY: 'MISTRAL_API_KEY', // optional fallback when Gemini's own retries are exhausted
   GROQ_API_KEY: 'GROQ_API_KEY', // optional fallback, tried after Mistral
   TIMEZONE: 'TIMEZONE', // e.g. 'America/New_York', 'Etc/UTC': user-set, never assumed
   ACCESS_CODE: 'ACCESS_CODE', // premium-tier unlock: see licenseService.gs
-  DEFAULT_TARGET_REGIONS: 'DEFAULT_TARGET_REGIONS' // comma-joined ISO 3166-1 alpha-2 codes (e.g. "US,GB,CA,AU"): see discoverService.gs
+  DEFAULT_TARGET_REGIONS: 'DEFAULT_TARGET_REGIONS', // comma-joined ISO 3166-1 alpha-2 codes (e.g. "US,GB,CA,AU"): see discoverService.gs
+  WEB_APP_URL: 'WEB_APP_URL' // exec URL of the Web App deployment to use for the connection code; set explicitly because ScriptApp.getService().getUrl() is ambiguous once more than one deployment exists (see getConnectionCode_ in uiHandlers.gs)
 };
 
 // Bump with every shipped round: matches ROADMAP.md's "round N" numbering.
@@ -213,7 +262,8 @@ const DEFAULTS = {
   YOUTUBE_MAX_RETRIES: 4,
   DISCOVER_MAX_RESULTS: 5,
   DISCOVER_CANDIDATE_POOL: 15, // candidates scored before top N are kept
-  MATCH_MARGIN: 0.25 // +/-25% tolerance band on numeric filters, "not too strict"
+  MATCH_MARGIN: 0.25, // +/-25% tolerance band on numeric filters, "not too strict"
+  BRAND_DISCOVERY_MAX_CANDIDATES: 15 // videos scanned per run: one search.list call plus one merged Gemini call, same cost shape as Discover
 };
 
 const STATUS = {

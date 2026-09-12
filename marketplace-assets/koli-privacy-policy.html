@@ -1,0 +1,116 @@
+<title>Koli Privacy</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root {
+    --bg: #F7F6F3; --surface: #FFFFFF; --border: #E4E1D8; --border-soft: #EDEBE3;
+    --ink-900: #1C1D18; --ink-700: #33352C; --ink-500: #6B6D5F; --ink-300: #9A9C8D;
+    --green-700: #14532B; --green-600: #1E7A3D; --green-500: #2E9A52; --green-bg: #E8F3EB;
+    --amber-bg: #FBF3E3; --amber-ink: #7A5C1E;
+    --font-display: 'Source Serif 4', Georgia, serif; --font-body: 'Inter', -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14170F; --surface: #1A1E14; --border: #2C3024; --border-soft: #24281D;
+      --ink-900: #F0F1E8; --ink-700: #D3D5C4; --ink-500: #9A9C8B; --ink-300: #6B6D5C;
+      --green-700: #7FDA9F; --green-600: #5FC983; --green-500: #4CAE6F; --green-bg: #1B2C1F;
+      --amber-bg: #2E2716; --amber-ink: #E0BD74;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14170F; --surface: #1A1E14; --border: #2C3024; --border-soft: #24281D;
+    --ink-900: #F0F1E8; --ink-700: #D3D5C4; --ink-500: #9A9C8B; --ink-300: #6B6D5C;
+    --green-700: #7FDA9F; --green-600: #5FC983; --green-500: #4CAE6F; --green-bg: #1B2C1F;
+    --amber-bg: #2E2716; --amber-ink: #E0BD74;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--ink-700); font-family: var(--font-body); margin: 0; padding: 0 20px 80px; font-size: 16px; line-height: 1.65; }
+  a { color: var(--green-600); }
+  .wrap { max-width: 680px; margin: 0 auto; }
+  header.doc-head { display: flex; align-items: center; gap: 12px; padding: 36px 0 22px; border-bottom: 1px solid var(--border); margin-bottom: 34px; }
+  .mark { width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0; background: linear-gradient(155deg, var(--green-500), var(--green-700)); color: #fff; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 600; font-size: 16px; }
+  .head-text h1 { font-family: var(--font-display); font-size: 21px; font-weight: 600; margin: 0; color: var(--ink-900); }
+  .head-text .meta { font-size: 12.5px; color: var(--ink-500); margin-top: 2px; }
+  .draft-notice { background: var(--amber-bg); color: var(--amber-ink); border-radius: 10px; padding: 13px 16px; font-size: 13.5px; line-height: 1.55; margin-bottom: 36px; border: 1px solid color-mix(in srgb, var(--amber-ink) 25%, transparent); }
+  h1.title { font-family: var(--font-display); font-size: 34px; font-weight: 600; color: var(--ink-900); margin: 0 0 6px; letter-spacing: -.01em; }
+  .subtitle { font-size: 15px; color: var(--ink-500); margin-bottom: 40px; max-width: 52ch; }
+  nav.jumplist { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; padding: 16px 18px; background: var(--surface); border: 1px solid var(--border-soft); border-radius: 12px; margin-bottom: 44px; }
+  nav.jumplist a { color: var(--ink-500); text-decoration: none; font-weight: 500; }
+  nav.jumplist a:hover { color: var(--green-600); }
+  section { margin-bottom: 38px; scroll-margin-top: 20px; }
+  section h2 { font-family: var(--font-display); font-size: 19px; font-weight: 600; color: var(--ink-900); margin: 0 0 12px; }
+  section p, section li { font-size: 15.5px; color: var(--ink-700); }
+  section ul { margin: 10px 0; padding-left: 22px; }
+  section li { margin-bottom: 6px; }
+  section p { margin: 0 0 14px; }
+  code { font-family: var(--font-mono); font-size: 13px; background: var(--border-soft); padding: 1.5px 6px; border-radius: 5px; color: var(--ink-900); }
+  table.scopes { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 10px; }
+  table.scopes th, table.scopes td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border-soft); vertical-align: top; }
+  table.scopes th { color: var(--ink-500); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; }
+  .scopes-wrap { overflow-x: auto; }
+  .not-badge { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; margin-top: 4px; }
+  .not-badge div { display: flex; align-items: flex-start; gap: 8px; font-size: 14.5px; color: var(--ink-700); background: var(--green-bg); border-radius: 9px; padding: 10px 12px; }
+  .not-badge div::before { content: "\2713"; color: var(--green-600); font-weight: 700; flex-shrink: 0; }
+  footer.doc-foot { border-top: 1px solid var(--border); padding-top: 22px; margin-top: 10px; font-size: 13px; color: var(--ink-500); }
+  footer.doc-foot a { color: var(--ink-500); }
+  @media (max-width: 520px) { .not-badge { grid-template-columns: 1fr; } h1.title { font-size: 28px; } }
+</style>
+<div class="wrap">
+  <header class="doc-head">
+    <div class="mark">K</div>
+    <div class="head-text"><h1>Koli</h1><div class="meta">Google Sheets add-on for influencer-marketing research and outreach</div></div>
+  </header>
+  <div class="draft-notice">Draft: have this reviewed before publishing, same as any other legal document. This is a starting point, not a final policy.</div>
+  <h1 class="title">Privacy Policy</h1>
+  <p class="subtitle">Last updated September 12, 2026</p>
+  <nav class="jumplist">
+    <a href="#what">What Koli does</a><a href="#scopes">Access requested</a><a href="#stored">What's stored, and where</a>
+    <a href="#thirdparty">Third-party API calls</a><a href="#not">What Koli doesn't do</a><a href="#contact">Contact</a>
+  </nav>
+  <section id="what">
+    <h2>What Koli does</h2>
+    <p>Koli is a Google Sheets add-on for running an influencer-marketing agency's research and outreach: analyzing YouTube channels/videos, tracking sponsor activity, scoring brand fit, and drafting outreach emails, entirely inside a spreadsheet you own. Koli runs as Apps Script code attached to your own Google Sheet, under your own Google account. There is no separate company server: the developer of Koli does not operate any backend that your data passes through.</p>
+  </section>
+  <section id="scopes">
+    <h2>Access Koli requests, and why</h2>
+    <div class="scopes-wrap"><table class="scopes">
+      <tr><th>Scope</th><th>What it's used for</th></tr>
+      <tr><td><code>spreadsheets.currentonly</code></td><td>Read and write the one spreadsheet Koli is attached to &mdash; never any other spreadsheet in your Drive.</td></tr>
+      <tr><td><code>script.container.ui</code></td><td>Show Koli's menu, sidebar, and dialogs inside the Sheets UI.</td></tr>
+      <tr><td><code>script.external_request</code></td><td>Call the YouTube Data API and your chosen AI provider (Gemini/Mistral/Groq) using the API key(s) you enter in Settings.</td></tr>
+      <tr><td><code>userinfo.email</code></td><td>Identify which account is running Koli, for the license/trial check described below.</td></tr>
+      <tr><td><code>documents</code></td><td>Generate exported documents (Creator One-Pager, Deal Memo, Shortlist Report, Performance Report) as Google Docs you can edit.</td></tr>
+      <tr><td><code>drive.file</code></td><td>Save those generated documents/PDFs into a "Koli Reports" folder Koli creates in your Drive. This scope only ever sees files Koli itself creates &mdash; not your existing Drive contents.</td></tr>
+      <tr><td><code>script.send_mail</code></td><td>Send an outreach email on your behalf, and only when you explicitly click "Send Approved Drafts" after reviewing it. This scope can only send mail; it cannot read your inbox, contacts, or any existing message.</td></tr>
+    </table></div>
+  </section>
+  <section id="stored">
+    <h2>What's stored, and where</h2>
+    <p>Your YouTube/Gemini/Mistral/Groq API keys, and an optional premium access code, are stored in this spreadsheet's Apps Script Properties &mdash; a storage area tied to your own copy of the script, never transmitted to the developer or any third party except when used to call the API they belong to. A hashed (not plaintext) form of the access code, plus the date you first entered it, is stored the same way, solely to check trial/premium status locally.</p>
+    <p>Everything else Koli produces &mdash; channel/video analysis, sponsor records, outreach drafts, generated reports &mdash; is written directly into your own spreadsheet or your own Drive. None of it passes through, or is retained by, any server the developer operates.</p>
+  </section>
+  <section id="thirdparty">
+    <h2>Third-party API calls Koli makes on your behalf</h2>
+    <p>Using your own API key(s), Koli sends the following to external services strictly to produce the analysis you requested:</p>
+    <ul>
+      <li><strong>YouTube Data API</strong> (Google): channel/video IDs and public metadata (titles, descriptions, comments, statistics) &mdash; all already public information.</li>
+      <li><strong>Your chosen AI provider</strong> (Google Gemini, Mistral, or Groq): the same public channel/video text, sent for niche/authenticity/audience analysis.</li>
+      <li><strong>SponsorBlock</strong> and <strong>Reddit</strong> (public, unauthenticated endpoints): a video ID or channel name, to check for crowdsourced sponsor-segment data or brand-safety signals. No account or key is used for either.</li>
+    </ul>
+    <p>Koli does not control these third parties' own data practices; see their respective privacy policies for how they handle a request once it reaches them.</p>
+  </section>
+  <section id="not">
+    <h2>What Koli does NOT do</h2>
+    <div class="not-badge">
+      <div>Does not operate a server that receives or stores your data</div>
+      <div>Does not collect analytics or telemetry on your usage</div>
+      <div>Does not sell, share, or transmit your data to any third party beyond the API calls above</div>
+      <div>Does not read, send, or manage email beyond an explicit, per-send "Send Approved Drafts" click</div>
+    </div>
+  </section>
+  <section id="contact">
+    <h2>Contact</h2>
+    <p>Questions about this policy: <a href="mailto:mryaxx@gmail.com">mryaxx@gmail.com</a></p>
+  </section>
+  <footer class="doc-foot">Koli &middot; <a href="https://claude.ai/code/artifact/6c28865a-b06a-4ab3-8961-78cf84fdbe7a">Terms of Service</a></footer>
+</div>

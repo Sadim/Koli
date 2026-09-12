@@ -40,9 +40,22 @@
  */
 
 // Real, distributed codes go here as SHA-256 hashes: see hashAccessCode_
-// for how to generate one. Empty by default; nothing is unlockable until
-// you add real hashes before launch.
-const PREMIUM_ACCESS_CODE_HASHES = [];
+// for how to generate one. `trialDays: null` means it never expires (the
+// founder's own code); a number means access lapses that many days after
+// the code is FIRST entered on a given Sheet (tracked in that Sheet's own
+// Document Properties, under a key derived from the hash below -- so the
+// clock starts on first use, not on whenever this file happened to be
+// written). None of these are real, distributed codes yet: they exist so
+// premium features can be tested (and demoed on a time-boxed basis)
+// before any purchase flow exists. Remove them before real codes go out,
+// so none of them are a live backdoor.
+const PREMIUM_ACCESS_CODES = {
+  '6be17b5ff03b3a756407a515a5f0143b67b7f3d4fb8021747935d203a340a772': { trialDays: null }, // koli-founder-2026
+  '32690f272a9aebdae5b7ce87a9e6c3e251df4bc69ba1091d31699b04a54d4799': { trialDays: 15 },   // koli-trial-15
+  'c18ac3a73affa5cedab34c235b82373259663fef6a92de7e8088e4e9b38e2cc6': { trialDays: 30 },   // koli-trial-30
+  '24976d1fbedf9135f79fd88ec0b25e579b604c819cda654faada0b6adbc3672d': { trialDays: 60 },   // koli-trial-60
+  'dd1d98bc9818b2646ff7fd6ddbd8a16934657a530174b204cb5f7a9b674a2baf': { trialDays: 180 }    // koli-trial-180 (~6 months)
+};
 
 function hashAccessCode_(code) {
   const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(code || '').trim());
@@ -52,7 +65,70 @@ function hashAccessCode_(code) {
 function hasPremiumAccess_() {
   const code = getProp_(PROP_KEYS.ACCESS_CODE, '');
   if (!code) return false;
-  return PREMIUM_ACCESS_CODE_HASHES.indexOf(hashAccessCode_(code)) !== -1;
+
+  if (PAYMENT_VERIFICATION_ENABLED) {
+    return verifyGumroadLicense_(code);
+  }
+
+  const entry = PREMIUM_ACCESS_CODES[hashAccessCode_(code)];
+  if (!entry) return false;
+  if (entry.trialDays == null) return true;
+
+  const props = PropertiesService.getDocumentProperties();
+  const startKey = 'TRIAL_START_' + hashAccessCode_(code);
+  let startedAt = props.getProperty(startKey);
+  if (!startedAt) {
+    startedAt = String(Date.now());
+    props.setProperty(startKey, startedAt);
+  }
+  const elapsedDays = (Date.now() - Number(startedAt)) / (24 * 60 * 60 * 1000);
+  return elapsedDays <= entry.trialDays;
+}
+
+/**
+ * Payment collection: built now, dormant until activated. Flip
+ * PAYMENT_VERIFICATION_ENABLED to true once a real Gumroad product
+ * exists and GUMROAD_PRODUCT_ID is set to its real ID -- until then
+ * hasPremiumAccess_() never reaches this code at all, so nothing about
+ * today's working trial-code system changes by this being here.
+ *
+ * Gumroad chosen over Lemon Squeezy per the note above: same idea,
+ * either works, Gumroad's license-key API is a plain POST with no new
+ * OAuth scope needed (script.external_request already covers it).
+ *
+ * A subscription needs periodic re-verification, not a permanent grant
+ * (access has to be able to lapse on cancellation) -- a successful
+ * check is cached for GUMROAD_CACHE_HOURS so a cancelled subscription
+ * is caught within a day, and a transient Gumroad outage mid-session
+ * doesn't lock out someone who was already verified. A key that has
+ * NEVER been successfully verified fails closed on a network error
+ * (not silently granted) -- only an already-cached valid key survives
+ * an outage.
+ */
+const PAYMENT_VERIFICATION_ENABLED = false; // flip to true once GUMROAD_PRODUCT_ID below is real
+const GUMROAD_PRODUCT_ID = 'REPLACE_WITH_REAL_GUMROAD_PRODUCT_ID';
+const GUMROAD_CACHE_HOURS = 24;
+
+function verifyGumroadLicense_(licenseKey) {
+  const digestKey = 'gumroad_license_' + hashAccessCode_(licenseKey);
+  const cache = CacheService.getDocumentCache();
+  const cached = cache.get(digestKey);
+  if (cached === 'valid') return true;
+  if (cached === 'invalid') return false;
+
+  try {
+    const resp = UrlFetchApp.fetch('https://api.gumroad.com/v2/licenses/verify', {
+      method: 'post', muteHttpExceptions: true,
+      payload: { product_id: GUMROAD_PRODUCT_ID, license_key: licenseKey, increment_uses_count: 'false' }
+    });
+    const data = JSON.parse(resp.getContentText());
+    const purchase = data.purchase || {};
+    const valid = !!(data.success && !purchase.refunded && !purchase.chargebacked && !purchase.subscription_cancelled_at && !purchase.subscription_failed_at);
+    cache.put(digestKey, valid ? 'valid' : 'invalid', GUMROAD_CACHE_HOURS * 3600);
+    return valid;
+  } catch (e) {
+    return false; // never-verified key + unreachable Gumroad = denied, not granted
+  }
 }
 
 /**

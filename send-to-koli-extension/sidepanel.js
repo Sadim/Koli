@@ -220,7 +220,11 @@ async function refreshCurrentPageCard() {
     actionsEl.appendChild(pullBtn);
     actionsEl.appendChild(makeBtn('Send as Note', 'btn-outline', 'note'));
   } else if (kind === 'video') {
-    actionsEl.appendChild(makeBtn('Send as Video', 'btn-fill', 'video'));
+    const pullBtn = document.createElement('button');
+    pullBtn.className = 'btn-fill';
+    pullBtn.textContent = 'Pull Stats';
+    pullBtn.onclick = () => pullVideoStats_(pullBtn);
+    actionsEl.appendChild(pullBtn);
     actionsEl.appendChild(makeBtn('Send as Note', 'btn-outline', 'note'));
   } else {
     actionsEl.appendChild(makeBtn('Send as Note', 'btn-fill', 'note'));
@@ -262,10 +266,14 @@ const GRADE_LABELS = { A: 'Excellent', B: 'Good', C: 'Fair', D: 'Below average',
 // (uiHandlers.gs's previewChannelOne/commitChannelOne), so committing
 // doesn't re-run YouTube/Gemini calls a second time.
 let pendingPreviewChannelId = null;
+// Same idea, for a video-page "Pull Stats" preview (see pullVideoStats_).
+let pendingPreviewVideoId = null;
 
 function hidePreviewCard_() {
   document.getElementById('previewCard').hidden = true;
   pendingPreviewChannelId = null;
+  document.getElementById('videoPreviewCard').hidden = true;
+  pendingPreviewVideoId = null;
 }
 
 /**
@@ -396,6 +404,142 @@ function renderPreviewCard_(p, mode) {
   document.getElementById('previewActionStatus').hidden = true;
 
   card.hidden = false;
+}
+
+/**
+ * "Pull Stats" for a video page — mirrors pullStats_ (channel) exactly:
+ * analyzes WITHOUT writing anything to the Sheet, shows the result as a
+ * card with its own "Add to Sheet" action, posts directly to the Web App.
+ */
+async function pullVideoStats_(buttonEl) {
+  if (!currentTab || !currentTab.url) return;
+  const lock = state.locks.youtube;
+  if (!lock || !lock.locked) return;
+
+  const originalLabel = buttonEl.textContent;
+  buttonEl.disabled = true;
+  buttonEl.textContent = 'Analyzing…'; // a real YouTube + Gemini pass, genuinely several seconds
+  hidePreviewCard_();
+  try {
+    const resp = await fetch(lock.url, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ secret: lock.secret, action: 'preview_video', value: currentTab.url })
+    });
+    const data = await resp.json();
+    if (data.ok && data.preview) {
+      pendingPreviewVideoId = data.videoId;
+      renderVideoPreviewCard_(data.preview, 'preview');
+    } else {
+      notifyVideoInline_(data.error || 'Could not analyze this video.');
+    }
+  } catch (e) {
+    notifyVideoInline_('Could not reach your worksheet: ' + e.message);
+  } finally {
+    buttonEl.disabled = false; buttonEl.textContent = originalLabel;
+  }
+}
+
+// Same "a hidden ancestor hides everything inside it" fix as notifyInline_
+// (see its comment): the video card starts `hidden`, so un-hiding it here
+// is what actually makes a pullVideoStats_ failure visible.
+function notifyVideoInline_(message) {
+  document.getElementById('videoPreviewCard').hidden = false;
+  document.getElementById('videoPreviewAddBtn').hidden = true;
+  document.getElementById('videoPreviewViewLink').hidden = true;
+  document.getElementById('videoPreviewAuthBadge').textContent = '?';
+  document.getElementById('videoPreviewAuthBadge').className = 'preview-grade';
+  document.getElementById('videoPreviewTitle').textContent = '';
+  document.getElementById('videoPreviewSub').textContent = '';
+  document.getElementById('videoPreviewPostedLine').textContent = '';
+  ['Views', 'Likes', 'Comments', 'Engagement', 'NewSubs', 'Location', 'Age', 'Gender'].forEach((id) => {
+    document.getElementById('videoPreview' + id).textContent = 'N/A';
+  });
+  const status = document.getElementById('videoPreviewActionStatus');
+  status.className = 'preview-action-status err';
+  status.textContent = message;
+  status.hidden = false;
+}
+
+document.getElementById('videoPreviewAddBtn').onclick = async () => {
+  if (!pendingPreviewVideoId) return;
+  const lock = state.locks.youtube;
+  const btn = document.getElementById('videoPreviewAddBtn');
+  const status = document.getElementById('videoPreviewActionStatus');
+  status.hidden = true;
+  btn.disabled = true; btn.textContent = 'Adding…';
+  try {
+    const resp = await fetch(lock.url, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ secret: lock.secret, action: 'commit_video', videoId: pendingPreviewVideoId })
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      const resolvedName = data.title || pendingPreviewVideoId;
+      await logActivityLocal_({ type: 'video', value: pendingPreviewVideoId, resolvedName, profileLabel: 'YouTube', success: true, link: data.link });
+      await refreshStatTiles();
+      btn.hidden = true;
+      const viewLink = document.getElementById('videoPreviewViewLink');
+      if (data.link) { viewLink.href = data.link; viewLink.hidden = false; }
+      pendingPreviewVideoId = null;
+    } else {
+      status.className = 'preview-action-status err'; status.textContent = data.error || 'Could not add to sheet.'; status.hidden = false;
+    }
+  } catch (e) {
+    status.className = 'preview-action-status err'; status.textContent = 'Could not reach your worksheet: ' + e.message; status.hidden = false;
+  } finally {
+    btn.disabled = false; if (!btn.hidden) btn.textContent = '+ Add to Sheet';
+  }
+};
+
+const AUTH_BADGE_LABELS = { high: 'Likely authentic', mid: 'Mixed signal', low: 'Worth a closer look' };
+
+/** Renders a video analysis as a rich card (auth, views/likes/comments, engagement, audience) — same "always starts in preview state" pattern as renderPreviewCard_. */
+function renderVideoPreviewCard_(p, mode) {
+  const card = document.getElementById('videoPreviewCard');
+
+  const badge = document.getElementById('videoPreviewAuthBadge');
+  const authBand = p.authScore === null ? null : p.authScore >= 8 ? 'a' : p.authScore >= 6 ? 'b' : p.authScore >= 4 ? 'c' : 'd';
+  badge.textContent = p.authScore === null ? 'n/a' : p.authScore + '/10';
+  badge.className = 'preview-grade' + (authBand ? ' grade-' + authBand : '');
+  document.getElementById('videoPreviewTitle').textContent = p.title || 'Untitled video';
+  document.getElementById('videoPreviewSub').textContent = authBand
+    ? (AUTH_BADGE_LABELS[authBand === 'a' ? 'high' : authBand === 'd' ? 'low' : 'mid'])
+    : 'Comment authenticity unavailable';
+
+  document.getElementById('videoPreviewViews').textContent = formatCompactNumber_(p.views);
+  document.getElementById('videoPreviewEngagement').textContent = (typeof p.engagementRatio === 'number' ? p.engagementRatio.toFixed(1) : 'N/A') + '%';
+  document.getElementById('videoPreviewComments').textContent = formatCompactNumber_(p.commentCount);
+  document.getElementById('videoPreviewLikes').textContent = formatCompactNumber_(p.likes);
+  const published = p.publishedAt ? new Date(p.publishedAt) : null;
+  document.getElementById('videoPreviewPostedLine').textContent = published ? 'Posted ' + relativeOrDate_(published) : '';
+  document.getElementById('videoPreviewNewSubs').textContent = (p.newSubscribers === undefined || p.newSubscribers === null || p.newSubscribers === '') ? 'N/A' : String(p.newSubscribers);
+  document.getElementById('videoPreviewLocation').textContent = p.location || 'N/A';
+  document.getElementById('videoPreviewAge').textContent = p.age || 'N/A';
+  document.getElementById('videoPreviewGender').textContent = p.gender || 'N/A';
+
+  const addBtn = document.getElementById('videoPreviewAddBtn');
+  const viewLink = document.getElementById('videoPreviewViewLink');
+  addBtn.hidden = mode !== 'preview';
+  addBtn.disabled = false; addBtn.textContent = '+ Add to Sheet';
+  viewLink.hidden = true;
+  document.getElementById('videoPreviewActionStatus').hidden = true;
+
+  card.hidden = false;
+}
+
+// "Posted Fri, Sep 11" reads fine for anything older, but for a video
+// that just went up, the absolute date makes you do the math yourself --
+// relative phrasing for the first 24h is the whole point of a "just
+// happened" stat, so switch to it inside that window and fall back to the
+// date once relative time stops being useful (nobody thinks in "9 days ago").
+function relativeOrDate_(published) {
+  const diffMs = Date.now() - published.getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + ' min ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + ' hr' + (hrs === 1 ? '' : 's') + ' ago';
+  return published.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
 function formatCompactNumber_(n) {
@@ -1006,8 +1150,34 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   }
 });
 
+// ---------- Theme toggle ----------
+// Extension had no manual override, only prefers-color-scheme. chrome.storage.sync
+// keeps the choice in step with locks (same storage the rest of state uses) and
+// syncs it across the user's Chrome profiles, unlike localStorage.
+const THEME_KEY = 'koliTheme'; // 'light' | 'dark' | 'system' (default)
+function applyTheme_(choice) {
+  const root = document.documentElement;
+  if (choice === 'light' || choice === 'dark') root.setAttribute('data-theme', choice);
+  else root.removeAttribute('data-theme');
+  document.querySelectorAll('#themeSegment button').forEach((btn) => {
+    btn.classList.toggle('theme-choice-active', btn.dataset.themeChoice === (choice || 'system'));
+  });
+}
+async function initTheme_() {
+  const { koliTheme } = await chrome.storage.sync.get(THEME_KEY);
+  applyTheme_(koliTheme || 'system');
+  document.querySelectorAll('#themeSegment button').forEach((btn) => {
+    btn.onclick = async () => {
+      const choice = btn.dataset.themeChoice;
+      await chrome.storage.sync.set({ [THEME_KEY]: choice });
+      applyTheme_(choice);
+    };
+  });
+}
+
 // ---------- Init ----------
 (async () => {
   await loadState();
+  await initTheme_();
   refreshAllPanels();
 })();

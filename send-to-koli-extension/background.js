@@ -29,13 +29,13 @@
  */
 function rebuildContextMenus() {
   chrome.contextMenus.removeAll(() => {
-    chrome.contextMenus.create({ id: 'send-worksheet-link', title: 'Send to Worksheet', contexts: ['link'] });
+    chrome.contextMenus.create({ id: 'send-worksheet-link', title: 'Send to Koli', contexts: ['link'] });
     chrome.contextMenus.create({ id: 'send-link-channel', parentId: 'send-worksheet-link', title: 'Channel', contexts: ['link'] });
     chrome.contextMenus.create({ id: 'send-link-video', parentId: 'send-worksheet-link', title: 'Video', contexts: ['link'] });
 
     chrome.contextMenus.create({ id: 'send-selection-to-koli', title: 'Send selection to Koli as a note', contexts: ['selection'] });
 
-    chrome.contextMenus.create({ id: 'send-worksheet-page', title: 'Send this page to Worksheet', contexts: ['page'] });
+    chrome.contextMenus.create({ id: 'send-worksheet-page', title: 'Send this page to Koli', contexts: ['page'] });
     chrome.contextMenus.create({ id: 'send-page-channel', parentId: 'send-worksheet-page', title: 'Channel', contexts: ['page'] });
     chrome.contextMenus.create({ id: 'send-page-video', parentId: 'send-worksheet-page', title: 'Video', contexts: ['page'] });
 

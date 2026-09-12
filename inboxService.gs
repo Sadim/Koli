@@ -52,7 +52,8 @@ function doPost(e) {
 
     return jsonResponse_(routeWebAppAction_(body.action || 'capture', body));
   } catch (err) {
-    return jsonResponse_({ ok: false, error: err.message });
+    console.error('[Koli] doPost failed: ' + errMsg_(err));
+    return jsonResponse_({ ok: false, error: errMsg_(err) });
   }
 }
 
@@ -100,6 +101,18 @@ function routeWebAppAction_(action, body) {
       // re-fetched or re-run through Gemini a second time.
       if (!body.channelId) return { ok: false, error: 'Missing channelId.' };
       return commitChannelOne(body.channelId);
+    }
+
+    case 'preview_video': {
+      // "Pull stats" for a video page — same look-first-decide-later flow
+      // as preview_channel. Writes nothing; see commit_video.
+      if (!body.value) return { ok: false, error: 'Missing value.' };
+      return previewVideoOne(body.value);
+    }
+
+    case 'commit_video': {
+      if (!body.videoId) return { ok: false, error: 'Missing videoId.' };
+      return commitVideoOne(body.videoId);
     }
 
     case 'analyze_channel':
@@ -174,8 +187,36 @@ function routeWebAppAction_(action, body) {
   }
 }
 
-/** Reachability check: also returns the spreadsheet's name/URL, useful once there's more than one saved connection to tell apart. */
+/**
+ * Three things share this one GET endpoint, checked in order:
+ * 1. `track=<token>`: an email-open tracking pixel (emailTrackingService.gs) --
+ *    returns a real 1x1 GIF, not JSON, so it has to be checked before
+ *    anything else tries to respond with text.
+ * 2. `p=<token>`: a published page (publishService.gs) -- a brand-safe
+ *    static snapshot, served without exposing this spreadsheet at all.
+ * 3. Neither: the original reachability check (also returns the
+ *    spreadsheet's name/URL, useful once there's more than one saved
+ *    connection to tell apart).
+ */
 function doGet(e) {
+  const params = (e && e.parameter) || {};
+
+  if (params.track) {
+    try { recordEmailOpen_(params.track); } catch (err) { /* a broken tracking log must never break the pixel itself */ }
+    return trackingPixelResponse_();
+  }
+
+  if (params.p) {
+    try {
+      const page = lookupPublishedPage_(params.p);
+      if (!page) return HtmlService.createHtmlOutput('<p>This page is no longer available.</p>');
+      const file = DriveApp.getFileById(page.fileId);
+      return HtmlService.createHtmlOutput(file.getBlob().getDataAsString('UTF-8'));
+    } catch (err) {
+      return HtmlService.createHtmlOutput('<p>This page is no longer available.</p>');
+    }
+  }
+
   let name = '', url = '';
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();

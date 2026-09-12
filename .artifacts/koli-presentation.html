@@ -1,0 +1,655 @@
+<title>The Case for Koli</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --paper: #EDEFF2;
+    --paper-raised: #F8F9FB;
+    --ink: #1B2340;
+    --ink-soft: #545B78;
+    --ink-faint: #8489A3;
+    --line: #CBD0DC;
+    --line-soft: #DBDFE7;
+    --gold: #A66B24;
+    --gold-ink: #7A4E1A;
+    --gold-soft: #F1E4CD;
+    --good: #3F7D53;
+    --mid: #A66B24;
+    --low: #B04A3B;
+    --shadow: 0 1px 2px rgba(27,35,64,0.06), 0 8px 24px -12px rgba(27,35,64,0.14);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #14161F;
+      --paper-raised: #1B1E2B;
+      --ink: #E8E9EF;
+      --ink-soft: #AEB3CB;
+      --ink-faint: #767C99;
+      --line: #33384E;
+      --line-soft: #262A3B;
+      --gold: #D9A552;
+      --gold-ink: #E7BE79;
+      --gold-soft: #362A18;
+      --good: #5FA97A;
+      --mid: #D9A552;
+      --low: #D97F6E;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 32px -14px rgba(0,0,0,0.55);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #14161F;
+    --paper-raised: #1B1E2B;
+    --ink: #E8E9EF;
+    --ink-soft: #AEB3CB;
+    --ink-faint: #767C99;
+    --line: #33384E;
+    --line-soft: #262A3B;
+    --gold: #D9A552;
+    --gold-ink: #E7BE79;
+    --gold-soft: #362A18;
+    --good: #5FA97A;
+    --mid: #D9A552;
+    --low: #D97F6E;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 32px -14px rgba(0,0,0,0.55);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Public Sans', system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  ::selection { background: var(--gold-soft); color: var(--gold-ink); }
+  a { color: var(--gold-ink); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  .sheet {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 72px 28px 96px;
+  }
+
+  /* ---------- Masthead ---------- */
+  .mast {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 48px;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .mast .mark { color: var(--ink); font-weight: 600; }
+
+  h1.title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-optical-sizing: auto;
+    font-weight: 600;
+    font-size: clamp(2.4rem, 5.4vw, 3.6rem);
+    line-height: 1.04;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+    margin: 0 0 20px;
+    color: var(--ink);
+  }
+  .thesis {
+    font-size: 1.2rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    max-width: 34em;
+    text-wrap: balance;
+    margin: 0 0 28px;
+  }
+  .thesis em { font-style: normal; color: var(--ink); font-weight: 600; }
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 22px;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 12.5px;
+    color: var(--ink-faint);
+  }
+  .meta-row span b { color: var(--ink-soft); font-weight: 500; }
+
+  /* ---------- Section scaffolding ---------- */
+  section { margin-top: 68px; }
+  section:first-of-type { margin-top: 0; }
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .eyebrow .ref {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--gold-ink);
+    background: var(--gold-soft);
+    border-radius: 4px;
+    padding: 3px 7px;
+    flex-shrink: 0;
+  }
+  .eyebrow .rule { flex: 1; height: 1px; background: var(--line); }
+  h2 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.7rem;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    margin: 0 0 16px;
+    color: var(--ink);
+  }
+  section > p { margin: 0 0 16px; max-width: 62ch; color: var(--ink-soft); }
+  section > p:last-child { margin-bottom: 0; }
+  section > p b, section > p strong { color: var(--ink); font-weight: 600; }
+
+  /* ---------- Problem list ---------- */
+  .problem-list { display: flex; flex-direction: column; gap: 22px; margin-top: 22px; }
+  .problem-item {
+    display: grid;
+    grid-template-columns: 26px 1fr;
+    gap: 14px;
+    align-items: baseline;
+  }
+  .problem-item .glyph {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    color: var(--ink-faint);
+    font-size: 13px;
+  }
+  .problem-item h3 {
+    font-family: 'Public Sans', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    margin: 0 0 4px;
+    color: var(--ink);
+  }
+  .problem-item p { margin: 0; color: var(--ink-soft); max-width: 58ch; }
+
+  /* ---------- Audience row ---------- */
+  .audience-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 22px;
+  }
+  .audience-card {
+    background: var(--paper-raised);
+    padding: 20px 18px;
+  }
+  .audience-card .who {
+    font-family: 'Public Sans', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin: 0 0 6px;
+    color: var(--ink);
+  }
+  .audience-card p { margin: 0; font-size: 0.88rem; color: var(--ink-soft); }
+
+  /* ---------- Feature grid ---------- */
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 14px;
+    margin-top: 22px;
+  }
+  .feature {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px 16px 18px;
+    background: var(--paper-raised);
+  }
+  .feature .tag {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    display: block;
+    margin-bottom: 8px;
+  }
+  .feature h4 {
+    font-family: 'Public Sans', sans-serif;
+    font-weight: 700;
+    font-size: 0.94rem;
+    margin: 0 0 6px;
+    color: var(--ink);
+  }
+  .feature p { margin: 0; font-size: 0.85rem; color: var(--ink-soft); line-height: 1.5; }
+
+  /* ---------- Standout features (editorial list) ---------- */
+  .standout { display: flex; flex-direction: column; }
+  .standout-item {
+    display: grid;
+    grid-template-columns: 168px 1fr;
+    gap: 24px;
+    padding: 22px 0;
+    border-top: 1px solid var(--line-soft);
+  }
+  .standout-item:last-child { border-bottom: 1px solid var(--line-soft); }
+  .standout-item .label {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.02rem;
+    color: var(--ink);
+    line-height: 1.3;
+    text-wrap: balance;
+  }
+  .standout-item .desc { color: var(--ink-soft); max-width: 54ch; }
+  .standout-item .desc b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- Product proof card ---------- */
+  .proof-wrap {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 28px;
+    align-items: start;
+    margin-top: 22px;
+  }
+  .proof-note { color: var(--ink-soft); font-size: 0.94rem; }
+  .proof-note .stamp {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--good);
+    background: color-mix(in srgb, var(--good) 14%, transparent);
+    border-radius: 4px;
+    padding: 3px 8px;
+    margin-bottom: 14px;
+  }
+  .proof-note .stamp::before { content: "●"; font-size: 8px; }
+  .proof-card {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--paper-raised);
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+  .proof-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .proof-grade {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: color-mix(in srgb, var(--mid) 16%, var(--paper-raised));
+    color: var(--mid);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+  .proof-head .chan { font-weight: 700; font-size: 0.98rem; color: var(--ink); }
+  .proof-head .sub { font-size: 0.8rem; color: var(--ink-faint); }
+  .proof-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 18px;
+    padding: 16px 0;
+    border-top: 1px solid var(--line-soft);
+    border-bottom: 1px solid var(--line-soft);
+    margin-bottom: 14px;
+  }
+  .proof-stats .stat b {
+    display: block;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .proof-stats .stat span { font-size: 0.76rem; color: var(--ink-faint); }
+  .proof-rate { font-size: 0.85rem; color: var(--ink-soft); }
+  .proof-rate b { color: var(--gold-ink); font-variant-numeric: tabular-nums; }
+
+  /* ---------- Comparison table ---------- */
+  .table-scroll { overflow-x: auto; margin-top: 22px; border: 1px solid var(--line); border-radius: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.86rem; min-width: 640px; }
+  thead th {
+    text-align: left;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    background: var(--paper-raised);
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  tbody td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line-soft);
+    color: var(--ink-soft);
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr.self td { background: color-mix(in srgb, var(--gold) 7%, transparent); }
+  td.who { color: var(--ink); font-weight: 600; }
+  td.who .sub { display: block; font-weight: 400; color: var(--ink-faint); font-size: 0.78rem; margin-top: 2px; }
+
+  /* ---------- Horizons ---------- */
+  .horizons { display: flex; flex-direction: column; gap: 0; margin-top: 22px; }
+  .horizon {
+    padding: 24px 0;
+    border-top: 1px solid var(--line-soft);
+  }
+  .horizon:last-child { padding-bottom: 0; }
+  .horizon-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+  .horizon-num {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 12px; color: var(--ink-faint);
+  }
+  .horizon h3 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600; font-size: 1.12rem; margin: 0; color: var(--ink);
+  }
+  .horizon p { margin: 0; color: var(--ink-soft); max-width: 62ch; }
+  .horizon ul { margin: 10px 0 0; padding-left: 18px; color: var(--ink-soft); }
+  .horizon li { margin-bottom: 4px; }
+  .horizon li b { color: var(--ink); font-weight: 600; }
+
+  blockquote {
+    margin: 28px 0 0;
+    padding: 18px 22px;
+    border-left: 3px solid var(--gold);
+    background: var(--gold-soft);
+    border-radius: 0 8px 8px 0;
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-size: 1.05rem;
+    color: var(--gold-ink);
+    line-height: 1.5;
+  }
+
+  footer {
+    margin-top: 72px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11.5px;
+    color: var(--ink-faint);
+  }
+
+  @media (max-width: 700px) {
+    .sheet { padding: 48px 20px 64px; }
+    .proof-wrap { grid-template-columns: 1fr; }
+    .standout-item { grid-template-columns: 1fr; gap: 6px; }
+    .mast { flex-direction: column; align-items: flex-start; gap: 4px; }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    section { animation: rise 0.5s ease-out both; }
+    section:nth-of-type(1) { animation-delay: 0s; }
+    section:nth-of-type(2) { animation-delay: 0.03s; }
+  }
+  @keyframes rise { from { opacity: 0.001; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  @media (prefers-reduced-motion: reduce) { section { animation: none; } }
+</style>
+
+<div class="sheet">
+
+  <div class="mast">
+    <span class="mark">Koli</span>
+    <span>Product memo · September 2026</span>
+  </div>
+
+  <h1 class="title">The case for Koli</h1>
+  <p class="thesis">A creator-marketing agency run out of the spreadsheet you already know how to use — built for the <em>boutique operators</em> that enterprise influencer platforms were never priced, or built, for.</p>
+  <div class="meta-row">
+    <span>Runs on <b>Google Sheets + Apps Script</b></span>
+    <span>Paired with <b>Send to Koli</b>, a Chrome extension</span>
+    <span>Distributed by <b>Make a copy</b>, not install</span>
+  </div>
+
+  <section>
+    <div class="eyebrow"><span class="ref">A1</span><span class="rule"></span></div>
+    <h2>What Koli is</h2>
+    <p>Koli is a full influencer-marketing operations layer built directly inside a Google Sheet. There's no dashboard to log into and no database to trust with your creator relationships: the Sheet <b>is</b> the product. Every channel you vet, every grade computed, every sponsor mention detected, every outreach draft written lands in cells you can sort, filter, share, and export the moment they're written — because they always were just cells.</p>
+    <p>A companion Chrome extension, <b>Send to Koli</b>, extends that same Sheet out onto the open web: right-click a YouTube channel anywhere you find one, pull a live grade-and-stats preview, and commit it to your tracked list without ever leaving the tab you were already on.</p>
+  </section>
+
+  <section>
+    <div class="eyebrow"><span class="ref">B1</span><span class="rule"></span></div>
+    <h2>The problem it's solving</h2>
+    <div class="problem-list">
+      <div class="problem-item">
+        <span class="glyph">01</span>
+        <div>
+          <h3>Vetting a creator by hand doesn't scale past a handful a week</h3>
+          <p>Checking real engagement, posting cadence, past sponsors, and audience fit means opening a dozen tabs per channel. Most of that work is mechanical — it just hasn't been automated for anyone below enterprise scale.</p>
+        </div>
+      </div>
+      <div class="problem-item">
+        <span class="glyph">02</span>
+        <div>
+          <h3>The tools that automate it are priced for teams that don't exist yet</h3>
+          <p>Platforms built for this — CreatorIQ, Grin, Aspire — sell to brand marketing departments with dedicated budget and a procurement process. A one-person talent manager or a three-person boutique agency is not who those contracts are written for.</p>
+        </div>
+      </div>
+      <div class="problem-item">
+        <span class="glyph">03</span>
+        <div>
+          <h3>Generic outreach gets deleted, and AI has made it worse, not better</h3>
+          <p>Creators now get more AI-drafted pitches than ever, and they can tell. An email that opens with "I hope this finds you well" and cites a subscriber count is competing with a flood of identical ones — the bar for sounding like you actually watch the channel just went up.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow"><span class="ref">C1</span><span class="rule"></span></div>
+    <h2>Who it's for</h2>
+    <div class="audience-grid">
+      <div class="audience-card">
+        <p class="who">Boutique creator-partnership agencies</p>
+        <p>Small teams running deal flow for a real roster of creators, without an ops department to build internal tooling.</p>
+      </div>
+      <div class="audience-card">
+        <p class="who">Solo & independent talent managers</p>
+        <p>One person handling vetting, outreach, and deal tracking end to end — the exact user an enterprise seat price prices out.</p>
+      </div>
+      <div class="audience-card">
+        <p class="who">In-house brand partnerships, small teams</p>
+        <p>A brand sourcing and managing its own creator relationships directly, before it's big enough to justify a CreatorIQ contract.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow"><span class="ref">D1</span><span class="rule"></span></div>
+    <h2>What it does</h2>
+    <p>One data layer, covering the full loop from finding a creator to closing a deal:</p>
+    <div class="feature-grid">
+      <div class="feature">
+        <span class="tag">Vetting</span>
+        <h4>Channel / Video / Profile analysis</h4>
+        <p>Pulls real stats, computes an A–F grade, estimates a fair sponsor rate, and finds a contact — for a single channel or in bulk.</p>
+      </div>
+      <div class="feature">
+        <span class="tag">Sourcing</span>
+        <h4>Discover</h4>
+        <p>Finds new candidate creators by niche, region, engagement, and posting cadence — not just whoever you already know about.</p>
+      </div>
+      <div class="feature">
+        <span class="tag">Triage</span>
+        <h4>Attention</h4>
+        <p>One view of what actually needs a decision today: stale follow-ups, fresh sponsor activity, high-grade creators nobody's pitched.</p>
+      </div>
+      <div class="feature">
+        <span class="tag">Intelligence</span>
+        <h4>Sponsor tracking</h4>
+        <p>Detects brand mentions in a creator's own videos automatically, with timestamped evidence — no manual watching required.</p>
+      </div>
+      <div class="feature">
+        <span class="tag">Strategy</span>
+        <h4>Brand Targets & Gap Analysis</h4>
+        <p>Tracks the brands you represent and surfaces which of your creators haven't been pitched to a given brand yet.</p>
+      </div>
+      <div class="feature">
+        <span class="tag">Pipeline</span>
+        <h4>Campaigns</h4>
+        <p>Tracks a deal from briefed through paid, staged like any sales pipeline, tied back to the creator it's for.</p>
+      </div>
+      <div class="feature">
+        <span class="tag">Outreach</span>
+        <h4>Draft generator</h4>
+        <p>Writes a personalized cold email hooked on a real, specific detail from the creator's own recent work.</p>
+      </div>
+      <div class="feature">
+        <span class="tag">Delivery</span>
+        <h4>Exports</h4>
+        <p>Creator One-Pager, Deal Memo, and Performance Report — client-ready documents pulled straight from tracked data.</p>
+      </div>
+      <div class="feature">
+        <span class="tag">Capture</span>
+        <h4>Send to Koli extension</h4>
+        <p>Pulls a live grade-and-stats preview on any channel you're browsing, and adds it to the Sheet in one click.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow"><span class="ref">E1</span><span class="rule"></span></div>
+    <h2>What actually sets it apart</h2>
+    <div class="standout">
+      <div class="standout-item">
+        <div class="label">The hook comes from a real rewatch spike</div>
+        <div class="desc">Outreach emails don't sample a transcript at random — they're built around the exact moment YouTube's own "Most Replayed" heatmap shows a creator's audience actually rewound to watch again. <b>That's evidence something specific landed</b>, not a guess at what might be interesting.</div>
+      </div>
+      <div class="standout-item">
+        <div class="label">A prompt engineered against sounding like AI</div>
+        <div class="desc">The draft generator runs against an explicit, growing list of banned tells — em dashes as connectors, "I hope this finds you well," "resonate," "elevate," a direct ask for a reply — because a pitch that reads as AI-written is worse than no pitch at all in a 2026 inbox.</div>
+      </div>
+      <div class="standout-item">
+        <div class="label">Sponsor history, without watching a single video</div>
+        <div class="desc">Brand mentions are pulled automatically from a creator's caption transcripts and cross-referenced against known sponsor segments, with a timestamp as evidence — turning what used to be an afternoon of manual scrubbing into a background pass.</div>
+      </div>
+      <div class="standout-item">
+        <div class="label">A grade that's declared, not dressed up as standard</div>
+        <div class="desc">Koli's A–F score is stated plainly as its own formula — growth momentum weighted highest, comment authenticity second, audience-tier a smaller bonus — not marketed as an industry benchmark it isn't.</div>
+      </div>
+      <div class="standout-item">
+        <div class="label">Capture from anywhere, preview before you commit</div>
+        <div class="desc">Send to Koli works from any tab, not just an in-app search box. Pull Stats shows the real grade card first; only "Add to Sheet" actually writes the row — looking costs nothing.</div>
+      </div>
+      <div class="standout-item">
+        <div class="label">No install, no procurement, no lock-in</div>
+        <div class="desc">Koli is distributed as a Sheet you copy, running on your own Google account. There's no vendor to onboard with and nothing proprietary to migrate out of later — the data was always just yours.</div>
+      </div>
+    </div>
+    <blockquote>"Enterprise-grade" should be something a user concludes on their own halfway through using it — never something the product has to say about itself.</blockquote>
+  </section>
+
+  <section>
+    <div class="eyebrow"><span class="ref">F1</span><span class="rule"></span></div>
+    <h2>What it actually outputs</h2>
+    <div class="proof-wrap">
+      <div class="proof-note">
+        <span class="stamp">Live capture, not a mockup</span>
+        <p>A real Pull Stats → Add to Sheet run from the extension, on a real channel, during development. Average views and suggested rate exclude Shorts by design: a sponsor rate describes a full-length integration, and mixing in short-form view counts skews it hard for any channel that posts both.</p>
+      </div>
+      <div class="proof-card">
+        <div class="proof-head">
+          <div class="proof-grade">C</div>
+          <div>
+            <div class="chan">Aba N Preach</div>
+            <div class="sub">Commentary · Pop Culture, Social Issues, Reaction</div>
+          </div>
+        </div>
+        <div class="proof-stats">
+          <div class="stat"><b>2.3M</b><span>Subscribers</span></div>
+          <div class="stat"><b>3.0%</b><span>Engagement</span></div>
+          <div class="stat"><b>391K</b><span>Avg views</span></div>
+          <div class="stat"><b>16.7</b><span>Posts / month</span></div>
+        </div>
+        <div class="proof-rate">Suggested rate: <b>$4,109 – $10,567</b> per video <span style="color:var(--ink-faint)">(estimate, not a live ad-market feed)</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow"><span class="ref">G1</span><span class="rule"></span></div>
+    <h2>Where it sits against the field</h2>
+    <p>Validated directly against the two tiers of tooling already in this space, plus the default most agencies actually use today: nothing.</p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Option</th>
+            <th>Priced for</th>
+            <th>How you get in</th>
+            <th>Where your data lives</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="who">CreatorIQ, Grin, Aspire<span class="sub">Enterprise creator platforms</span></td>
+            <td>Brand marketing departments with dedicated budget</td>
+            <td>Sales-led, annual contract, onboarding</td>
+            <td>Their platform</td>
+          </tr>
+          <tr>
+            <td class="who">Sponsorship.so, TalentSheets<span class="sub">Boutique-tier SaaS</span></td>
+            <td>Smaller agencies, lower-cost seats</td>
+            <td>Sign up, self-serve</td>
+            <td>Their platform</td>
+          </tr>
+          <tr>
+            <td class="who">A plain spreadsheet<span class="sub">What most boutique agencies run today</span></td>
+            <td>Nobody in particular — it's just what's free</td>
+            <td>Already open</td>
+            <td>Yours, entirely manual</td>
+          </tr>
+          <tr class="self">
+            <td class="who">Koli</td>
+            <td>Boutique agencies & solo managers</td>
+            <td>Make a copy — no account, no install</td>
+            <td>Your own Sheet, always</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow"><span class="ref">H1</span><span class="rule"></span></div>
+    <h2>Beyond 2026</h2>
+    <p>Three real horizons, deliberately kept distinct — near-term product work, a second layer of operational depth, and a much bigger platform bet underneath both.</p>
+    <div class="horizons">
+      <div class="horizon">
+        <div class="horizon-head"><span class="horizon-num">01</span><h3>Closing the gaps already visible</h3></div>
+        <p>Region-aware audience estimates beyond a fixed country list, a real contract template library to match what boutique-tier competitors already ship, and deeper campaign management than a single stage dropdown. Scoped, concrete, next in line.</p>
+      </div>
+      <div class="horizon">
+        <div class="horizon-head"><span class="horizon-num">02</span><h3>The layer enterprise platforms charge for</h3></div>
+        <p>Gifting, creator payments, affiliate/UTM attribution, and UGC rights management — each its own subsystem, not a quick add. This is specifically the depth CreatorIQ and Grin's enterprise pricing is buying: building it at Koli's price point is the actual competitive wedge, not a nice-to-have.</p>
+      </div>
+      <div class="horizon">
+        <div class="horizon-head"><span class="horizon-num">03</span><h3>Koli as a flagship, not the whole company</h3></div>
+        <p>The bigger bet: an ambient AI layer that acts inside the Sheet instead of a chat box beside it, a plugin marketplace for third-party data sources, and Sheetgo-style automation wired in natively. If it happens, Koli becomes the first vertical built on a general, agent-native spreadsheet platform — not the platform itself. Worth building, but only once it can be resourced as its own effort rather than competing for attention against nearer, smaller wins.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Koli — creator-marketing operations, spreadsheet-native</span>
+    <span>Prepared September 2026</span>
+  </footer>
+
+</div>

@@ -1,0 +1,105 @@
+<title>Koli Terms</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root {
+    --bg: #F7F6F3; --surface: #FFFFFF; --border: #E4E1D8; --border-soft: #EDEBE3;
+    --ink-900: #1C1D18; --ink-700: #33352C; --ink-500: #6B6D5F; --ink-300: #9A9C8D;
+    --green-700: #14532B; --green-600: #1E7A3D; --green-500: #2E9A52; --green-bg: #E8F3EB;
+    --amber-bg: #FBF3E3; --amber-ink: #7A5C1E;
+    --font-display: 'Source Serif 4', Georgia, serif; --font-body: 'Inter', -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14170F; --surface: #1A1E14; --border: #2C3024; --border-soft: #24281D;
+      --ink-900: #F0F1E8; --ink-700: #D3D5C4; --ink-500: #9A9C8B; --ink-300: #6B6D5C;
+      --green-700: #7FDA9F; --green-600: #5FC983; --green-500: #4CAE6F; --green-bg: #1B2C1F;
+      --amber-bg: #2E2716; --amber-ink: #E0BD74;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14170F; --surface: #1A1E14; --border: #2C3024; --border-soft: #24281D;
+    --ink-900: #F0F1E8; --ink-700: #D3D5C4; --ink-500: #9A9C8B; --ink-300: #6B6D5C;
+    --green-700: #7FDA9F; --green-600: #5FC983; --green-500: #4CAE6F; --green-bg: #1B2C1F;
+    --amber-bg: #2E2716; --amber-ink: #E0BD74;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--ink-700); font-family: var(--font-body); margin: 0; padding: 0 20px 80px; font-size: 16px; line-height: 1.65; }
+  a { color: var(--green-600); }
+  .wrap { max-width: 680px; margin: 0 auto; }
+  header.doc-head { display: flex; align-items: center; gap: 12px; padding: 36px 0 22px; border-bottom: 1px solid var(--border); margin-bottom: 34px; }
+  .mark { width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0; background: linear-gradient(155deg, var(--green-500), var(--green-700)); color: #fff; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 600; font-size: 16px; }
+  .head-text h1 { font-family: var(--font-display); font-size: 21px; font-weight: 600; margin: 0; color: var(--ink-900); }
+  .head-text .meta { font-size: 12.5px; color: var(--ink-500); margin-top: 2px; }
+  .draft-notice { background: var(--amber-bg); color: var(--amber-ink); border-radius: 10px; padding: 13px 16px; font-size: 13.5px; line-height: 1.55; margin-bottom: 36px; border: 1px solid color-mix(in srgb, var(--amber-ink) 25%, transparent); }
+  h1.title { font-family: var(--font-display); font-size: 34px; font-weight: 600; color: var(--ink-900); margin: 0 0 6px; letter-spacing: -.01em; }
+  .subtitle { font-size: 15px; color: var(--ink-500); margin-bottom: 40px; max-width: 52ch; }
+  nav.jumplist { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; padding: 16px 18px; background: var(--surface); border: 1px solid var(--border-soft); border-radius: 12px; margin-bottom: 44px; }
+  nav.jumplist a { color: var(--ink-500); text-decoration: none; font-weight: 500; }
+  nav.jumplist a:hover { color: var(--green-600); }
+  section { margin-bottom: 38px; scroll-margin-top: 20px; }
+  section h2 { font-family: var(--font-display); font-size: 19px; font-weight: 600; color: var(--ink-900); margin: 0 0 12px; }
+  section p, section li { font-size: 15.5px; color: var(--ink-700); }
+  section ul { margin: 10px 0; padding-left: 22px; }
+  section li { margin-bottom: 6px; }
+  section p { margin: 0 0 14px; }
+  code { font-family: var(--font-mono); font-size: 13px; background: var(--border-soft); padding: 1.5px 6px; border-radius: 5px; color: var(--ink-900); }
+  .flag { background: var(--amber-bg); color: var(--amber-ink); border-radius: 9px; padding: 11px 14px; font-size: 14px; margin-top: 8px; }
+  footer.doc-foot { border-top: 1px solid var(--border); padding-top: 22px; margin-top: 10px; font-size: 13px; color: var(--ink-500); }
+  footer.doc-foot a { color: var(--ink-500); }
+</style>
+<div class="wrap">
+  <header class="doc-head">
+    <div class="mark">K</div>
+    <div class="head-text"><h1>Koli</h1><div class="meta">Google Sheets add-on for influencer-marketing research and outreach</div></div>
+  </header>
+  <div class="draft-notice">Draft: have this reviewed by counsel before publishing, same as any other legal document. This is a starting point, not a final terms-of-service agreement.</div>
+  <h1 class="title">Terms of Service</h1>
+  <p class="subtitle">Last updated September 12, 2026</p>
+  <nav class="jumplist">
+    <a href="#agreeing">What you're agreeing to</a><a href="#is-isnt">What Koli is, and isn't</a><a href="#keys">Your own API keys and costs</a>
+    <a href="#deal-memo">Draft Deal Memo isn't legal advice</a><a href="#premium">Premium access</a><a href="#warranty">No warranty</a>
+    <a href="#liability">Liability</a><a href="#termination">Termination</a><a href="#contact">Contact</a>
+  </nav>
+  <section id="agreeing">
+    <h2>What you're agreeing to</h2>
+    <p>By installing or using Koli ("the Add-on"), you agree to these terms. If you don't agree, don't install or use it.</p>
+  </section>
+  <section id="is-isnt">
+    <h2>What Koli is &mdash; and isn't</h2>
+    <p>Koli is Apps Script code that runs attached to your own Google Sheet, under your own Google account. <strong>The developer of Koli does not operate a backend service</strong> that your data passes through: analysis runs using API keys you provide, and results are written directly into your own spreadsheet and Drive. The developer never receives, stores, or has access to your spreadsheet data. See the <a href="https://claude.ai/code/artifact/33f3cebe-477e-4f3c-ada6-20f4ed63446f">Privacy Policy</a> for full detail on data handling.</p>
+  </section>
+  <section id="keys">
+    <h2>Your own API keys and costs</h2>
+    <p>Koli requires you to supply your own YouTube Data API key and your own AI provider key (Gemini, Mistral, or Groq). Any usage costs, rate limits, or quota exhaustion from those providers are between you and them: the developer of Koli has no visibility into, and no control over, your usage or billing with those services.</p>
+  </section>
+  <section id="deal-memo">
+    <h2>Draft Deal Memo, and every generated document, isn't legal advice</h2>
+    <p>Creator One-Pager, Draft Deal Memo, Shortlist Report, and Performance Report are template-filled starting points, clearly generated by software. None of them constitute legal advice or a legally reviewed contract. You are solely responsible for having any document Koli generates reviewed by qualified counsel before relying on it, sending it, or treating it as binding.</p>
+  </section>
+  <section id="premium">
+    <h2>Premium access</h2>
+    <p>Some features require a premium access code or an active trial. Access is checked locally against a code you enter in Settings; it is not a payment processor and does not itself handle billing. Whatever payment or licensing arrangement got you that code is a separate matter from these Terms.</p>
+  </section>
+  <section id="warranty">
+    <h2>No warranty</h2>
+    <p>Koli is provided <strong>&ldquo;as is&rdquo; and &ldquo;as available,&rdquo;</strong> without warranty of any kind, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, or non-infringement. Several features depend on unofficial or third-party endpoints (SponsorBlock, Reddit) that can change or stop working without notice, and AI-generated analysis (niche fit, authenticity, audience estimates) is an estimate, not verified fact.</p>
+  </section>
+  <section id="liability">
+    <h2>Limitation of liability</h2>
+    <p>To the maximum extent permitted by law, the developer is not liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of data, revenue, or goodwill, arising from your use of (or inability to use) Koli &mdash; including any business decision made on the basis of Koli's analysis, scoring, or generated documents.</p>
+  </section>
+  <section id="termination">
+    <h2>Termination</h2>
+    <p>You can stop using Koli at any time by removing the add-on. Your spreadsheet data, since it was never held by the developer, is unaffected and remains entirely yours.</p>
+  </section>
+  <section id="governing">
+    <h2>Governing law</h2>
+    <div class="flag">Jurisdiction to be specified: have counsel confirm the appropriate governing law and venue before publishing.</div>
+  </section>
+  <section id="contact">
+    <h2>Contact</h2>
+    <p>Questions about these Terms: <a href="mailto:mryaxx@gmail.com">mryaxx@gmail.com</a></p>
+  </section>
+  <footer class="doc-foot">Koli &middot; <a href="PLACEHOLDER_PRIVACY_URL">Privacy Policy</a></footer>
+</div>

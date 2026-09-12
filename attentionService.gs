@@ -43,6 +43,7 @@ function showAttentionView() {
   let sheet = ss.getSheetByName(SHEET_NAMES.ATTENTION);
   if (!sheet) sheet = ss.insertSheet(SHEET_NAMES.ATTENTION);
   sheet.clear();
+  applyKoliDefaultFormat_(sheet, Math.max(sheet.getMaxColumns(), 3));
 
   let row = 1;
   row = writeAttentionSection_(

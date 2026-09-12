@@ -58,19 +58,27 @@ function showBrandView() {
   let sheet = ss.getSheetByName(SHEET_NAMES.BRAND_VIEW);
   if (!sheet) sheet = ss.insertSheet(SHEET_NAMES.BRAND_VIEW);
   sheet.clear();
+  applyKoliDefaultFormat_(sheet, Math.max(sheet.getMaxColumns(), BRAND_VIEW_FIELDS.length));
   sheet.getRange(1, 1).setFormula('=QUERY(Channels!A1:' + lastColLetter + ', "' + query + '", 1)');
   formatHeaderRow_(sheet, BRAND_VIEW_FIELDS.length);
 
   ss.setActiveSheet(sheet);
-  SpreadsheetApp.getUi().alert(
+  // showLinkDialog_ instead of a plain alert: "how do I connect" was a fair
+  // question against a wall of text with no button -- this gives an actual
+  // numbered path plus a real link to click, same pattern every other
+  // export in Koli uses (Open PDF, etc). No deep link straight into a
+  // pre-filled Looker Studio connector: that requires a connector ID that
+  // isn't something to guess at and risk silently breaking.
+  showLinkDialog_(
     'Brand View ready',
-    'A live, brand-safe view of your Channels data is in the "Brand View" tab: Channel, Niche, Subs, Avg ' +
-    'Views, Posts/Mo, Grade, and Contact only (no Outreach status, internal Notes, or IDs). Connect Looker ' +
-    'Studio\'s Google Sheets connector to this tab, then share the Looker Studio report\'s own link with a ' +
-    'brand: they never need access to this spreadsheet itself.\n\n' +
-    'If Channels\' columns ever change, re-run Koli > Export > Set Up Brand View to rebuild this formula ' +
-    'against the new layout.',
-    SpreadsheetApp.getUi().ButtonSet.OK
+    'The "Brand View" tab now has a live, brand-safe view of your Channels data: Channel, Niche, Subs, Avg ' +
+    'Views, Posts/Mo, Grade, and Contact only (no Outreach status, internal Notes, or IDs).\n\n' +
+    'To connect it: open Looker Studio (button below) -> Create -> Report -> choose the "Google Sheets" ' +
+    'connector -> select this spreadsheet -> select the "Brand View" tab -> Create Report. Share that ' +
+    'report\'s own link with a brand: they never need access to this spreadsheet itself.\n\n' +
+    'If Channels\' columns ever change, re-run Koli > Brand Intelligence > Set Up Brand View to rebuild this ' +
+    'formula against the new layout.',
+    'https://lookerstudio.google.com/', 'Open Looker Studio'
   );
 }
 
@@ -132,6 +140,7 @@ function sendProfileSelectionToView() {
   let viewSheet = ss.getSheetByName(SHEET_NAMES.PROFILE_VIEW);
   if (!viewSheet) viewSheet = ss.insertSheet(SHEET_NAMES.PROFILE_VIEW);
   viewSheet.clear();
+  applyKoliDefaultFormat_(viewSheet, Math.max(viewSheet.getMaxColumns(), keepHeaders.length));
   viewSheet.getRange(1, 1, 1, keepHeaders.length).setValues([keepHeaders]);
   formatHeaderRow_(viewSheet, keepHeaders.length);
 

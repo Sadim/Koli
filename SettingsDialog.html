@@ -133,6 +133,10 @@
   <div class="masked" id="inboxSecretStatus"></div>
   <div class="hint">Prevents anyone who finds your Web App URL from posting into your sheet.</div>
 
+  <label for="webAppUrl" style="margin-top:16px;">Web App URL</label>
+  <input type="text" id="webAppUrl" placeholder="Paste the /exec URL from Deploy > Manage deployments" style="font-family:monospace;font-size:11px;" />
+  <div class="hint">Deploy &gt; Manage deployments &gt; copy the URL next to the "Web app" deployment (ends in <code>/exec</code>). Pasting it here — instead of letting the code auto-detect it — avoids it picking the wrong deployment when more than one exists.</div>
+
   <label for="connectionCode" style="margin-top:16px;">Connection code</label>
   <textarea id="connectionCode" readonly rows="2" style="width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:10px;font-size:11px;font-family:monospace;resize:none;background:#fff;" placeholder="Save your secret above (and deploy this as a Web App, if you haven't), then click Generate"></textarea>
   <div class="status" id="connectionCodeStatus" style="margin-top:6px;"></div>
@@ -252,6 +256,7 @@
       renderRegionPills_();
       renderRegionSelect_();
       document.getElementById('inboxSecretStatus').textContent = s.inboxSecretSet ? 'Currently set.' : 'Not set.';
+      document.getElementById('webAppUrl').value = s.webAppUrl || '';
       document.getElementById('timezone').value = s.timezone;
       document.getElementById('accessCodeStatus').textContent = s.premiumUnlocked ? '✓ Premium unlocked.' : (s.accessCodeSet ? 'Code set, but not valid.' : 'Not set: free tier.');
       document.getElementById('accessCodeStatus').style.color = s.premiumUnlocked ? 'var(--green)' : 'var(--text-muted)';
@@ -318,6 +323,7 @@
         lookbackDays: Number(document.getElementById('lookback').value),
         commentSampleSize: Number(document.getElementById('sampleSize').value),
         inboxSecret: document.getElementById('inboxSecret').value.trim(),
+        webAppUrl: document.getElementById('webAppUrl').value.trim(),
         accessCode: document.getElementById('accessCode').value.trim(),
         timezone: document.getElementById('timezone').value.trim(),
         scanChannelSponsors: document.getElementById('scanSponsors').checked,

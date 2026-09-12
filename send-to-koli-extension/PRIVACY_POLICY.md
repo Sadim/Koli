@@ -14,10 +14,10 @@ called Koli.
 ## What data is accessed, and when
 
 The extension only accesses page content when you explicitly trigger
-it: right-clicking a YouTube link and choosing "Send to Worksheet →
+it: right-clicking a YouTube link and choosing "Send to Koli →
 Channel" or "→ Video," right-clicking selected text and choosing "Send
 selection to Koli as a note," right-clicking a page and choosing "Send
-this page to Worksheet → Channel" or "→ Video," or: once you've set up
+this page to Koli → Channel" or "→ Video," or: once you've set up
 a profile for another platform: right-clicking anything and choosing
 "Send to [Platform Name]."
 Nothing is read, collected, or transmitted automatically or in the

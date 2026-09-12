@@ -107,6 +107,112 @@ function buildCreatorOnePager_(row) {
   return { channelName: rowData.name, docUrl: doc.getUrl(), pdfUrl: driveViewUrl_(pdfFile.id) };
 }
 
+/**
+ * Creator Shortlist Report: the sellable, standalone deliverable --
+ * meant to go to a brand or agency who may have never touched Koli,
+ * not just an internal export. Multi-row select on Channels (already-
+ * analyzed creators, not raw unvetted Discover candidates: a report
+ * you'd actually sell should show vetted data -- grade, sponsor
+ * evidence, suggested rate -- not just "here's who exists"). The
+ * one-line rationale per creator is composed from already-computed
+ * fields (grade, niche, engagement), not a fresh Gemini call: keeps
+ * generation fast and cheap regardless of shortlist size.
+ */
+function exportCreatorShortlistReport() {
+  if (!hasPremiumAccess_()) { showUpgradeAlert_('Creator Shortlist Report export'); return; }
+  const ui = SpreadsheetApp.getUi();
+  const rows = getActiveChannelRows_();
+  if (!rows.length) {
+    ui.alert('Select one or more rows on the Channels sheet first (the creators to include), then run this again.');
+    return;
+  }
+
+  const titleResp = ui.prompt('Shortlist Report', 'What\'s this shortlist for? (e.g. "Q1 Skincare Campaign")', ui.ButtonSet.OK_CANCEL);
+  if (titleResp.getSelectedButton() !== ui.Button.OK) return;
+  const campaignTitle = titleResp.getResponseText().trim() || 'Creator Shortlist';
+
+  const clientResp = ui.prompt('Shortlist Report', 'Client or brand name (optional -- leave blank to skip)', ui.ButtonSet.OK_CANCEL);
+  if (clientResp.getSelectedButton() !== ui.Button.OK) return;
+  const clientName = clientResp.getResponseText().trim();
+
+  try {
+    const result = buildCreatorShortlistReport_(rows, campaignTitle, clientName);
+    showLinkDialog_(
+      'Shortlist report ready',
+      campaignTitle + ': ' + rows.length + ' creator(s). PDF and an editable Doc were saved to the "Koli Reports" folder in Drive.',
+      result.pdfUrl, 'Open PDF'
+    );
+  } catch (e) {
+    SpreadsheetApp.getUi().alert('Could not generate the shortlist report: ' + e.message);
+  }
+}
+
+function buildCreatorShortlistReport_(rows, campaignTitle, clientName) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.CHANNELS);
+  const folder = getOrCreateReportsFolder_();
+  const baseName = campaignTitle + ' - Creator Shortlist';
+
+  const doc = DocumentApp.create(baseName);
+  const body = doc.getBody();
+  body.setMarginTop(50).setMarginBottom(50).setMarginLeft(50).setMarginRight(50);
+
+  body.appendParagraph(campaignTitle).setHeading(DocumentApp.ParagraphHeading.TITLE);
+  if (clientName) {
+    body.appendParagraph('Prepared for ' + clientName).editAsText().setForegroundColor('#5f6368');
+  }
+  const metaPara = body.appendParagraph(
+    Utilities.formatDate(new Date(), getTimezone_(), 'MMMM d, yyyy') + '  ·  ' + rows.length + ' creator' + (rows.length === 1 ? '' : 's') + ' shortlisted'
+  );
+  metaPara.editAsText().setForegroundColor('#5f6368');
+  body.appendHorizontalRule();
+
+  rows.forEach(function (row) {
+    const rowData = getChannelRowData_(sheet, row);
+    if (!rowData.channelId) return; // skip a blank/unanalyzed row caught in the selection
+
+    body.appendParagraph(rowData.name || rowData.channelId).setHeading(DocumentApp.ParagraphHeading.HEADING1);
+    const linkPara = body.appendParagraph(channelUrl_(rowData.channelId));
+    linkPara.editAsText().setLinkUrl(channelUrl_(rowData.channelId));
+
+    const rationale = 'Grade ' + (rowData.grade || 'n/a') + ' -- ' + (rowData.niche || 'uncategorized') +
+      (typeof rowData.engagementPct !== 'undefined' && rowData.engagementPct !== '' ? ', ' + rowData.engagementPct + ' engagement' : '') + '.';
+    body.appendParagraph(rationale).editAsText().setItalic(true);
+
+    const table = body.appendTable([
+      ['Subscribers', String(rowData.subs || 'n/a')],
+      ['Avg Views', String(rowData.avgViews || 'n/a')],
+      ['Posts / Month', String(rowData.postsPerMonth || 'n/a')],
+      ['Suggested Rate', String(rowData.suggestedRate || 'Not yet estimated')],
+      ['Contact', String(rowData.email || 'Not found')]
+    ]);
+    for (let i = 0; i < table.getNumRows(); i++) {
+      table.getRow(i).getCell(0).getChild(0).asParagraph().editAsText().setBold(true);
+    }
+
+    const sponsors = getSponsorsForChannel(rowData.channelId);
+    body.appendParagraph('Known Sponsor Activity').setHeading(DocumentApp.ParagraphHeading.HEADING3);
+    if (sponsors.length) {
+      sponsors.slice(0, 5).forEach(function (s) {
+        body.appendListItem(s.brand + ': ' + s.mentions + ' mention(s), most recent ' + formatDateShort_(s.lastSeen))
+          .setGlyphType(DocumentApp.GlyphType.BULLET);
+      });
+    } else {
+      body.appendParagraph('No sponsor activity detected yet.');
+    }
+
+    body.appendHorizontalRule();
+  });
+
+  doc.saveAndClose();
+  const docId = doc.getId();
+  moveFileToFolder_(docId, folder);
+
+  const pdfBlob = exportDocAsPdfBlob_(docId, baseName + '.pdf');
+  const pdfFile = Drive.Files.create({ name: baseName + '.pdf', parents: [folder] }, pdfBlob);
+
+  return { docUrl: doc.getUrl(), pdfUrl: driveViewUrl_(pdfFile.id) };
+}
+
 function exportDealMemo() {
   if (!hasPremiumAccess_()) { showUpgradeAlert_('Draft Deal Memo export'); return; }
   const row = getActiveChannelRow_();

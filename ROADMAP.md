@@ -198,14 +198,16 @@ Not building either portal split yet; flagging the shape now.
 - [x] Real icon assets (16/48/128px)
 - [x] Store listing copy (STORE_LISTING.md)
 - [x] Privacy policy drafted (PRIVACY_POLICY.md): placeholders filled in
-- [ ] **Privacy policy needs a public URL.** A markdown file in the repo
-  doesn't satisfy Chrome's requirement: it needs to be hosted somewhere
-  reachable (GitHub Pages, a simple static page, whatever's easiest) and
-  that URL is what goes in the Developer Dashboard field.
-- [ ] **Screenshots**: not created. Can generate the popup-UI ones from
-  the existing `.preview/` static harness; the "context menu open"
-  screenshot needs an actual browser with the extension loaded (can't be
-  faked from a static render).
+- [x] **Privacy policy hosted at a public URL** (2026-09-12): published
+  as a live page, no longer just a repo markdown file — see
+  `send-to-koli-extension/SUBMISSION_CHECKLIST.md` for the actual link
+  and the "set to Anyone with the link" step still needed before submitting.
+- [x] **Screenshots**: 5 captured (2026-09-12) against the *current*
+  side-panel UI (the old ones were pre-rewrite and wrong-sized) — see
+  `send-to-koli-extension/store-screenshots/`. The "context menu open"
+  and "real Koli sheet with data" shots still need an actual browser
+  session (can't be generated from a static render), noted in
+  `STORE_LISTING.md`.
 - [ ] **$5 one-time developer registration fee**: needs the account
   holder, not something that can be done on your behalf.
 - Justification for the `<all_urls>` host permission is already written
@@ -227,19 +229,35 @@ Not building either portal split yet; flagging the shape now.
 - [x] Terms of Service drafted (TERMS_OF_SERVICE.md: did not exist at
   all before this)
 - [x] Multi-document/multi-tenant properties refactor (round 6, already done)
-- [ ] Privacy policy + ToS both need public URLs (same as above):
-  OAuth consent screen verification requires linking to them, not
-  uploading the files
+- [x] **Koli's own Privacy Policy + Terms hosted at public URLs**
+  (2026-09-12, distinct from the extension's — see
+  `marketplace-assets/WORKSPACE_MARKETPLACE_LISTING.md` for the links,
+  and the "set to Anyone with the link" step still needed)
+- [x] **`addOns` manifest block + a real CardService homepage card**
+  (2026-09-12): `appsscript.json` now declares `addOns.common`/`addOns.sheets`
+  with `homepageTrigger: onHomepage`; `addOnHomepage.gs` (new file) is a
+  working card, not a stub, with buttons into Attention/Profile-Discover/
+  Settings. Untested against a live install (no Google account here).
+- [x] **Marketplace SDK listing copy + icon + 2 screenshots**
+  (2026-09-12): see `marketplace-assets/` — `WORKSPACE_MARKETPLACE_LISTING.md`,
+  `koli-icon-128.png`, `screenshots/`. Two more screenshots (the actual
+  CardService homepage card, the custom menu over a real sheet) need a
+  live install to capture.
 - [ ] A demonstration video showing scope usage (still required for any
   sensitive-tier scope, `drive.file` included, just a much shorter/
-  simpler video than a full-`drive` walkthrough would need)
-- [ ] Marketplace SDK listing (screenshots, category, description):
-  separate step from OAuth verification itself
+  simpler video than a full-`drive` walkthrough would need) — only the
+  account holder can record this
+- [ ] **Explicit decision needed**: this was originally scoped (see "What
+  we agreed" below) as multi-client-installable *first*, a public
+  Marketplace listing later, as a separate step. Today's package
+  supports either path; going public specifically is what triggers the
+  OAuth verification queue below, not something to fall into by default.
 
-Both stores now converge on the same two blockers: **hosting the legal
-docs at public URLs**, and **screenshots**. Everything else that was
-genuinely blocking (the CASA cost, the missing ToS, the properties
-refactor) is resolved.
+Both stores now converge on the same remaining blockers: **the $5 Chrome
+fee, the demo video, and the explicit multi-client-vs-public decision.**
+Everything else that was genuinely blocking (the CASA cost, the missing
+ToS, the properties refactor, hosting the legal docs at public URLs, and
+screenshots) is resolved as of 2026-09-12.
 
 ## Just shipped, round 6: properties refactor + Chrome Web Store prep
 

@@ -1,0 +1,98 @@
+<style>
+  body { font-family: 'Google Sans', Roboto, Arial, sans-serif; margin: 0; padding: 20px 22px; color: #202124; font-size: 13px; }
+  h2 { font-size: 15px; margin: 0 0 4px; }
+  .sub { color: #5f6368; font-size: 12px; margin-bottom: 16px; }
+  .drop { border: 2px dashed #dadce0; border-radius: 10px; padding: 22px; text-align: center; color: #5f6368; cursor: pointer; transition: border-color .15s; }
+  .drop.over { border-color: #188038; background: #f0f8f1; }
+  .drop input { display: none; }
+  .filename { margin-top: 10px; font-size: 12px; color: #202124; font-weight: 600; word-break: break-all; }
+  .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+  button { border: none; border-radius: 8px; padding: 9px 18px; font-weight: 600; font-size: 12.5px; cursor: pointer; }
+  .btn-primary { background: #188038; color: #fff; }
+  .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+  .btn-secondary { background: #fff; border: 1px solid #dadce0; color: #202124; }
+  .status { margin-top: 14px; font-size: 12.5px; line-height: 1.5; }
+  .status.err { color: #d93025; }
+  .status.ok { color: #188038; }
+  .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid #dadce0; border-top-color: #188038; border-radius: 50%; animation: spin .7s linear infinite; margin-right: 6px; vertical-align: -1px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
+<h2>Attach Brand Kit</h2>
+<div class="sub">For <b><?= brandName ?></b> on <?= sheetName ?> (row <?= row ?>). PDF, JPEG, PNG, or WebP.</div>
+
+<label class="drop" id="dropZone">
+  <input type="file" id="fileInput" accept="application/pdf,image/jpeg,image/png,image/webp">
+  <div id="dropText">Click to choose a file, or drag one here</div>
+  <div class="filename" id="fileName"></div>
+</label>
+
+<div class="actions">
+  <button class="btn-secondary" onclick="google.script.host.close()">Cancel</button>
+  <button class="btn-primary" id="submitBtn" disabled>Extract & Attach</button>
+</div>
+<div class="status" id="status" style="display:none;"></div>
+
+<script>
+  const SHEET_NAME = <?!= JSON.stringify(sheetName) ?>;
+  const ROW = <?!= JSON.stringify(row) ?>;
+  let pickedFile = null;
+
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+  const fileNameEl = document.getElementById('fileName');
+  const submitBtn = document.getElementById('submitBtn');
+  const status = document.getElementById('status');
+
+  function setFile(file) {
+    if (!file) return;
+    pickedFile = file;
+    fileNameEl.textContent = file.name + ' (' + (file.size / 1024 / 1024).toFixed(1) + ' MB)';
+    document.getElementById('dropText').textContent = 'Change file:';
+    submitBtn.disabled = false;
+  }
+  fileInput.addEventListener('change', (e) => setFile(e.target.files[0]));
+  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault(); dropZone.classList.remove('over');
+    if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+  });
+
+  submitBtn.onclick = () => {
+    if (!pickedFile) return;
+    submitBtn.disabled = true;
+    status.style.display = 'block'; status.className = 'status';
+    status.innerHTML = '<span class="spinner"></span>Reading file and extracting with Gemini... this can take a few seconds.';
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result.split(',')[1]; // strip the "data:mime;base64," prefix
+      google.script.run
+        .withSuccessHandler((resp) => {
+          if (resp.ok) {
+            status.className = 'status ok';
+            status.textContent = 'Attached. Extracted fields are now in the row\'s note' +
+              (resp.extracted && resp.extracted.brandName ? ' (found: ' + resp.extracted.brandName + ')' : '') + '.';
+            setTimeout(() => google.script.host.close(), 1600);
+          } else {
+            status.className = 'status err';
+            status.textContent = resp.error || 'Could not process this file.';
+            submitBtn.disabled = false;
+          }
+        })
+        .withFailureHandler((err) => {
+          status.className = 'status err';
+          status.textContent = 'Could not reach the script: ' + (err && err.message ? err.message : err);
+          submitBtn.disabled = false;
+        })
+        .processBrandKitUpload(base64, pickedFile.type, pickedFile.name, SHEET_NAME, ROW);
+    };
+    reader.onerror = () => {
+      status.className = 'status err';
+      status.textContent = 'Could not read that file in the browser.';
+      submitBtn.disabled = false;
+    };
+    reader.readAsDataURL(pickedFile);
+  };
+</script>

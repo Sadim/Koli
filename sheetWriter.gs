@@ -14,6 +14,40 @@ HIDDEN_COLS[SHEET_NAMES.CAMPAIGNS] = [2];
 HIDDEN_COLS[SHEET_NAMES.OUTREACH_DRAFTS] = [2];
 HIDDEN_COLS[SHEET_NAMES.BRAND_FIT_SCORES] = [2];
 
+// Koli's own default look, applied to every sheet it creates (and
+// re-appliable on demand to sheets that predate this via Koli > Run
+// Diagnostics-adjacent menu item runKoliDefaultFormatting). Abel/10pt,
+// vertical-top, wrap: matches what was previously being set by hand on
+// every sheet after the fact.
+const KOLI_DEFAULT_FONT_FAMILY = 'Abel';
+const KOLI_DEFAULT_FONT_SIZE = 10;
+
+function applyKoliDefaultFormat_(sheet, numCols) {
+  const cols = Math.max(numCols || 1, sheet.getMaxColumns());
+  const range = sheet.getRange(1, 1, sheet.getMaxRows(), cols);
+  range.setFontFamily(KOLI_DEFAULT_FONT_FAMILY).setFontSize(KOLI_DEFAULT_FONT_SIZE)
+    .setVerticalAlignment('top').setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+}
+
+/** Retroactively applies applyKoliDefaultFormat_ to every sheet Koli manages -- for sheets that existed before this default was introduced. */
+function runKoliDefaultFormatting() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const names = [
+    SHEET_NAMES.CHANNELS, SHEET_NAMES.VIDEOS, SHEET_NAMES.PROFILE, SHEET_NAMES.DISCOVER,
+    SHEET_NAMES.SPONSORS, SHEET_NAMES.CAMPAIGNS, SHEET_NAMES.OUTREACH_DRAFTS,
+    SHEET_NAMES.BRAND_TARGETS, SHEET_NAMES.BRAND_DISCOVERY, SHEET_NAMES.BRAND_FIT_SCORES, SHEET_NAMES.BRAND_VIEW,
+    SHEET_NAMES.PROFILE_VIEW, SHEET_NAMES.ATTENTION, SHEET_NAMES.INBOX
+  ];
+  let touched = 0;
+  names.forEach(function (name) {
+    const sheet = ss.getSheetByName(name);
+    if (!sheet) return;
+    applyKoliDefaultFormat_(sheet, sheet.getLastColumn() || 1);
+    touched++;
+  });
+  SpreadsheetApp.getUi().alert('Applied Koli\'s default formatting (Abel, 10pt, top-aligned, wrapped) to ' + touched + ' sheet(s).');
+}
+
 function getOrCreateSheet_(name, headers) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(name);
@@ -21,7 +55,8 @@ function getOrCreateSheet_(name, headers) {
     sheet = ss.insertSheet(name);
     sheet.appendRow(headers);
     formatHeaderRow_(sheet, headers.length);
-    if (name === SHEET_NAMES.SNAPSHOTS || name === SHEET_NAMES.TRACKED_PROFILES) sheet.hideSheet();
+    applyKoliDefaultFormat_(sheet, headers.length);
+    if (name === SHEET_NAMES.SNAPSHOTS || name === SHEET_NAMES.TRACKED_PROFILES || name === SHEET_NAMES.PUBLISHED_PAGES || name === SHEET_NAMES.EMAIL_OPENS) sheet.hideSheet();
     (HIDDEN_COLS[name] || []).forEach(function (col) { sheet.hideColumns(col); });
   } else if (sheet.getLastRow() === 0) {
     sheet.appendRow(headers);
@@ -89,6 +124,26 @@ function formatHeaderRow_(sheet, numCols) {
   const range = sheet.getRange(1, 1, 1, numCols);
   range.setFontWeight('bold').setBackground('#f1f3f4').setFontColor('#202124');
   sheet.setFrozenRows(1);
+}
+
+/**
+ * Non-destructive backfill for headers added to CHANNEL_HEADERS after a
+ * sheet was already created (e.g. an existing customer's copy): appends
+ * any of the given names missing from the sheet's ACTUAL header row as
+ * new columns at the end. Unlike migrateChannelsSheetV2, this never
+ * rebuilds or reorders anything already there -- safe to call on every
+ * write, a no-op once the columns already exist.
+ */
+function ensureExtraColumns_(sheet, names) {
+  const lastCol = sheet.getLastColumn();
+  const actualHeaders = lastCol ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
+  let nextCol = lastCol;
+  names.forEach(function (name) {
+    if (actualHeaders.indexOf(name) !== -1) return;
+    nextCol++;
+    sheet.getRange(1, nextCol).setValue(name);
+    formatHeaderRow_(sheet, nextCol);
+  });
 }
 
 function findRowByKey_(sheet, keyCol, keyValue) {
@@ -170,6 +225,7 @@ function writeChannelRow(channel) {
   if (needsChannelsV2Migration_(sheet)) {
     throw new Error('Channels sheet needs a one-time migration to the new layout first: run Koli > Migrate Channels Sheet (v2) from the menu, then try again.');
   }
+  ensureExtraColumns_(sheet, ['Engagement %', 'Suggested Rate']);
   if (sheet.getLastColumn() > CHANNEL_HEADERS.length && sheet.getRange(1, CHANNEL_HEADERS.length + 1).getValue()) {
     throw new Error('This Channels sheet still has extra columns from an older layout. Rename this tab (e.g. "Channels (old)") so Koli creates a fresh one, or manually delete the columns after ' + CHANNEL_HEADERS[CHANNEL_HEADERS.length - 1] + ' before continuing.');
   }
@@ -205,7 +261,11 @@ function writeChannelRow(channel) {
     'Posts/Mo': channel.avgPostsPerMonth, 'Contact': currentEmail,
     'Subs': channel.subCount === null ? 'Hidden' : formatCount_(channel.subCount),
     'Avg Views': channel.avgViews, 'Post Times': channel.postingPattern,
-    'Grade': grade.letter
+    'Grade': grade.letter,
+    'Engagement %': typeof channel.engagementRatio === 'number' ? channel.engagementRatio.toFixed(1) + '%' : '',
+    'Suggested Rate': (typeof channel.suggestedRateLow === 'number' && typeof channel.suggestedRateHigh === 'number')
+      ? '$' + channel.suggestedRateLow.toLocaleString() + ' - $' + channel.suggestedRateHigh.toLocaleString()
+      : ''
   };
   Object.keys(fieldValues).forEach(function (name) {
     const col = colOf(name);
@@ -244,8 +304,14 @@ function writeChannelRow(channel) {
       (aboutText ? 'About:\n' + aboutText + '\n\n' : '') + 'Other socials:\n' + socialsText
     );
   }
+  // Same social links, also on Contact: this is genuinely where someone
+  // looking to reach out would think to check first, not just on the
+  // channel-name cell.
+  if (contactCol) {
+    sheet.getRange(row, contactCol).setNote('Other ways to reach them:\n' + socialsText);
+  }
 
-  recordSubscriberSnapshot_(channel.channelId, channel.subCount);
+  recordSubscriberSnapshot_(channel.channelId, channel.subCount, channel.avgViews, channel.avgLikes, channel.avgComments);
   return row;
 }
 
@@ -281,6 +347,7 @@ function migrateChannelsSheetV2() {
     oldSheet.clear();
     oldSheet.appendRow(CHANNEL_HEADERS);
     formatHeaderRow_(oldSheet, CHANNEL_HEADERS.length);
+    applyKoliDefaultFormat_(oldSheet, CHANNEL_HEADERS.length);
     (HIDDEN_COLS[SHEET_NAMES.CHANNELS] || []).forEach(function (col) { oldSheet.hideColumns(col); });
     ensureOutreachColumn_(oldSheet);
     ui.alert('Channels sheet had no data: rebuilt with the new layout.');
@@ -295,6 +362,7 @@ function migrateChannelsSheetV2() {
   const newSheet = ss.insertSheet(SHEET_NAMES.CHANNELS, ss.getSheetIndex(oldSheet));
   newSheet.appendRow(CHANNEL_HEADERS);
   formatHeaderRow_(newSheet, CHANNEL_HEADERS.length);
+  applyKoliDefaultFormat_(newSheet, CHANNEL_HEADERS.length);
 
   const copyBlock = function (oldStartCol, width, newStartCol) {
     oldSheet.getRange(2, oldStartCol, numDataRows, width)
@@ -325,7 +393,8 @@ function getChannelRowData_(sheet, row) {
   return {
     channelId: get('ID'), name: get('Channel'), niche: get('Niche'),
     postsPerMonth: get('Posts/Mo'), email: get('Contact'), subs: get('Subs'),
-    grade: get('Grade'),
+    avgViews: get('Avg Views'), grade: get('Grade'),
+    engagementPct: get('Engagement %'), suggestedRate: get('Suggested Rate'),
     outreach: get('Outreach'), lastContact: get('Last Contact'), notes: get('Notes')
   };
 }
@@ -340,6 +409,29 @@ function getActiveChannelRow_() {
   return row;
 }
 
+/** Same idea as getActiveChannelRow_, for the Videos sheet. */
+function getActiveVideoRow_() {
+  const range = SpreadsheetApp.getActiveRange();
+  const sheet = SpreadsheetApp.getActiveSheet();
+  if (!range || sheet.getName() !== SHEET_NAMES.VIDEOS) return null;
+  const row = range.getRow();
+  if (row < 2) return null;
+  return row;
+}
+
+/** Mirrors getChannelRowData_: reads by the sheet's ACTUAL header row, not fixed position. */
+function getVideoRowData_(sheet, row) {
+  const actualHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const values = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const get = function (name) { const idx = actualHeaders.indexOf(name); return idx === -1 ? undefined : values[idx]; };
+  return {
+    videoId: get('ID'), title: get('Video'), channel: get('Channel'),
+    views: get('Views'), likes: get('Likes'), comments: get('Comments'),
+    auth: get('Auth'), engPct: get('Eng %'), location: get('Location'),
+    age: get('Age'), gender: get('Gender')
+  };
+}
+
 /**
  * Multi-row variant of getActiveChannelRow_: every distinct data row
  * (row >= 2) touched by the current selection on the Channels sheet, in
@@ -350,7 +442,7 @@ function getActiveChannelRow_() {
 function getActiveChannelRows_() {
   const sheet = SpreadsheetApp.getActiveSheet();
   if (sheet.getName() !== SHEET_NAMES.CHANNELS) return [];
-  const ranges = SpreadsheetApp.getActiveRangeList() ? SpreadsheetApp.getActiveRangeList().getRanges() : [SpreadsheetApp.getActiveRange()];
+  const ranges = getActiveRangesSafe_();
   const rows = new Set();
   ranges.forEach(function (range) {
     if (!range) return;
@@ -483,10 +575,45 @@ function getChannelAboutSummaryCached_(channelId, description, recentVideos) {
 
 // ---------- Subscriber snapshots ("New Subscribers") ----------
 
-function recordSubscriberSnapshot_(channelId, currentSubCount) {
+/**
+ * avgViews/avgLikes/avgComments are optional: callers that only have a
+ * subscriber count (e.g. a Profile pull) still log a real data point,
+ * just with those three cells blank rather than blocking the snapshot
+ * entirely on data this particular caller doesn't have.
+ */
+function recordSubscriberSnapshot_(channelId, currentSubCount, avgViews, avgLikes, avgComments) {
   if (currentSubCount === null) return;
   const sheet = getOrCreateSheet_(SHEET_NAMES.SNAPSHOTS, SNAPSHOT_HEADERS);
-  sheet.appendRow([channelId, new Date(), currentSubCount]);
+  ensureExtraColumns_(sheet, ['Avg Views', 'Avg Likes', 'Avg Comments']);
+  sheet.appendRow([
+    channelId, new Date(), currentSubCount,
+    typeof avgViews === 'number' ? avgViews : '',
+    typeof avgLikes === 'number' ? avgLikes : '',
+    typeof avgComments === 'number' ? avgComments : ''
+  ]);
+}
+
+/**
+ * Chronological history for the selected-channel performance chart:
+ * whatever real snapshot rows exist for this channel, oldest first.
+ * Sparse by design -- Koli has no scheduled polling, so a point only
+ * exists for each time this channel was actually analyzed or refreshed.
+ */
+function getChannelSnapshotHistory_(channelId) {
+  const sheet = getOrCreateSheet_(SHEET_NAMES.SNAPSHOTS, SNAPSHOT_HEADERS);
+  const data = sheet.getDataRange().getValues().slice(1);
+  return data
+    .filter(function (r) { return r[0] === channelId; })
+    .map(function (r) {
+      return {
+        date: r[1] instanceof Date ? r[1].toISOString() : String(r[1]),
+        subs: typeof r[2] === 'number' ? r[2] : null,
+        avgViews: typeof r[3] === 'number' ? r[3] : null,
+        avgLikes: typeof r[4] === 'number' ? r[4] : null,
+        avgComments: typeof r[5] === 'number' ? r[5] : null
+      };
+    })
+    .sort(function (a, b) { return new Date(a.date) - new Date(b.date); });
 }
 
 function getNewSubscribersSince_(channelId, currentSubCount) {

@@ -135,6 +135,58 @@ function addBrandTarget(brand, niche, priority, notes) {
   return { ok: true };
 }
 
+/**
+ * The other way brands enter Brand Targets: picked up from what Koli's
+ * own sponsor detection already found, instead of always having to be
+ * typed in by hand. Multi-row select on Sponsors; niche is inherited
+ * from the sponsored channel's own niche as a reasonable starting
+ * category, editable afterward like anything else on the sheet.
+ * Already-targeted brands (by normalized name) are skipped, not
+ * duplicated.
+ */
+function addSponsorsToBrandTargets() {
+  const ui = SpreadsheetApp.getUi();
+  const sheet = SpreadsheetApp.getActiveSheet();
+  if (sheet.getName() !== SHEET_NAMES.SPONSORS) {
+    ui.alert('Select one or more rows on the Sponsors sheet first, then run this again.');
+    return;
+  }
+  const ranges = getActiveRangesSafe_();
+  const rows = new Set();
+  ranges.forEach(function (range) {
+    if (!range) return;
+    for (let r = range.getRow(); r < range.getRow() + range.getNumRows(); r++) { if (r >= 2) rows.add(r); }
+  });
+  if (!rows.size) {
+    ui.alert('Select one or more data rows on Sponsors first, then run this again.');
+    return;
+  }
+
+  const channelsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.CHANNELS);
+  const already = getBrandTargetSet_();
+  let added = 0, skipped = 0;
+
+  [...rows].forEach(function (row) {
+    const channelId = sheet.getRange(row, 2).getValue();
+    const brand = sheet.getRange(row, 3).getValue();
+    if (!brand || /^Unknown \(SponsorBlock-confirmed\)/.test(brand)) { skipped++; return; }
+    if (already.has(normalizeBrandName_(brand).toLowerCase())) { skipped++; return; }
+
+    let niche = '';
+    if (channelsSheet && channelId) {
+      const idCol = channelsSheet.getRange(1, 1, 1, channelsSheet.getLastColumn()).getValues()[0].indexOf('ID') + 1;
+      const channelRow = idCol ? findRowByKey_(channelsSheet, idCol, channelId) : -1;
+      if (channelRow !== -1) niche = getChannelRowData_(channelsSheet, channelRow).niche || '';
+    }
+
+    addBrandTarget(brand, niche, 'Medium', 'Auto-added: already sponsoring a tracked channel.');
+    already.add(normalizeBrandName_(brand).toLowerCase());
+    added++;
+  });
+
+  ui.alert('Added ' + added + ' brand(s) to Brand Targets' + (skipped ? ', skipped ' + skipped + ' (already targeted or unresolved)' : '') + '.');
+}
+
 function getBrandTargetSet_() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.BRAND_TARGETS);
   if (!sheet || sheet.getLastRow() < 2) return new Set();

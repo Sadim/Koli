@@ -17,13 +17,13 @@ text: and send it directly to your Koli spreadsheet, without leaving
 the page you're on.
 
 **What it does:**
-- Right-click a link → "Send to Worksheet → Channel" or "→ Video":
+- Right-click a link → "Send to Koli → Channel" or "→ Video":
   your explicit choice, since Koli's Channels and Videos sheets have
   different columns and sending to the wrong one isn't something worth
   guessing at from the URL
 - Right-click selected text → "Send selection to Koli as a note": for
   anything worth flagging that isn't a direct link
-- Right-click anywhere on a page → "Send this page to Worksheet →
+- Right-click anywhere on a page → "Send this page to Koli →
   Channel" or "→ Video"
 - Open the side panel (toolbar icon) for the same actions without a
   right-click, plus one-off Profile pulls (a single channel over a date
@@ -84,14 +84,15 @@ popup held open.
 
 ## Screenshots
 
-`store-screenshots/` has 4 uploaded: real renders of the old popup UI (running production HTML/CSS/JS against sample data), now stale after the side-panel rewrite and **due for re-capture** from `sidepanel.html` before the next submission:
-1. `1-popup-channels.png`: Columns tab, Channels column editor
-2. `2-popup-videos.png`: Columns tab, Videos column editor (shows the Channels/Videos/Profile/Discover switcher)
-3. `3-popup-log.png`: Activity tab with sample sent/failed entries
-4. `4-popup-settings.png`: Settings screen
+`store-screenshots/` has 5 uploaded, all at the Chrome Web Store's required 1280x800: real renders of the current `sidepanel.html` (production HTML/CSS/JS running against sample data, composited with a neutral "docked side panel" backdrop, no fabricated third-party page content):
+1. `1-home-video-preview.png`: Home tab, a video's Pull Stats preview card (views/engagement/comments/likes, audience, auth score)
+2. `2-home-channel-preview.png`: Home tab, a channel's Pull Stats preview card (grade, suggested rate, contact)
+3. `3-columns-editor.png`: YouTube tab, Channels column editor
+4. `4-activity-log.png`: Activity tab with sample sent/failed entries
+5. `5-settings-appearance.png`: Settings screen, including the System/Light/Dark theme control
 
-Worth adding once captured: the Home tab (current-page card + Profile/Discover mini-forms).
+**Still needed, and these two can't be generated the same way**: both require something outside a static render, so they need to be captured from a real browser session, not built here:
+- **Context menu open**, showing "Send to Koli → Channel/Video": a real right-click context menu is drawn by the OS/browser chrome, not the page itself. To get it: load the extension unpacked (see README), open any YouTube video page, right-click a link, and screenshot the open menu before it closes.
+- **A Koli sheet showing captured entries**: needs a real Google Sheet with real Koli data in it. Analyze a few channels for real, then screenshot the Channels tab.
 
-**Still needed, and these two can't be generated the same way**: both require something outside a static render:
-- **Context menu open**, showing "Send to Worksheet → Channel/Video": a real right-click context menu is drawn by the OS/browser chrome, not the page itself, so it can only come from an actual browser with the extension loaded. To get it: load the extension unpacked (see README), open any YouTube video page, right-click a link, and screenshot the open menu before it closes.
-- **A Koli sheet showing captured entries**: needs a real Google Sheet with real Koli data in it; there's no live spreadsheet available to render this from here. Analyze a few channels for real, then screenshot the Channels tab.
+Chrome Web Store allows up to 5 screenshots; all 5 slots are filled with the set above, so adding either of the two above means swapping one out rather than adding a 6th.
