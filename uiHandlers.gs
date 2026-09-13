@@ -784,7 +784,11 @@ function previewChannelOne(rawInput) {
     const channelId = resolveChannelId(rawInput);
     const bundle = analyzeChannelCore_(channelId);
     cachePut_(cacheKey_('pendingCommit', channelId), bundle, 1800);
-    return { ok: true, channelId: channelId, name: bundle.name, preview: bundle.preview };
+    // Same Snapshots-sheet history the Sidebar's channel card charts —
+    // sparse by design, real data only if this channel's been analyzed
+    // before (a first-ever preview has none yet, same as the Sidebar).
+    const history = getChannelSnapshotHistory_(channelId);
+    return { ok: true, channelId: channelId, name: bundle.name, preview: bundle.preview, history: history };
   } catch (e) {
     console.error('[Koli] previewChannelOne failed for "' + rawInput + '": ' + errMsg_(e));
     return { ok: false, error: errMsg_(e) };

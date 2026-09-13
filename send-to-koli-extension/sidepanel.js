@@ -300,7 +300,7 @@ async function pullStats_(buttonEl) {
     const data = await resp.json();
     if (data.ok && data.preview) {
       pendingPreviewChannelId = data.channelId;
-      renderPreviewCard_(data.preview, 'preview');
+      renderPreviewCard_(data.preview, 'preview', data.history);
     } else {
       notifyInline_(data.error || 'Could not analyze this channel.');
     }
@@ -336,6 +336,11 @@ function notifyInline_(message) {
   document.getElementById('previewPosts').textContent = 'N/A';
   document.getElementById('previewRate').innerHTML = '';
   document.getElementById('previewContact').hidden = true;
+  // No real preview data to chart on a failed pull -- hide the trend
+  // tabs entirely rather than showing three "not enough history" charts
+  // that would look like the analysis ran when it didn't.
+  document.getElementById('previewTabs').hidden = true;
+  resetPreviewTabs_();
   const status = document.getElementById('previewActionStatus');
   status.className = 'preview-action-status err';
   status.textContent = message;
@@ -373,8 +378,56 @@ document.getElementById('previewAddBtn').onclick = async () => {
   }
 };
 
+// Small inline SVG line chart, ported verbatim (same algorithm, same
+// "honest empty state instead of faking a smooth curve" behavior) from
+// Sidebar.html's renderSparkline — that one reads history via
+// google.script.run, this one gets it in the preview_channel response
+// (uiHandlers.gs's previewChannelOne now includes it) since the extension
+// only ever talks to Koli over the Web App, never Apps Script directly.
+function renderPreviewSparkline_(containerId, points, formatValue) {
+  const el = document.getElementById(containerId);
+  const clean = (points || []).filter((p) => typeof p.value === 'number');
+  if (clean.length < 2) {
+    el.innerHTML = '<div class="preview-chart-empty">Not enough history yet for a trend -- pull stats on this channel again later to build one up.</div>';
+    return;
+  }
+  const W = 280, H = 108, padL = 34, padR = 10, padT = 10, padB = 20;
+  const values = clean.map((p) => p.value);
+  const minV = Math.min.apply(null, values), maxV = Math.max.apply(null, values);
+  const span = maxV - minV || 1;
+  const x = (i) => padL + (i / (clean.length - 1)) * (W - padL - padR);
+  const y = (v) => padT + (1 - (v - minV) / span) * (H - padT - padB);
+  const pathD = clean.map((p, i) => (i === 0 ? 'M' : 'L') + x(i).toFixed(1) + ',' + y(p.value).toFixed(1)).join(' ');
+  const dots = clean.map((p, i) => '<circle class="pv-dot" cx="' + x(i).toFixed(1) + '" cy="' + y(p.value).toFixed(1) + '" r="2.3"></circle>').join('');
+  const firstDate = new Date(clean[0].date), lastDate = new Date(clean[clean.length - 1].date);
+  const fmtDate = (dt) => (dt.getMonth() + 1) + '/' + dt.getDate();
+  el.innerHTML =
+    '<svg class="preview-chart-svg" viewBox="0 0 ' + W + ' ' + H + '" width="100%" height="' + H + '">' +
+    '<line class="pv-grid" x1="' + padL + '" y1="' + padT + '" x2="' + (W - padR) + '" y2="' + padT + '"></line>' +
+    '<line class="pv-grid" x1="' + padL + '" y1="' + (H - padB) + '" x2="' + (W - padR) + '" y2="' + (H - padB) + '"></line>' +
+    '<text x="2" y="' + (padT + 4) + '" font-size="9">' + formatValue(maxV) + '</text>' +
+    '<text x="2" y="' + (H - padB + 4) + '" font-size="9">' + formatValue(minV) + '</text>' +
+    '<path class="pv-line" d="' + pathD + '"></path>' + dots +
+    '<text x="' + padL + '" y="' + (H - 4) + '" font-size="9">' + fmtDate(firstDate) + '</text>' +
+    '<text x="' + (W - padR) + '" y="' + (H - 4) + '" font-size="9" text-anchor="end">' + fmtDate(lastDate) + '</text>' +
+    '</svg>';
+}
+
+document.querySelectorAll('#previewTabs button').forEach((btn) => {
+  btn.onclick = () => {
+    document.querySelectorAll('#previewTabs button').forEach((b) => b.classList.toggle('active', b === btn));
+    const tab = btn.dataset.pvtab;
+    document.querySelectorAll('#previewCard .preview-tabpanel').forEach((p) => p.classList.toggle('active', p.id === 'preview-tabpanel-' + tab));
+  };
+});
+
+function resetPreviewTabs_() {
+  document.querySelectorAll('#previewTabs button').forEach((b) => b.classList.toggle('active', b.dataset.pvtab === 'overview'));
+  document.querySelectorAll('#previewCard .preview-tabpanel').forEach((p) => p.classList.toggle('active', p.id === 'preview-tabpanel-overview'));
+}
+
 /** Renders a channel analysis as a rich card (grade, stats, suggested rate) — always starts in "preview" state (Add to Sheet visible, not yet committed). */
-function renderPreviewCard_(p, mode) {
+function renderPreviewCard_(p, mode, history) {
   const card = document.getElementById('previewCard');
 
   const badge = document.getElementById('previewGradeBadge');
@@ -402,6 +455,15 @@ function renderPreviewCard_(p, mode) {
   addBtn.disabled = false; addBtn.textContent = '+ Add to Sheet';
   viewLink.hidden = true;
   document.getElementById('previewActionStatus').hidden = true;
+
+  // Fresh pull always starts back on Overview -- a stale "Likes" tab left
+  // active from a previous channel's preview would be showing that
+  // channel's chart, not this one, until the render below replaces it.
+  resetPreviewTabs_();
+  document.getElementById('previewTabs').hidden = false;
+  renderPreviewSparkline_('preview-chart-views', (history || []).map((h) => ({ date: h.date, value: h.avgViews })), formatCompactNumber_);
+  renderPreviewSparkline_('preview-chart-likes', (history || []).map((h) => ({ date: h.date, value: h.avgLikes })), formatCompactNumber_);
+  renderPreviewSparkline_('preview-chart-comments', (history || []).map((h) => ({ date: h.date, value: h.avgComments })), formatCompactNumber_);
 
   card.hidden = false;
 }

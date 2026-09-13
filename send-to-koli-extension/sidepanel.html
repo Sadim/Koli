@@ -221,6 +221,21 @@
   .preview-action-status { margin-top: 8px; font-size: 11px; }
   .preview-action-status.err { color: var(--error); }
   .preview-action-status.ok { color: var(--green-600); }
+  /* Trend tabs -- same 3-metric sparkline treatment as the Sidebar's
+     channel card (Views/Likes/Comments over time, from the Snapshots
+     sheet), ported here since it's the exact same history data, just
+     read over the Web App instead of google.script.run. */
+  .preview-tabs { display: flex; gap: 2px; background: var(--surface-raised); border: 1px solid var(--border-soft); border-radius: var(--radius-pill); padding: 3px; margin-top: 12px; }
+  .preview-tabs button { flex: 1; border: none; background: none; border-radius: var(--radius-pill); padding: 5px 0; font-size: 11px; font-weight: 700; color: var(--ink-500); cursor: pointer; }
+  .preview-tabs button.active { background: var(--surface); color: var(--ink-900); box-shadow: var(--shadow-xs); }
+  .preview-tabpanel { display: none; }
+  .preview-tabpanel.active { display: block; }
+  .preview-chart-wrap { min-height: 108px; margin-top: 10px; }
+  .preview-chart-empty { font-size: 11px; color: var(--ink-500); text-align: center; padding: 30px 10px; line-height: 1.4; }
+  .preview-chart-svg text { font-family: 'Albert Sans', sans-serif; fill: var(--ink-500); font-variant-numeric: tabular-nums; }
+  .preview-chart-svg .pv-line { fill: none; stroke: var(--green-600); stroke-width: 1.75; }
+  .preview-chart-svg .pv-dot { fill: var(--green-600); }
+  .preview-chart-svg .pv-grid { stroke: var(--border); stroke-width: 1; }
 
   /* ---------- Stat tiles ---------- */
   .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 16px 0; }
@@ -483,14 +498,25 @@
           <div class="preview-confidence" id="previewConfidence"></div>
         </div>
       </div>
-      <div class="preview-stats">
-        <div><b id="previewSubs">N/A</b><span>Subscribers</span></div>
-        <div><b id="previewEngagement">N/A</b><span>Engagement</span></div>
-        <div><b id="previewViews">N/A</b><span>Avg views</span></div>
-        <div><b id="previewPosts">N/A</b><span>Posts/mo</span></div>
+      <div class="preview-tabs" id="previewTabs">
+        <button type="button" class="active" data-pvtab="overview">Overview</button>
+        <button type="button" data-pvtab="views">Views</button>
+        <button type="button" data-pvtab="likes">Likes</button>
+        <button type="button" data-pvtab="comments">Comments</button>
       </div>
-      <div class="preview-rate" id="previewRate"></div>
-      <div class="preview-contact" id="previewContact" hidden></div>
+      <div class="preview-tabpanel active" id="preview-tabpanel-overview">
+        <div class="preview-stats">
+          <div><b id="previewSubs">N/A</b><span>Subscribers</span></div>
+          <div><b id="previewEngagement">N/A</b><span>Engagement</span></div>
+          <div><b id="previewViews">N/A</b><span>Avg views</span></div>
+          <div><b id="previewPosts">N/A</b><span>Posts/mo</span></div>
+        </div>
+        <div class="preview-rate" id="previewRate"></div>
+        <div class="preview-contact" id="previewContact" hidden></div>
+      </div>
+      <div class="preview-tabpanel" id="preview-tabpanel-views"><div class="preview-chart-wrap" id="preview-chart-views"></div></div>
+      <div class="preview-tabpanel" id="preview-tabpanel-likes"><div class="preview-chart-wrap" id="preview-chart-likes"></div></div>
+      <div class="preview-tabpanel" id="preview-tabpanel-comments"><div class="preview-chart-wrap" id="preview-chart-comments"></div></div>
       <div class="preview-action-row">
         <button class="preview-add-btn" id="previewAddBtn">+ Add to Sheet</button>
         <a class="preview-view-link" id="previewViewLink" target="_blank" rel="noopener" hidden>View in Sheet</a>
