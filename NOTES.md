@@ -4,6 +4,54 @@
 nothing in STATUS.md/ROADMAP.md, which are the durable project docs —
 this is the "what was I doing right before the clear" layer.*
 
+## 2026-09-14 addendum #17: git caught up, sparkline port shipped; redeploy still blocked
+
+User said "do all 3" in response to a 3-way choice (redeploy+live-test /
+commit to git / new feature work):
+
+- **Git is caught up.** Committed everything through addendum #16
+  (`0326a53`, 121 files -- the full untracked/modified backlog this doc's
+  own "Pending diffs" section listed) and pushed to `origin/master`. `git
+  log` now shows real history again instead of one stale commit from
+  early in the session.
+- **Redeploy: still blocked, same as before.** Claude in Chrome wasn't
+  connected when this pass tried it (extension not reachable) -- told the
+  user their two options (connect the extension, or do the 4-click
+  Deploy → Manage deployments → pencil → New version → Deploy dance
+  themselves, then re-confirm "Anyone" access). **Kolindar and Topic
+  Research still cannot work until this happens** -- don't assume it's
+  done just because this addendum exists.
+- **New feature, picked without re-asking** (the "new feature work" option
+  named several candidates; this one had no open decision left pending,
+  unlike interval-tracking or the CRM): ported the Sidebar channel card's
+  Views/Likes/Comments sparkline trend charts to the extension's Pull
+  Stats card. `previewChannelOne` (uiHandlers.gs) now also returns
+  `history` (same `getChannelSnapshotHistory_` call the Sidebar uses --
+  no new sheet read, no new write). `sidepanel.html`'s channel preview
+  card gained an Overview/Views/Likes/Comments tab strip (`.preview-tabs`,
+  same pill-tab pattern as Sidebar's `.cc-tabs`, using `display:none` +
+  `.active` toggling via classList -- NOT `[hidden]`, so this doesn't risk
+  bug class #2 below). `sidepanel.js`'s `renderPreviewSparkline_` is the
+  same SVG-line-chart algorithm as Sidebar's `renderSparkline`, ported
+  rather than shared (the extension has no access to Sidebar.html's
+  inline `<script>`). Video preview card untouched -- deliberately
+  channel-only, matching the Sidebar's own scope (no per-video history
+  exists to chart). Real UX gap closed in passing: `notifyInline_` (a
+  failed Pull Stats) now hides the tab strip entirely instead of leaving
+  three "not enough history" chart placeholders that would look like a
+  real analysis had run.
+- Syntax-checked both edited files (`node -e "new Function(src)"`), ran
+  `node tests/run-logic-tests.js` (72/3, same pre-existing licenseService.gs
+  baseline, unrelated), `clasp push` succeeded (`uiHandlers.gs` confirmed
+  in the push output). Committed and pushed
+  (`cb4986b`) -- the extension side needs the user to reload the unpacked
+  extension in Chrome to pick this up, same as every other extension
+  change this session.
+- **Not yet live-tested** -- needs a channel that already has Snapshots
+  history (re-pull-stats on a channel already analyzed before) to see a
+  real chart instead of the "not enough history yet" empty state, and a
+  reload of the unpacked extension first.
+
 ## 2026-09-14 addendum #16: Topic Research shipped (v1) -- part of the Web App, as asked
 
 User's ask: "the research feature" from github.com/AgriciDaniel/youtubepro
@@ -896,35 +944,18 @@ thread; this addendum is additive, not a replacement for it.
    goes through, turning a silent client-side bug into visible error text
    in the card itself.
 
-## Pending diffs — NOT yet committed or pushed to GitHub
+## Pending diffs — caught up as of addendum #17 (`cb4986b`)
 
-Still only one real commit this whole tracked window (`75e47c4`). Verified
-fresh this pass, not carried forward: `git status --short` currently shows
-**37 paths** --
-
-Modified (24): AddBrandTargetDialog.html, BrandFitScoreDialog.html,
-CreateCampaignDialog.html, DraftOutreachEmailDialog.html, NOTES.md,
-OutreachKanban.html, ROADMAP.md, ReplyAssistantDialog.html, STATUS.md,
-SettingsDialog.html, Sidebar.html, campaignService.gs, constants.gs,
-contactService.gs, inboxService.gs, kanbanService.gs,
-outreachDraftService.gs, send-to-koli-extension/background.js,
-send-to-koli-extension/manifest.json, send-to-koli-extension/sidepanel.html,
-send-to-koli-extension/sidepanel.js, sheetWriter.gs,
-tests/run-logic-tests.js, uiHandlers.gs.
-
-Untracked (13): .claude/agents/, .claude/skills/, .impeccable/,
-BulkTemplateDialog.html, CampaignsKanban.html, IntroDialog.html,
-KolindarDialog.html, PRODUCT.md, RecordModal.html, RecordModalDialog.html,
-documentService.gs, kolindarService.gs, recordService.gs.
-
-**Do not trust this exact list in a future pass** -- re-run `git status`
-fresh every time, this doc's own copy goes stale within a session. `dislike
-Service.gs` (deleted this session) correctly shows as gone, not lingering.
-All of the above **is** live on Apps Script HEAD (`clasp push` after every
-change, confirmed each time) -- only git/GitHub is behind, and per the
-deployment note above, the Web App's *deployed* `/exec` version may be
-behind HEAD too. Commit + push only when the user explicitly asks --
-hasn't been asked since `75e47c4`.
+**Updated 2026-09-14, addendum #17**: user explicitly asked to commit
+(as one of "all 3"). Everything that had piled up since `75e47c4` is now
+pushed to `origin/master` across two commits: `0326a53` (the full
+session backlog -- Impeccable re-skin, generic preview, Kanban/record
+system, Kolindar, Topic Research, 121 files) and `cb4986b` (the sparkline
+port, same pass). `git status --short` is clean as of this write. Standing
+rule unchanged: only commit/push again when explicitly asked -- don't
+treat this as a new default. Re-run `git status` before trusting this is
+still true in a later pass; new uncommitted work will accumulate again as
+soon as the next edit lands.
 
 ## What needs the user's live testing — consolidated and re-prioritized (a LOT has piled up; almost nothing below has been confirmed by an actual end-to-end test)
 
