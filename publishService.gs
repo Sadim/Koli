@@ -84,6 +84,32 @@ function registerPublishedPage_(token, fileId, title, type, rowCount) {
   sheet.appendRow([token, fileId, sanitizeCellText_(title), type, new Date(), rowCount]);
 }
 
+/**
+ * The token that already grants read access to a published page is also
+ * the authorization for this one narrow write: logging that a viewer
+ * clicked "I'm Interested" on a specific channel. Deliberately NOT gated
+ * by the shared secret every other Web App action requires -- a brand
+ * viewing a published page never has that secret, by design. Scoped
+ * tightly on purpose: this only accepts a channelId that's actually
+ * listed on that specific published page, so the token can't be used to
+ * touch anything else.
+ */
+function logBrandInterest_(token, channelId) {
+  const page = lookupPublishedPage_(token);
+  if (!page) return { ok: false, error: 'This page is no longer available.' };
+
+  const sheet = getOrCreateSheet_(SHEET_NAMES.BRAND_INTEREST, ['Page', 'Channel ID', 'Channel', 'Clicked At']);
+  const channelsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.CHANNELS);
+  let channelName = channelId;
+  if (channelsSheet) {
+    const idCol = channelsSheet.getRange(1, 1, 1, channelsSheet.getLastColumn()).getValues()[0].indexOf('ID') + 1;
+    const row = idCol ? findRowByKey_(channelsSheet, idCol, channelId) : -1;
+    if (row !== -1) channelName = getChannelRowData_(channelsSheet, row).name || channelId;
+  }
+  sheet.appendRow([sanitizeCellText_(page.title), channelId, sanitizeCellText_(channelName), new Date()]);
+  return { ok: true };
+}
+
 function lookupPublishedPage_(token) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.PUBLISHED_PAGES);
   if (!sheet || sheet.getLastRow() < 2) return null;
@@ -130,6 +156,7 @@ function renderPublishedChannelsPage_(title, channels) {
       '<div><b>' + esc(typeof c.postsPerMonth === 'number' ? c.postsPerMonth.toFixed(1) : c.postsPerMonth) + '</b><span>Posts/mo</span></div>' +
       '</div>' +
       (c.suggestedRate ? '<div class="rate">Suggested rate: <b>' + esc(c.suggestedRate) + '</b></div>' : '') +
+      '<button class="interest-btn" data-channel-id="' + esc(c.channelId) + '" onclick="expressInterest(this)">I\'m Interested</button>' +
       '</div>';
   }).join('\n');
 
@@ -148,11 +175,26 @@ function renderPublishedChannelsPage_(title, channels) {
     '.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;border-top:1px dashed #e4e1d8;padding-top:12px;}' +
     '.stats div{display:flex;flex-direction:column;}.stats b{font-size:15px;}.stats span{font-size:10.5px;color:#5f6368;}' +
     '.rate{margin-top:12px;padding-top:12px;border-top:1px dashed #e4e1d8;font-size:12.5px;}.rate b{color:#188038;}' +
+    '.interest-btn{width:100%;margin-top:14px;padding:9px;border:none;border-radius:8px;background:#188038;color:#fff;font-weight:600;font-size:12.5px;cursor:pointer;}' +
+    '.interest-btn:hover{background:#0d652d;}' +
+    '.interest-btn.sent{background:#e8f3eb;color:#188038;cursor:default;}' +
     '.foot{margin-top:40px;font-size:11px;color:#9a9c8d;text-align:center;}' +
     '</style></head><body><div class="wrap">' +
     '<h1>' + esc(title) + '</h1>' +
     '<div class="sub">' + channels.length + ' creator(s) &middot; ' + Utilities.formatDate(new Date(), 'Etc/UTC', 'MMM d, yyyy') + '</div>' +
     '<div class="grid">' + cards + '</div>' +
     '<div class="foot">Shared via Koli</div>' +
-    '</div></body></html>';
+    '</div>' +
+    '<script>' +
+    'function expressInterest(btn) {' +
+    '  if (btn.classList.contains("sent")) return;' +
+    '  btn.disabled = true; btn.textContent = "Sending...";' +
+    '  var url = location.href.split("#")[0] + (location.search ? "&" : "?") + "express=" + encodeURIComponent(btn.dataset.channelId);' +
+    '  fetch(url).then(function (r) { return r.json(); }).then(function (data) {' +
+    '    if (data.ok) { btn.classList.add("sent"); btn.textContent = "Interest sent"; }' +
+    '    else { btn.disabled = false; btn.textContent = "I\'m Interested"; alert(data.error || "Could not send -- try again."); }' +
+    '  }).catch(function () { btn.disabled = false; btn.textContent = "I\'m Interested"; alert("Could not reach the page -- try again."); });' +
+    '}' +
+    '</script>' +
+    '</body></html>';
 }

@@ -66,7 +66,8 @@ const SHEET_NAMES = {
   SNAPSHOTS: '_SubscriberSnapshots',       // hidden: sub-count log for New Subscribers diffing
   TRACKED_PROFILES: '_TrackedProfiles',      // hidden: control sheet for Profile tracking
   PUBLISHED_PAGES: '_PublishedPages',        // hidden: token -> Drive file lookup for publishService.gs
-  EMAIL_OPENS: '_EmailOpens'                // hidden: tracking-pixel token -> open log
+  EMAIL_OPENS: '_EmailOpens',                // hidden: tracking-pixel token -> open log
+  BRAND_INTEREST: 'Brand Interest'          // visible: inbound "I'm interested" clicks from published pages
 };
 
 const INBOX_HEADERS = ['Status', 'Type', 'Value', 'Page Title', 'Source URL', 'Captured'];

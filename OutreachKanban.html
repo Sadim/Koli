@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #F7F6F3; --surface: #FFFFFF; --border: #E4E1D8; --border-soft: #EDEBE3;
+    --ink-900: #1C1D18; --ink-700: #33352C; --ink-500: #6B6D5F; --ink-300: #9A9C8D;
+    --green-700: #14532B; --green-600: #1E7A3D; --green-500: #2E9A52; --green-bg: #E8F3EB;
+    --amber-bg: #FBF3E3; --amber-ink: #7A5C1E; --red-bg: #FBEAE8; --red-ink: #A13A2E;
+    --col-bg: #F1EFEA;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --bg: #14170F; --surface: #1A1E14; --border: #2C3024; --border-soft: #24281D;
+      --ink-900: #F0F1E8; --ink-700: #D3D5C4; --ink-500: #9A9C8B; --ink-300: #6B6D5C;
+      --green-700: #7FDA9F; --green-600: #5FC983; --green-500: #4CAE6F; --green-bg: #1B2C1F;
+      --amber-bg: #2E2716; --amber-ink: #E0BD74; --red-bg: #2E1B18; --red-ink: #E08074;
+      --col-bg: #1E2217;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { font-family: 'Google Sans', Roboto, Arial, sans-serif; background: var(--bg); color: var(--ink-700); margin: 0; padding: 16px 20px; font-size: 13px; }
+  header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+  h1 { font-size: 17px; font-weight: 700; color: var(--ink-900); margin: 0; }
+  .sub { font-size: 12px; color: var(--ink-500); }
+  .board { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; height: calc(100vh - 90px); }
+  .column { flex: 0 0 210px; background: var(--col-bg); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; }
+  .column-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 4px 10px; }
+  .column-title { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--ink-500); }
+  .column-count { font-size: 10.5px; color: var(--ink-300); background: var(--surface); border-radius: 10px; padding: 1px 7px; }
+  .cards { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; min-height: 40px; }
+  .column.dragover .cards { background: var(--green-bg); border-radius: 8px; }
+  .card { background: var(--surface); border: 1px solid var(--border-soft); border-radius: 10px; padding: 10px 11px; cursor: grab; box-shadow: 0 1px 2px rgba(20,20,20,.04); }
+  .card:active { cursor: grabbing; }
+  .card.dragging { opacity: .4; }
+  .card-name { font-weight: 700; font-size: 12.5px; color: var(--ink-900); margin-bottom: 2px; }
+  .card-niche { font-size: 10.5px; color: var(--ink-500); margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card-meta { display: flex; align-items: center; gap: 6px; }
+  .grade-pill { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; color: #fff; background: var(--green-500); flex-shrink: 0; }
+  .grade-pill.grade-c { background: var(--amber-ink); } .grade-pill.grade-d, .grade-pill.grade-f { background: var(--red-ink); }
+  .card-subs { font-size: 10.5px; color: var(--ink-500); }
+  .empty { text-align: center; color: var(--ink-300); font-size: 11px; padding: 20px 4px; }
+  .status-line { font-size: 11.5px; margin-top: 8px; min-height: 14px; }
+  .status-line.err { color: var(--red-ink); }
+</style></head>
+<body>
+  <header>
+    <h1>Outreach Pipeline</h1>
+    <div class="sub" id="totalCount"></div>
+  </header>
+  <div class="board" id="board"></div>
+  <div class="status-line" id="statusLine"></div>
+
+<script>
+  const GRADE_TIER = { A: 'a', B: 'b', C: 'c', D: 'd', F: 'f' };
+  let boardData = null;
+
+  function compactNumber(n) {
+    n = Number(n);
+    if (!n && n !== 0) return '';
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+    return String(n);
+  }
+
+  function render() {
+    const board = document.getElementById('board');
+    board.innerHTML = '';
+    document.getElementById('totalCount').textContent = boardData.cards.length + ' channel(s)';
+
+    boardData.statuses.forEach((status) => {
+      const col = document.createElement('div');
+      col.className = 'column';
+      col.dataset.status = status;
+
+      const head = document.createElement('div');
+      head.className = 'column-head';
+      const cardsInStatus = boardData.cards.filter((c) => c.status === status);
+      head.innerHTML = '<span class="column-title">' + status + '</span><span class="column-count">' + cardsInStatus.length + '</span>';
+      col.appendChild(head);
+
+      const cardsEl = document.createElement('div');
+      cardsEl.className = 'cards';
+      if (!cardsInStatus.length) {
+        cardsEl.innerHTML = '<div class="empty">Nothing here</div>';
+      }
+      cardsInStatus.forEach((c) => cardsEl.appendChild(renderCard(c)));
+      col.appendChild(cardsEl);
+
+      col.addEventListener('dragover', (e) => { e.preventDefault(); col.classList.add('dragover'); });
+      col.addEventListener('dragleave', () => col.classList.remove('dragover'));
+      col.addEventListener('drop', (e) => {
+        e.preventDefault();
+        col.classList.remove('dragover');
+        const channelId = e.dataTransfer.getData('text/plain');
+        moveCard(channelId, status);
+      });
+
+      board.appendChild(col);
+    });
+  }
+
+  function renderCard(c) {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.draggable = true;
+    el.dataset.id = c.id;
+    const gradeTier = GRADE_TIER[c.grade] || '';
+    el.innerHTML =
+      '<div class="card-name">' + escapeHtml(c.name || c.id) + '</div>' +
+      '<div class="card-niche">' + escapeHtml(c.niche || '') + '</div>' +
+      '<div class="card-meta">' +
+      (c.grade ? '<div class="grade-pill grade-' + gradeTier.toLowerCase() + '">' + escapeHtml(c.grade) + '</div>' : '') +
+      '<div class="card-subs">' + compactNumber(c.subs) + (c.subs ? ' subs' : '') + '</div>' +
+      '</div>';
+    el.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', c.id);
+      setTimeout(() => el.classList.add('dragging'), 0);
+    });
+    el.addEventListener('dragend', () => el.classList.remove('dragging'));
+    return el;
+  }
+
+  function moveCard(channelId, newStatus) {
+    const card = boardData.cards.find((c) => c.id === channelId);
+    if (!card || card.status === newStatus) return;
+    const previousStatus = card.status;
+    card.status = newStatus; // optimistic: move it visually now, confirm/revert after the server responds
+    render();
+
+    google.script.run
+      .withSuccessHandler((resp) => {
+        const status = document.getElementById('statusLine');
+        if (resp.ok) { status.className = 'status-line'; status.textContent = ''; }
+        else {
+          card.status = previousStatus; render();
+          status.className = 'status-line err'; status.textContent = resp.error || 'Could not save that move.';
+        }
+      })
+      .withFailureHandler((err) => {
+        card.status = previousStatus; render();
+        const status = document.getElementById('statusLine');
+        status.className = 'status-line err'; status.textContent = 'Could not reach the sheet: ' + (err && err.message ? err.message : err);
+      })
+      .updateChannelOutreachStatus(channelId, newStatus);
+  }
+
+  function escapeHtml(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+  google.script.run.withSuccessHandler((data) => { boardData = data; render(); }).getKanbanData();
+</script>
+</body></html>

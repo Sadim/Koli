@@ -85,27 +85,127 @@ browser extension and a natural-language command tab layered on top.
 - **Attention**: the menu's first item, on purpose. Stale Outreach
   follow-ups, recent sponsor activity, and high-grade channels with no
   sponsor history yet: rebuilt fresh every open, zero new API cost.
-- **Run Diagnostics**: one-click check of YouTube key, Gemini key, and
-  Drive/Docs permission.
+- **Run Diagnostics**: one-click check (Koli menu, near the bottom) of
+  YouTube key, Gemini key, Drive/Docs permission, **which account is
+  actually running the script**, and a **full protection scan** across
+  every sheet (flags any range the current user can't edit) -- added
+  after a permission-error mystery that took several rounds to root-cause
+  (see "getActiveRangeList()" below).
 - **Dashboard**: KPI cells (channels/videos tracked, avg engagement,
   avg authenticity), room for your own charts.
+
+### Added this session (2026-09-12/13), not yet folded into the sections above
+- **Brand Discovery** (`Brand Intelligence > Discovery > Discover New
+  Brands`): searches YouTube directly for a niche/keyword (no seed
+  channel needed), scans candidate videos' descriptions for sponsor
+  mentions in one merged Gemini call, surfaces only brands **not already**
+  in Sponsors or Brand Targets -- the actual missing half of the
+  acquisition pipeline (Gap Analysis, built earlier, only finds brands
+  already sponsoring a tracked channel).
+- **About-page contact/social discovery** (`findContact` in
+  contactService.gs, feeds the existing Contact-column note): fetches a
+  channel's public About page directly and parses its Links section
+  (Facebook/Instagram/business email/etc) -- a field the YouTube Data API
+  never exposes at all, only the free-text description. Real bug fixed
+  here: Apps Script's default request looked bot-like to YouTube, which
+  redirected to the mobile site (a completely different, hex-escaped data
+  format); fixed with an explicit desktop User-Agent header.
+- **Brand Kit upload** (`Brand Intelligence > Research > Attach Brand
+  Kit`): upload a PDF/image brand kit, Gemini's vision input (new
+  `callGeminiVisionJson_` in geminiService.gs -- Koli's first multimodal
+  call) extracts brand name/website/niche/decision-makers/contact,
+  appends to the row's note. File saved to a "Koli Brand Kits" Drive
+  folder. No Picker API needed: the file goes straight from browser to
+  script as base64, never touching Drive for the read.
+- **Guess Contact Email** (`Brand Intelligence > Research > Guess Contact
+  Email`): free pattern-based email guesser (name + domain ->
+  first.last@, flast@, etc, same technique as MailFinder/Mail-Hunter) plus
+  a **DNS-level domain health check** (MX/SPF/DMARC via Google's public
+  DNS-over-HTTPS, github.com/omm9846/verdict-inspired) before the guess is
+  shown. Explicitly labeled "pattern-guessed, not verified": Apps Script
+  has no raw-socket API, so real SMTP-level verification (what
+  Apollo/Hunter/Derrick actually do) isn't possible here. A paid tier via
+  Apollo (Koli-fronted, not BYOK) is the planned upgrade path once Apollo
+  is connected.
+- **Email open tracking** (wired into `Send Approved Drafts`): a
+  Magio-inspired invisible tracking pixel, served through the same Web
+  App's `doGet` (`?track=<token>`). Opened/Open Count columns update live
+  on the Outreach Drafts row. Real Apps Script constraint worked around:
+  `ContentService` is text-only, so returning a real GIF needs the
+  ISO-8859-1 byte round-trip trick. Known limitation stated plainly: most
+  email clients block remote images by default, so this undercounts.
+- **Publish as Page** (`Export > Views & Pages > Publish Selected
+  Channels as Page`): Koli's own answer to Sheets Canvas's "share a
+  mini-app without exposing the sheet" gap (Canvas has no such sharing
+  mode and no Apps Script API at all). Renders selected Channels rows into
+  a static, brand-safe HTML snapshot at publish time, saves it as a
+  script-owned Drive file, serves it through `doGet` (`?p=<token>`) --
+  brand never touches the real spreadsheet. **Now interactive**: an "I'm
+  Interested" button per card logs to a new visible **Brand Interest**
+  sheet, authenticated by the publish token itself (never the shared
+  secret, which a brand viewer should never have). `?debug=1` on a page
+  link surfaces the real failure reason if a link stops working, instead
+  of the generic visitor-facing message.
+- **Outreach Pipeline Kanban** (`Koli menu > Outreach Pipeline (Kanban)`):
+  the non-Sheets-Canvas-Pro alternative -- real drag-and-drop across all 8
+  Outreach statuses, writes back to the Channels sheet's Outreach column
+  instantly, same behavior as the native Canvas Kanban (confirmed
+  side-by-side by the user, who has Canvas access). Styled in a similar
+  clean-card design language, not a literal visual copy of Google's own
+  product chrome.
+- **Engagement % display bug, fixed at the root**: Sheets was silently
+  auto-converting a `"3.9%"`-shaped string into a fraction (0.039) with
+  its own percent formatting on write -- every reader (Sidebar, reports,
+  Publish-as-Page) showed the raw unformatted fraction. Fixed on both
+  ends: writes now use a plain number + explicit format (matching how
+  Video's own Eng % column always worked correctly), and reads
+  disambiguate old vs. new rows by the cell's *actual number format*, not
+  the value's magnitude.
+- **Menu restructure**: Brand Intelligence and Export both grew past what
+  fits on a normal screen with no way to scroll (Sheets' custom menus have
+  no scrollbar and no API to add one) -- both are now nested sub-submenus
+  instead of one flat list each.
+- **Dark/light theme toggle**, Sidebar and extension both -- was
+  system-only before, now has a manual override, persisted per-surface
+  (localStorage for Sidebar, chrome.storage.sync for the extension).
+- **Video "Pull Stats" in the extension**, at parity with the existing
+  channel preview: same look-before-you-commit flow, redesigned card with
+  Views/Engagement/Comments/Likes as the primary row.
+- **A real, deliberate non-build**: an "Aura"-inspired autonomous
+  browser-action executor (randomized human-like click/type timing
+  labeled "Anti-Bot Safeguard," POSTing scraped page content to an
+  unspecified cloud proxy) was proposed by the user and declined --
+  assessed as detection-evasion tooling with no legitimate purpose for the
+  timing, plus a direct contradiction of the extension's own privacy
+  policy (third-party data transmission it explicitly promises never
+  happens). Explained in full to the user rather than silently refused.
 
 ## Architecture snapshot
 
 - **Platform**: Google Apps Script, container-bound to the spreadsheet.
   No external server for the core tool: the browser extension is the
   first piece that needs a Web App deployment.
-- **External APIs used**: YouTube Data API v3, Gemini API, SponsorBlock
-  (public, unofficial-for-our-use), Reddit (old.reddit.com RSS, unofficial).
-- **Data model**: 8 visible sheet tabs + 2 hidden control sheets, see
-  README.md for the full table. Channel/Video IDs are hidden columns
-  used as row keys; names render as `=HYPERLINK` formulas.
+- **External APIs used**: YouTube Data API v3, Gemini API (now including
+  a multimodal/vision call, see Brand Kit above), SponsorBlock (public,
+  unofficial-for-our-use), Reddit (old.reddit.com RSS, unofficial),
+  YouTube's own public About page (fetched directly with a desktop
+  User-Agent -- see the mobile-redirect fix above), Google's public
+  DNS-over-HTTPS resolver (`dns.google/resolve`, free, keyless -- domain
+  MX/SPF/DMARC checks for the contact-email guesser).
+- **Data model**: grew this session -- 3 new hidden control sheets
+  (`_PublishedPages`, `_EmailOpens`, plus the pre-existing pattern) and 1
+  new **visible** sheet (`Brand Interest`, inbound signal worth actually
+  seeing, not hidden plumbing), on top of the original 8 visible + 2
+  hidden. README.md's file table is stale against all of this -- treat it
+  as historical, not current, until refreshed.
 - **Speed**: batch-fetch (parallel `UrlFetchApp.fetchAll`) for Channel/
   Video analysis, 6-hour response cache, merged Gemini calls (1 per item
   instead of 3-6).
-- **File manifest**: 17 `.gs`/`.html`/`.json` files in the Apps Script
-  project, 5 files in the browser extension. Full list and what each
-  does is in README.md's file table.
+- **File manifest**: grew substantially this session (7 new `.gs` files:
+  addOnHomepage, brandDiscoveryService, brandKitService,
+  contactFinderService, emailTrackingService, publishService,
+  kanbanService; several new `.html` dialogs). README.md's count/table is
+  stale -- don't trust the "17 files" figure, check the actual directory.
 
 ## What's verified vs. what isn't
 

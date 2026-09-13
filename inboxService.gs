@@ -188,14 +188,22 @@ function routeWebAppAction_(action, body) {
 }
 
 /**
- * Three things share this one GET endpoint, checked in order:
+ * Four things share this one GET endpoint, checked in order:
  * 1. `track=<token>`: an email-open tracking pixel (emailTrackingService.gs) --
  *    returns a real 1x1 GIF, not JSON, so it has to be checked before
  *    anything else tries to respond with text.
- * 2. `p=<token>`: a published page (publishService.gs) -- a brand-safe
- *    static snapshot, served without exposing this spreadsheet at all.
- * 3. Neither: the original reachability check (also returns the
- *    spreadsheet's name/URL, useful once there's more than one saved
+ * 2. `p=<token>&express=<channelId>`: a brand viewer clicking "I'm
+ *    Interested" on a published page (publishService.gs). The publish
+ *    token itself is the authorization here -- deliberately NOT the
+ *    shared secret every other action requires, since a brand viewing a
+ *    published page never has (and never should have) that secret. This
+ *    is why it's scoped this narrowly: the token only ever lets someone
+ *    log interest in a channel that's actually on that specific
+ *    published page, nothing else.
+ * 3. `p=<token>` alone: the published page itself -- a brand-safe static
+ *    snapshot, served without exposing this spreadsheet at all.
+ * 4. None of the above: the original reachability check (also returns
+ *    the spreadsheet's name/URL, useful once there's more than one saved
  *    connection to tell apart).
  */
 function doGet(e) {
@@ -206,14 +214,33 @@ function doGet(e) {
     return trackingPixelResponse_();
   }
 
+  if (params.p && params.express) {
+    try {
+      const result = logBrandInterest_(params.p, params.express);
+      return jsonResponse_(result);
+    } catch (err) {
+      return jsonResponse_({ ok: false, error: errMsg_(err) });
+    }
+  }
+
   if (params.p) {
+    // ?debug=1 appended to a page link shows the real failure reason
+    // instead of the generic message every visitor otherwise sees --
+    // deliberately not shown by default since this URL is meant to be
+    // shared publicly.
     try {
       const page = lookupPublishedPage_(params.p);
-      if (!page) return HtmlService.createHtmlOutput('<p>This page is no longer available.</p>');
+      if (!page) {
+        return HtmlService.createHtmlOutput(params.debug
+          ? '<p>No published-page row found for token: ' + params.p + '</p>'
+          : '<p>This page is no longer available.</p>');
+      }
       const file = DriveApp.getFileById(page.fileId);
       return HtmlService.createHtmlOutput(file.getBlob().getDataAsString('UTF-8'));
     } catch (err) {
-      return HtmlService.createHtmlOutput('<p>This page is no longer available.</p>');
+      return HtmlService.createHtmlOutput(params.debug
+        ? '<p>Lookup failed for token ' + params.p + ': ' + errMsg_(err) + '</p>'
+        : '<p>This page is no longer available.</p>');
     }
   }
 

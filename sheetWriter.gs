@@ -262,7 +262,16 @@ function writeChannelRow(channel) {
     'Subs': channel.subCount === null ? 'Hidden' : formatCount_(channel.subCount),
     'Avg Views': channel.avgViews, 'Post Times': channel.postingPattern,
     'Grade': grade.letter,
-    'Engagement %': typeof channel.engagementRatio === 'number' ? channel.engagementRatio.toFixed(1) + '%' : '',
+    // A raw number + an explicit literal-suffix number format (below),
+    // never a "3.9%"-style string: Sheets silently auto-converts a string
+    // shaped like a percentage into a fraction (0.039) with its OWN
+    // percentage formatting applied, which every plain-value reader
+    // (getValues()) then sees as 0.039, not the "3.90%" the cell displays
+    // -- confirmed directly as the cause of the Sidebar/report engagement
+    // mismatch. writeVideoRow already used this correct pattern; this
+    // brings Channels in line with it instead of leaving the two
+    // inconsistent.
+    'Engagement %': typeof channel.engagementRatio === 'number' ? channel.engagementRatio : '',
     'Suggested Rate': (typeof channel.suggestedRateLow === 'number' && typeof channel.suggestedRateHigh === 'number')
       ? '$' + channel.suggestedRateLow.toLocaleString() + ' - $' + channel.suggestedRateHigh.toLocaleString()
       : ''
@@ -282,6 +291,7 @@ function writeChannelRow(channel) {
   }
 
   if (colOf('Posts/Mo')) sheet.getRange(row, colOf('Posts/Mo')).setNumberFormat('0.0');
+  if (colOf('Engagement %') && typeof channel.engagementRatio === 'number') sheet.getRange(row, colOf('Engagement %')).setNumberFormat('0.0"%"');
   const c = grade.components;
   if (colOf('Grade')) {
     sheet.getRange(row, colOf('Grade')).setNote(
@@ -385,16 +395,48 @@ function migrateChannelsSheetV2() {
   );
 }
 
+/**
+ * writeChannelRow used to set this cell's value to a plain "3.9%"-style
+ * STRING, but Google Sheets silently reinterprets any string shaped like
+ * a percentage: it auto-converts to the underlying fraction (0.039) and
+ * applies its OWN native percentage number format (e.g. "0.00%") so the
+ * cell still DISPLAYS "3.90%". getValues() always returns that raw
+ * stored fraction, never the formatted display text -- every reader of
+ * this column was showing the unformatted 0.039 as a result (confirmed
+ * directly: the Sidebar card showed "0.039" against the sheet cell's own
+ * "3.90%" for the same row). writeChannelRow now writes a raw number plus
+ * an explicit literal-suffix format (0.0"%") instead, the same pattern
+ * writeVideoRow already used correctly -- but existing rows written
+ * before this fix are still sitting there as auto-converted fractions.
+ *
+ * Rather than guess which shape a given row is by the number's magnitude
+ * (a real channel really can have sub-1% engagement, so "value < 1 means
+ * it's a fraction" isn't safe), this checks the cell's ACTUAL number
+ * format: Sheets' own native percent formats always contain an
+ * un-quoted "%" (e.g. "0.00%"); the literal-suffix format this code
+ * writes now quotes it ("0.0\"%\""). That distinction is unambiguous,
+ * not a heuristic.
+ */
+function formatEngagementPct_(value, numberFormat) {
+  if (value === '' || value === null || value === undefined) return '';
+  if (typeof value !== 'number') return String(value); // some older row stored before percentages were used here at all
+  const isNativeSheetsPercent = /(?:^|[^"])%/.test(numberFormat || '') && (numberFormat || '').indexOf('"%"') === -1;
+  return (isNativeSheetsPercent ? value * 100 : value).toFixed(1) + '%';
+}
+
 /** Reads one Channels row by sheet row number into a plain object, for exports. */
 function getChannelRowData_(sheet, row) {
   const actualHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   const values = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const formats = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getNumberFormats()[0];
   const get = function (name) { const idx = actualHeaders.indexOf(name); return idx === -1 ? undefined : values[idx]; };
+  const engagementCol = actualHeaders.indexOf('Engagement %');
   return {
     channelId: get('ID'), name: get('Channel'), niche: get('Niche'),
     postsPerMonth: get('Posts/Mo'), email: get('Contact'), subs: get('Subs'),
     avgViews: get('Avg Views'), grade: get('Grade'),
-    engagementPct: get('Engagement %'), suggestedRate: get('Suggested Rate'),
+    engagementPct: formatEngagementPct_(get('Engagement %'), engagementCol === -1 ? '' : formats[engagementCol]),
+    suggestedRate: get('Suggested Rate'),
     outreach: get('Outreach'), lastContact: get('Last Contact'), notes: get('Notes')
   };
 }

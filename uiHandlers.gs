@@ -25,42 +25,51 @@ function onOpen() {
     .addItem('• Profile', 'showProfileSidebar')
     .addItem('• Discover', 'showDiscoverSidebar')
     .addItem('• Dashboard', 'showDashboard')
+    .addItem('• Outreach Pipeline (Kanban) (Premium)', 'showOutreachKanban')
     .addItem('• Campaigns (Premium)', 'showCampaigns')
+    // Google Sheets' custom-menu chrome has no scrollbar of its own, and
+    // there's no Apps Script API to add one -- a submenu taller than the
+    // browser viewport just clips, full stop, with no way to reach
+    // whatever's below the fold. The only real fix is keeping every
+    // submenu short enough to never need one: nested sub-submenus below,
+    // not a flat 12-item list. (Already tried "just move one item out"
+    // once before; both lists grew past that fix again, hence nesting
+    // instead of another one-off shuffle.)
     .addSubMenu(SpreadsheetApp.getUi().createMenu('• Brand Intelligence')
       .addItem('• Brand Targets', 'showBrandTargets')
       .addItem('• Add Brand Target...', 'showAddBrandTargetDialog')
-      .addItem('• Discover New Brands (Premium)', 'showBrandDiscoveryDialog')
-      .addItem('• Add Selected Discoveries to Brand Targets', 'addBrandDiscoveriesToBrandTargets')
-      .addItem('• Add Selected Sponsors to Brand Targets', 'addSponsorsToBrandTargets')
-      .addItem('• Run Gap Analysis (selected Channels row) (Premium)', 'runGapAnalysisForActiveRow')
+      .addSubMenu(SpreadsheetApp.getUi().createMenu('• Discovery')
+        .addItem('• Discover New Brands (Premium)', 'showBrandDiscoveryDialog')
+        .addItem('• Add Selected Discoveries to Brand Targets', 'addBrandDiscoveriesToBrandTargets')
+        .addItem('• Add Selected Sponsors to Brand Targets', 'addSponsorsToBrandTargets')
+        .addItem('• Run Gap Analysis (selected Channels row) (Premium)', 'runGapAnalysisForActiveRow'))
+      .addSubMenu(SpreadsheetApp.getUi().createMenu('• Research')
+        .addItem('• Research Sponsor Contacts (selected Sponsors row(s)) (Premium)', 'researchSponsorContacts')
+        .addItem('• Attach Brand Kit (selected Sponsors/Brand Targets row) (Premium)', 'showBrandKitUploadDialog')
+        .addItem('• Guess Contact Email (name + domain) (Premium)', 'showContactFinderDialog')
+        .addItem('• Normalize Sponsor Names', 'normalizeExistingSponsors')
+        .addItem('• Test About-Page Fetch (diagnostic)', 'testAboutPageFetch'))
       .addItem('• Brand Fit Score (selected Channels row(s)) (Premium)', 'showBrandFitScoreDialog')
-      .addItem('• Test About-Page Fetch (diagnostic)', 'testAboutPageFetch')
-      .addItem('• Normalize Sponsor Names', 'normalizeExistingSponsors')
-      .addItem('• Research Sponsor Contacts (selected Sponsors row(s)) (Premium)', 'researchSponsorContacts')
-      .addItem('• Attach Brand Kit (selected Sponsors/Brand Targets row) (Premium)', 'showBrandKitUploadDialog')
-      .addItem('• Guess Contact Email (name + domain) (Premium)', 'showContactFinderDialog')
       .addItem('• Set Up Brand View (for Looker Studio)', 'showBrandView'))
     .addSeparator()
-    // Every item in this submenu is premium-gated: marked once on the
-    // submenu header rather than repeated on each child. Set Up Brand View
-    // used to live here too, but at 11 items this submenu was tall enough
-    // to get clipped by the browser viewport on a shorter window with no
-    // way to scroll to the last couple of items -- moved into Brand
-    // Intelligence (a shorter, brand-facing-views-adjacent list) to fix
-    // that rather than just shortening labels.
+    // Every item under here is premium-gated: marked once on the
+    // top-level submenu header rather than repeated on each child.
     .addSubMenu(SpreadsheetApp.getUi().createMenu('• Export (Premium)')
-      .addItem('• Creator One-Pager (selected row)', 'exportCreatorOnePager')
-      .addItem('• Creator Shortlist Report (selected rows -- sellable)', 'exportCreatorShortlistReport')
-      .addItem('• Draft Deal Memo (selected row)', 'exportDealMemo')
-      .addItem('• Performance Report (Channels or Profile row)', 'exportPerformanceReport')
-      .addItem('• New Campaign (selected Channels row)', 'showCreateCampaignDialog')
-      .addItem('• Draft Outreach Email (selected Channels row)', 'showDraftOutreachEmail')
-      .addItem('• Edit Draft (selected Outreach Drafts row)', 'showEditOutreachDraft')
-      .addItem('• Draft a Reply (selected Outreach Drafts row)', 'showReplyAssistant')
-      .addItem('• Send Approved Drafts (selected Outreach Drafts rows)', 'sendApprovedOutreachDrafts')
-      .addItem('• Send Selected Profile Rows to Profile View (for Looker Studio)', 'sendProfileSelectionToView')
-      .addItem('• Publish Selected Channels as Page (Premium)', 'publishSelectedChannelsAsPage')
-      .addItem('• Unpublish a Page...', 'unpublishPageDialog'))
+      .addSubMenu(SpreadsheetApp.getUi().createMenu('• Documents')
+        .addItem('• Creator One-Pager (selected row)', 'exportCreatorOnePager')
+        .addItem('• Creator Shortlist Report (selected rows -- sellable)', 'exportCreatorShortlistReport')
+        .addItem('• Draft Deal Memo (selected row)', 'exportDealMemo')
+        .addItem('• Performance Report (Channels or Profile row)', 'exportPerformanceReport'))
+      .addSubMenu(SpreadsheetApp.getUi().createMenu('• Outreach')
+        .addItem('• New Campaign (selected Channels row)', 'showCreateCampaignDialog')
+        .addItem('• Draft Outreach Email (selected Channels row)', 'showDraftOutreachEmail')
+        .addItem('• Edit Draft (selected Outreach Drafts row)', 'showEditOutreachDraft')
+        .addItem('• Draft a Reply (selected Outreach Drafts row)', 'showReplyAssistant')
+        .addItem('• Send Approved Drafts (selected Outreach Drafts rows)', 'sendApprovedOutreachDrafts'))
+      .addSubMenu(SpreadsheetApp.getUi().createMenu('• Views & Pages')
+        .addItem('• Send Selected Profile Rows to Profile View (for Looker Studio)', 'sendProfileSelectionToView')
+        .addItem('• Publish Selected Channels as Page (Premium)', 'publishSelectedChannelsAsPage')
+        .addItem('• Unpublish a Page...', 'unpublishPageDialog')))
     .addItem('• Refresh Tracked Profiles', 'runRefreshTrackedProfiles')
     .addItem('• Process Prospects', 'processInbox')
     .addSeparator()
