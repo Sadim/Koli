@@ -1,7 +1,7 @@
 <style>
-  :root { --green: #188038; --green-dark: #0d652d; --border: #dadce0; --text: #202124; --text-muted: #5f6368; --amber-bg: #fef7e0; --amber-ink: #b06000; --err: #d93025; }
+  :root { --green: oklch(45% .1 190); --green-dark: oklch(41% .11 190); --border: oklch(13% 0 0 / .08); --text: oklch(22% 0 0); --text-muted: oklch(46% 0 0); --amber-bg: oklch(77% .13 82 / .14); --amber-ink: oklch(46% 0 0); --err: oklch(52% .16 35); }
   * { box-sizing: border-box; }
-  body { font-family: 'Google Sans', Roboto, Arial, sans-serif; color: var(--text); padding: 22px; font-size: 13px; }
+  body { font-family: 'Albert Sans', 'Avenir Next', 'Helvetica Neue', Arial, system-ui, sans-serif; color: var(--text); padding: 22px; font-size: 13px; }
   h2 { font-size: 18px; margin: 0 0 4px 0; }
   .subtitle { color: var(--text-muted); font-size: 11.5px; margin-bottom: 16px; line-height: 1.4; }
   label { font-weight: 600; display: block; margin: 12px 0 6px 0; font-size: 12.5px; }
@@ -10,12 +10,12 @@
     font-family: inherit; resize: vertical;
   }
   textarea { min-height: 90px; }
-  textarea:focus, input[type="text"]:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px #e6f4ea; }
+  textarea:focus, input[type="text"]:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px oklch(77% .13 82 / .14); }
   .hint { color: var(--text-muted); font-size: 11px; margin-top: 6px; line-height: 1.4; }
   .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
   .actions.split { justify-content: space-between; }
   button { padding: 9px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 12.5px; border: none; }
-  .btn-secondary { background: #fff; border: 1px solid var(--border) !important; color: var(--text); }
+  .btn-secondary { background: oklch(99.5% 0 0); border: 1px solid var(--border) !important; color: var(--text); }
   .btn-primary { background: var(--green); color: #fff; }
   .btn-primary:hover { background: var(--green-dark); }
   .btn-primary:disabled, button:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -26,21 +26,21 @@
     display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: 0.3px;
     padding: 3px 9px; border-radius: 20px; background: var(--amber-bg); color: var(--amber-ink); margin-bottom: 10px;
   }
-  .draft-box { border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; background: #fafafa; }
-  .draft-subject { font-weight: 700; margin-bottom: 8px; background: #fff; }
+  .draft-box { border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; background: oklch(95% 0 0); }
+  .draft-subject { font-weight: 700; margin-bottom: 8px; background: oklch(99.5% 0 0); }
   .edit-toolbar { display: flex; gap: 2px; margin-bottom: 6px; }
   .edit-toolbar button {
-    width: 28px; height: 26px; padding: 0; border: 1px solid var(--border); background: #fff; color: var(--text);
+    width: 28px; height: 26px; padding: 0; border: 1px solid var(--border); background: oklch(99.5% 0 0); color: var(--text);
     border-radius: 5px; font-size: 12.5px; line-height: 1;
   }
   .edit-toolbar button.i { font-style: italic; }
   .edit-toolbar button.u { text-decoration: underline; }
-  .edit-toolbar button.active { background: #e6f4ea; border-color: var(--green); color: var(--green-dark); }
+  .edit-toolbar button.active { background: oklch(77% .13 82 / .14); border-color: var(--green); color: var(--green-dark); }
   .draft-body {
-    font-family: inherit; font-size: 12.5px; line-height: 1.5; background: #fff; min-height: 130px;
+    font-family: inherit; font-size: 12.5px; line-height: 1.5; background: oklch(99.5% 0 0); min-height: 130px;
     border: 1px solid var(--border); border-radius: 8px; padding: 9px 10px; white-space: pre-wrap;
   }
-  .draft-body:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px #e6f4ea; }
+  .draft-body:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px oklch(77% .13 82 / .14); }
   .draft-meta { font-size: 10.5px; color: var(--text-muted); margin-top: 8px; }
   .draft-meta.over { color: var(--err); font-weight: 600; }
   #resultView { display: none; }

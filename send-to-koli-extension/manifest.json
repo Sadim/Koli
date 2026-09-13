@@ -3,7 +3,7 @@
   "name": "Send to Koli",
   "version": "2.1.0",
   "description": "Right-click a YouTube channel/video link (or any selected text) and send it straight to your Koli worksheet.",
-  "permissions": ["contextMenus", "storage", "notifications", "sidePanel"],
+  "permissions": ["contextMenus", "storage", "notifications", "sidePanel", "scripting"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"

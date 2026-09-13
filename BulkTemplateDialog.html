@@ -1,0 +1,267 @@
+<style>
+  :root { --green: oklch(45% .1 190); --green-dark: oklch(41% .11 190); --border: oklch(13% 0 0 / .08); --text: oklch(22% 0 0); --text-muted: oklch(46% 0 0); --err: oklch(52% .16 35); --amber-bg: oklch(77% .13 82 / .14); --amber-ink: oklch(46% 0 0); }
+  * { box-sizing: border-box; }
+  body { font-family: 'Albert Sans', 'Avenir Next', 'Helvetica Neue', Arial, system-ui, sans-serif; color: var(--text); padding: 20px 22px; font-size: 13px; }
+  h2 { font-size: 17px; margin: 0 0 4px 0; }
+  .subtitle { color: var(--text-muted); font-size: 11.5px; margin-bottom: 14px; line-height: 1.4; }
+  label { font-weight: 600; display: block; margin: 10px 0 6px 0; font-size: 12px; }
+  input[type="text"] {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-family: inherit;
+  }
+  input[type="text"]:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px oklch(77% .13 82 / .14); }
+  .hint { color: var(--text-muted); font-size: 10.5px; margin-top: 5px; line-height: 1.4; }
+
+  /* Telegram-style compact pill toolbar, not a full block-editor ribbon --
+     lists here are a literal "• "/"1. " prefix inserted at the cursor, not
+     real <ul>/<li> HTML: Sheets cells can't render true bullets either way
+     (RichTextValue is inline character runs only, no block structure), so
+     this keeps the sheet view and the eventual email view consistent. */
+  .toolbar { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; margin-bottom: 6px; }
+  .toolbar button {
+    height: 27px; padding: 0 8px; border: 1px solid var(--border); background: oklch(99.5% 0 0); color: var(--text);
+    border-radius: 6px; font-size: 12px; line-height: 1; cursor: pointer;
+  }
+  .toolbar button.i { font-style: italic; } .toolbar button.u { text-decoration: underline; } .toolbar button.s { text-decoration: line-through; }
+  .toolbar button.active { background: oklch(77% .13 82 / .14); border-color: var(--green); color: var(--green-dark); }
+  .toolbar .sep { width: 1px; height: 18px; background: var(--border); margin: 0 3px; }
+  .toolbar select {
+    height: 27px; border: 1px solid var(--border); border-radius: 6px; font-size: 11.5px; font-family: inherit;
+    background: oklch(99.5% 0 0); color: var(--text); padding: 0 4px;
+  }
+  .ai-btn { background: #f3e8fd !important; border-color: #d3bdf7 !important; color: #6b2fb3 !important; font-weight: 700; }
+
+  .inline-prompt { display: none; gap: 6px; margin-bottom: 8px; }
+  .inline-prompt.open { display: flex; }
+  .inline-prompt input { flex: 1; }
+  .inline-prompt button { flex-shrink: 0; }
+
+  .draft-body {
+    font-family: inherit; font-size: 12.5px; line-height: 1.5; background: oklch(99.5% 0 0); min-height: 220px;
+    border: 1px solid var(--border); border-radius: 8px; padding: 10px 11px; white-space: pre-wrap;
+  }
+  .draft-body:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px oklch(77% .13 82 / .14); }
+
+  .recipients-note { font-size: 11px; color: var(--text-muted); margin: 10px 0 4px; }
+  .warnings { background: var(--amber-bg); color: var(--amber-ink); border-radius: 8px; padding: 8px 10px; font-size: 11.5px; margin-top: 10px; line-height: 1.5; display: none; }
+  .status { font-size: 12px; margin-top: 10px; display: none; }
+  .status.err { color: var(--err); } .status.ok { color: var(--green-dark); }
+
+  .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+  button.btn-secondary { background: oklch(99.5% 0 0); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 9px 16px; font-weight: 600; font-size: 12.5px; cursor: pointer; }
+  button.btn-primary { background: var(--green); color: #fff; border: none; border-radius: 8px; padding: 9px 16px; font-weight: 600; font-size: 12.5px; cursor: pointer; }
+  button.btn-primary:hover { background: var(--green-dark); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+</style>
+
+<h2>Bulk Template / Mail Merge</h2>
+<div class="subtitle">Write one template, personalize it per recipient with <code>{{Field}}</code> tokens, and it lands as one draft per creator in Outreach Drafts -- reviewable and hand-editable there before anything sends.</div>
+
+<label for="subjectInput">Subject</label>
+<input type="text" id="subjectInput" placeholder="e.g. A sponsor opportunity for {{Channel}}" />
+
+<label>Body</label>
+<div class="toolbar" id="toolbar">
+  <button type="button" id="fmtBold"><b>B</b></button>
+  <button type="button" id="fmtItalic" class="i">I</button>
+  <button type="button" id="fmtUnderline" class="u">U</button>
+  <button type="button" id="fmtStrike" class="s">S</button>
+  <div class="sep"></div>
+  <button type="button" id="fmtBullet" title="Insert bullet">•</button>
+  <button type="button" id="fmtNumber" title="Insert numbered item">1.</button>
+  <button type="button" id="fmtLink" title="Insert link">🔗</button>
+  <div class="sep"></div>
+  <select id="fieldSelect"><option value="" disabled selected>Insert field…</option></select>
+  <div class="sep"></div>
+  <button type="button" id="fmtAi" class="ai-btn" title="AI assist (Gemini)">✨ AI</button>
+</div>
+
+<div class="inline-prompt" id="linkPrompt">
+  <input type="text" id="linkUrlInput" placeholder="https://…" />
+  <button class="btn-primary" id="linkGoBtn">Add link</button>
+  <button class="btn-secondary" id="linkCancelBtn">Cancel</button>
+</div>
+<div class="inline-prompt" id="aiPrompt">
+  <input type="text" id="aiInstructionInput" placeholder="e.g. write an opening paragraph offering a sponsorship" />
+  <button class="btn-primary" id="aiGoBtn">Ask Gemini</button>
+  <button class="btn-secondary" id="aiCancelBtn">Cancel</button>
+</div>
+
+<div class="draft-body" id="draftBody" contenteditable="true"></div>
+<div class="hint">Merge fields pull from each selected creator's actual row on Channels -- an unrecognized <code>{{Field}}</code> is left as-is and flagged after generating, never silently blanked.</div>
+
+<div class="recipients-note" id="recipientsNote"></div>
+<div class="warnings" id="warnings"></div>
+<div class="status" id="status"></div>
+
+<div class="actions">
+  <button class="btn-secondary" onclick="google.script.host.close()">Close</button>
+  <button class="btn-primary" id="generateBtn">Generate Drafts</button>
+</div>
+
+<script>
+  const CHANNEL_IDS = <?!= JSON.stringify(channelIds || []) ?>;
+  const FIELD_NAMES = <?!= JSON.stringify(fieldNames || []) ?>;
+
+  document.getElementById('recipientsNote').textContent = 'This creates ' + CHANNEL_IDS.length + ' draft(s) in Outreach Drafts, one per selected creator.';
+
+  const fieldSelect = document.getElementById('fieldSelect');
+  FIELD_NAMES.forEach((name) => {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    fieldSelect.appendChild(opt);
+  });
+
+  const bodyEl = document.getElementById('draftBody');
+  let savedRange = null;
+  function saveSelection() {
+    const sel = window.getSelection();
+    if (sel.rangeCount) savedRange = sel.getRangeAt(0);
+  }
+  function restoreSelection() {
+    if (!savedRange) return;
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(savedRange);
+  }
+  bodyEl.addEventListener('keyup', saveSelection);
+  bodyEl.addEventListener('mouseup', saveSelection);
+
+  // mousedown+preventDefault (not click): a click first blurs the
+  // contenteditable body, losing the selection execCommand needs to act on.
+  function wireFormatButton(id, command, arg) {
+    document.getElementById(id).addEventListener('mousedown', (e) => {
+      e.preventDefault(); bodyEl.focus(); restoreSelection();
+      document.execCommand(command, false, arg);
+      refreshToolbarState();
+    });
+  }
+  wireFormatButton('fmtBold', 'bold');
+  wireFormatButton('fmtItalic', 'italic');
+  wireFormatButton('fmtUnderline', 'underline');
+  wireFormatButton('fmtStrike', 'strikeThrough');
+  wireFormatButton('fmtBullet', 'insertText', '• ');
+  wireFormatButton('fmtNumber', 'insertText', '1. ');
+  function refreshToolbarState() {
+    document.getElementById('fmtBold').classList.toggle('active', document.queryCommandState('bold'));
+    document.getElementById('fmtItalic').classList.toggle('active', document.queryCommandState('italic'));
+    document.getElementById('fmtUnderline').classList.toggle('active', document.queryCommandState('underline'));
+    document.getElementById('fmtStrike').classList.toggle('active', document.queryCommandState('strikeThrough'));
+  }
+
+  fieldSelect.addEventListener('mousedown', saveSelection);
+  fieldSelect.addEventListener('change', () => {
+    if (!fieldSelect.value) return;
+    bodyEl.focus(); restoreSelection();
+    document.execCommand('insertText', false, '{{' + fieldSelect.value + '}}');
+    fieldSelect.selectedIndex = 0;
+    saveSelection();
+  });
+
+  // ---------- Small inline-prompt helper, reused by Link and AI-assist ----------
+  function openInlinePrompt(promptId, inputId, onGo, goBtnId, cancelBtnId) {
+    document.getElementById('linkPrompt').classList.remove('open');
+    document.getElementById('aiPrompt').classList.remove('open');
+    const prompt = document.getElementById(promptId);
+    const input = document.getElementById(inputId);
+    prompt.classList.add('open');
+    input.value = '';
+    input.focus();
+    document.getElementById(goBtnId).onclick = () => { onGo(input.value.trim()); prompt.classList.remove('open'); };
+    document.getElementById(cancelBtnId).onclick = () => { prompt.classList.remove('open'); bodyEl.focus(); };
+  }
+
+  document.getElementById('fmtLink').addEventListener('mousedown', (e) => { e.preventDefault(); saveSelection(); });
+  document.getElementById('fmtLink').addEventListener('click', () => {
+    openInlinePrompt('linkPrompt', 'linkUrlInput', (url) => {
+      if (!url) return;
+      bodyEl.focus(); restoreSelection();
+      document.execCommand('createLink', false, url);
+    }, 'linkGoBtn', 'linkCancelBtn');
+  });
+
+  document.getElementById('fmtAi').addEventListener('click', () => {
+    saveSelection();
+    openInlinePrompt('aiPrompt', 'aiInstructionInput', (instruction) => {
+      if (!instruction) return;
+      const btn = document.getElementById('fmtAi');
+      btn.disabled = true; btn.textContent = '✨ Thinking…';
+      google.script.run
+        .withSuccessHandler((resp) => {
+          btn.disabled = false; btn.textContent = '✨ AI';
+          if (!resp.ok) { showStatus(resp.error || 'Could not reach Gemini.', true); return; }
+          bodyEl.focus(); restoreSelection();
+          document.execCommand('insertText', false, resp.text);
+        })
+        .withFailureHandler((err) => {
+          btn.disabled = false; btn.textContent = '✨ AI';
+          showStatus(err && err.message ? err.message : String(err), true);
+        })
+        .assistBulkTemplateText(instruction, bodyEl.innerText);
+    }, 'aiGoBtn', 'aiCancelBtn');
+  });
+
+  // Same extractRuns shape as DraftOutreachEmailDialog.html, extended with
+  // strikethrough and a per-run link URL (nearest <a href> ancestor).
+  function extractRuns(container) {
+    const runs = [];
+    let sawBlock = false;
+    function pushText(text, bold, italic, underline, strikethrough, linkUrl) {
+      if (text) runs.push({ text: text, bold: !!bold, italic: !!italic, underline: !!underline, strikethrough: !!strikethrough, linkUrl: linkUrl || '' });
+    }
+    function walk(node, bold, italic, underline, strikethrough, linkUrl) {
+      if (node.nodeType === Node.TEXT_NODE) { pushText(node.textContent, bold, italic, underline, strikethrough, linkUrl); return; }
+      if (node.nodeType !== Node.ELEMENT_NODE) return;
+      const tag = node.tagName.toLowerCase();
+      if (tag === 'br') { pushText('\n', bold, italic, underline, strikethrough, linkUrl); return; }
+      const isBlock = tag === 'div' || tag === 'p';
+      if (isBlock && sawBlock) pushText('\n', bold, italic, underline, strikethrough, linkUrl);
+      if (isBlock) sawBlock = true;
+      const nb = bold || tag === 'b' || tag === 'strong';
+      const ni = italic || tag === 'i' || tag === 'em';
+      const nu = underline || tag === 'u';
+      const ns = strikethrough || tag === 's' || tag === 'strike' || tag === 'del';
+      const nl = tag === 'a' ? (node.getAttribute('href') || linkUrl) : linkUrl;
+      Array.prototype.forEach.call(node.childNodes, (child) => walk(child, nb, ni, nu, ns, nl));
+    }
+    Array.prototype.forEach.call(container.childNodes, (child) => walk(child, false, false, false, false, ''));
+    return runs;
+  }
+
+  function showStatus(msg, isErr) {
+    const status = document.getElementById('status');
+    status.className = 'status ' + (isErr ? 'err' : 'ok');
+    status.textContent = msg;
+    status.style.display = 'block';
+  }
+
+  document.getElementById('generateBtn').onclick = () => {
+    const subject = document.getElementById('subjectInput').value.trim();
+    if (!subject) { showStatus('Add a subject line first.', true); return; }
+    if (!bodyEl.innerText.trim()) { showStatus('The body is empty.', true); return; }
+
+    const btn = document.getElementById('generateBtn');
+    btn.disabled = true; btn.textContent = 'Generating…';
+    document.getElementById('warnings').style.display = 'none';
+    document.getElementById('status').style.display = 'none';
+
+    const runs = extractRuns(bodyEl);
+    google.script.run
+      .withSuccessHandler((resp) => {
+        btn.disabled = false; btn.textContent = 'Generate Drafts';
+        if (!resp.ok) { showStatus(resp.error || 'Could not generate drafts.', true); return; }
+        showStatus(resp.created + ' draft(s) created in Outreach Drafts.', false);
+        if (resp.warnings && resp.warnings.length) {
+          const w = document.getElementById('warnings');
+          w.style.display = 'block';
+          w.innerHTML = resp.warnings.map((item) =>
+            '<b>' + item.channel + '</b>: unrecognized field(s) ' + item.unknownFields.map((f) => '<code>{{' + f + '}}</code>').join(', ')
+          ).join('<br>');
+        }
+      })
+      .withFailureHandler((err) => {
+        btn.disabled = false; btn.textContent = 'Generate Drafts';
+        showStatus(err && err.message ? err.message : String(err), true);
+      })
+      .generateBulkTemplateDrafts(CHANNEL_IDS, subject, runs);
+  };
+</script>

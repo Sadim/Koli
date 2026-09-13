@@ -1,0 +1,62 @@
+<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: oklch(13% 0 0); --mut: oklch(46% 0 0); --bg: oklch(97.8% 0 0); --surface: oklch(99.5% 0 0);
+    --border: oklch(13% 0 0 / .08); --patina-deep: oklch(45% .1 190); --patina: oklch(70% .12 188);
+    --kinpaku-deep: oklch(61% .085 78);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: 'Albert Sans', 'Avenir Next', 'Helvetica Neue', Arial, system-ui, sans-serif;
+    background: var(--bg); color: var(--ink); display: flex; flex-direction: column;
+  }
+  .intro-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 28px; text-align: center; }
+  .intro-mark {
+    width: 64px; height: 64px; border-radius: 18px; margin-bottom: 22px;
+    background: linear-gradient(155deg, var(--patina-deep), var(--kinpaku-deep));
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 30px; letter-spacing: -.03em;
+    box-shadow: 0 1px 1px oklch(13% 0 0/.05), 0 3px 5px oklch(13% 0 0/.05), 0 12px 20px oklch(13% 0 0/.06);
+  }
+  /* Distinct display treatment for the wordmark, deliberately not Albert
+     Sans (that's the body/UI face throughout Koli) -- a rounded geometric
+     face gives the welcome moment its own identity without introducing a
+     third typeface into the working UI (only this screen and the sidebar's
+     header wordmark use it). */
+  .intro-title {
+    font-family: 'Baloo 2', 'Albert Sans', sans-serif; font-weight: 700; font-size: 30px;
+    line-height: 1.2; margin: 0 0 8px; color: var(--ink);
+  }
+  .intro-sub { font-size: 13.5px; color: var(--mut); margin: 0 0 30px; line-height: 1.5; max-width: 290px; }
+  .intro-open-btn {
+    border: none; border-radius: 999px; padding: 12px 30px; font-size: 14px; font-weight: 700;
+    font-family: inherit; color: #fff; cursor: pointer; background: var(--patina-deep);
+    box-shadow: 0 1px 1px oklch(13% 0 0/.05), 0 2px 3px oklch(13% 0 0/.04), 0 6px 12px oklch(13% 0 0/.05);
+  }
+  .intro-open-btn:hover { background: oklch(38% .1 190); }
+  .intro-open-btn:disabled { opacity: .6; cursor: default; }
+  .intro-footer { padding: 14px 0; text-align: center; }
+  .intro-skip { border: none; background: none; color: var(--mut); font-size: 11.5px; font-family: inherit; cursor: pointer; text-decoration: underline; }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&display=swap" rel="stylesheet">
+
+<div class="intro-body">
+  <div class="intro-mark">K</div>
+  <h1 class="intro-title">Welcome to Koli</h1>
+  <p class="intro-sub">Discover, vet, and reach out to creators without ever leaving this spreadsheet.</p>
+  <button type="button" class="intro-open-btn" id="openBtn">Open Console</button>
+</div>
+<div class="intro-footer">
+  <button type="button" class="intro-skip" id="skipBtn">Close</button>
+</div>
+
+<script>
+  document.getElementById('openBtn').onclick = () => {
+    const btn = document.getElementById('openBtn');
+    btn.disabled = true;
+    btn.textContent = 'Opening…';
+    google.script.run.withSuccessHandler(() => google.script.host.close()).showConsole();
+  };
+  document.getElementById('skipBtn').onclick = () => google.script.host.close();
+</script>

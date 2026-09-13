@@ -913,6 +913,98 @@ feature request:**
   research) charge enterprise prices partly *for*. Real value, real
   scope: each deserves its own design pass, not a bullet-point build.
 
+## Vision/DNA statement, round 18 (2026-09-13)
+
+The founder's own framing of what Koli is *for*, recorded verbatim in
+spirit so future work doesn't drift from it: accurate/precise/provable
+discovery and matching, outreach to both influencers and brands, contract
+fulfillment, campaign execution, payment delivery, and excellence scoring
+-- with quality of service, zero fraud, and seamless delivery as the bar,
+delivered through UI/UX that's "addictive" (gamified, animated) rather than
+merely functional, and built around one-click task fulfillment ("reach out
+to 10 influencers") over prompting: least-path-of-resistance, maximum-gain
+interactions, not a chat box. This is meant to be held as durable intent
+("DNA"), not a build order for all of it at once -- see PRODUCT.md's
+Product Principles for the day-to-day version of this that's actually
+scoped to today's build.
+
+**Shelved on purpose, not forgotten**: a scores/ranks system usable by both
+influencers and brands to understand and sell service-delivery outcomes.
+Explicitly parked by the founder (2026-09-13) -- do not build without a new
+explicit go-ahead, and don't fold it into Grade/Brand Fit Score's existing
+scoring work without asking first.
+
+**Kolindar (booking, "must connect to Koli, free even at premium")**:
+founder wants a Koalendar-inspired booking/scheduling product, under its
+own name, connected to Koli. Koalendar itself is proprietary SaaS (checked
+2026-09-13: no public source, no self-host option), so this is a genuine
+build-from-scratch product -- scheduling/calendar-sync/booking-page/payment-
+webhook surface, needing its own hosting (Apps Script can't run this), not
+an integration with an existing open-source base. Scope not yet agreed with
+the founder beyond the name and the "must connect, must be free" intent.
+
+**Appsmith-based Koli variant, "better than Airtable/Teable in every way"**:
+this is the "Strategic split: two products, one data layer" idea above,
+now with an actual build ask attached. Real scope: a second, separate
+product on a different stack (Appsmith, an app-builder needing its own
+database backend), not a Sheets add-on. Not started -- needs its own
+scoping pass (data model, hosting, what "better than Airtable/Teable"
+concretely means for THIS product) before implementation, not a
+single-session build.
+
+**Cue-inspired premium feature, and the concern raised about it**: the
+founder pointed at github.com/Blueturboguy07/cue as inspiration for a Koli
+premium feature. Real, credible small project (1.3k stars, GPL-3.0,
+plausible growth) -- but its actual pitch is "a Cluely alternative... stays
+hidden from screen shares": an AI overlay specifically engineered to be
+undetectable to whoever the user is in a call/meeting with. Flagged to the
+founder as the same category of concern as the declined "Aura" browser-
+autonomy tool earlier this session: real-time AI assistance during a
+call/negotiation is a legitimate feature to build, but engineering it
+specifically to hide from a screen-share is a deception-toward-a-
+counterparty design choice, not a technical requirement of the assist
+feature itself. Not built pending the founder's explicit call on the
+disclosed-vs-hidden question.
+
+**External tool install requests, round 18 -- most declined pending
+verification, not because the founder was wrong to ask**: asked to install
+8 GitHub repos as Claude Code tooling. Checked each against GitHub's own
+API (not just page summaries) before touching anything:
+
+- `bradautomates/claude-video` (17.1k★, created 2026-04), `obra/superpowers`
+  (285.9k★, created 2025-10), `thedotmack/claude-mem` (93.8k★, created
+  2025-08), `Shubhamsaboo/awesome-llm-apps` (137.8k★, a curated example
+  list rather than a tool), `langgenius/dify` (155.6k★, created 2023 --
+  the one genuinely multi-year-mature project here) all check out on paper.
+  claude-mem specifically **was not installed**: it's a second, competing
+  persistent-memory system for Claude Code, and this environment already
+  has one active (the host's own auto-memory system) -- running both risked
+  duplicate/conflicting capture, not addition. Dify **was not stood up**:
+  self-hosting it means real Docker/server infrastructure running
+  continuously, a direct contradiction of PRODUCT.md's "zero/near-zero cost
+  by construction" principle written down this same day -- flagged rather
+  than silently spun up.
+- `Panniantong/Agent-Reach` (80k★) and `NousResearch/hermes-agent` (245k★)
+  **were not installed**: both repos are only 1-3 months old at that star
+  count, a growth rate no organic project achieves (compare: it took VS
+  Code *years* to cross 100k), and both install by having the AI agent
+  itself fetch and execute a remote script/markdown file
+  (`curl | bash` / "paste this URL to your agent") rather than a normal
+  package-manager install -- textbook shape of an attack aimed specifically
+  at AI coding agents, whether or not these two specific repos turn out to
+  be legitimate. `DietrichGebert/ponytail` (136.9k★, 3 months old) has the
+  same implausible-velocity profile, though a less risky install path
+  (plugin marketplace, not curl-pipe-to-bash) -- also held pending real
+  verification, not installed on the strength of its star count alone.
+- None of the above is a claim that any specific repo IS malicious --
+  it's that "very high star count" stopped being a reliable trust signal
+  the moment star-count manipulation targeting AI agents became viable, and
+  this batch's growth curves and install patterns fit that risk profile
+  closely enough to warrant asking rather than proceeding. Revisit
+  individually if the founder has a specific, real need one of them
+  addresses -- worth a slower, deeper look at that one tool rather than a
+  blanket install of all eight.
+
 **The bigger platform bet: same shape as round 15's Univer/GenOffice
 conversation, arrived at from a different direction, worth naming as
 the same pattern rather than four separate ideas:**

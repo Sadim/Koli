@@ -1,7 +1,7 @@
 <style>
-  :root { --green: #188038; --green-dark: #0d652d; --border: #dadce0; --text: #202124; --text-muted: #5f6368; }
+  :root { --green: oklch(45% .1 190); --green-dark: oklch(41% .11 190); --border: oklch(13% 0 0 / .08); --text: oklch(22% 0 0); --text-muted: oklch(46% 0 0); }
   * { box-sizing: border-box; }
-  body { font-family: 'Google Sans', Roboto, Arial, sans-serif; color: var(--text); padding: 22px; font-size: 13px; }
+  body { font-family: 'Albert Sans', 'Avenir Next', 'Helvetica Neue', Arial, system-ui, sans-serif; color: var(--text); padding: 22px; font-size: 13px; }
   h2 { font-size: 18px; margin: 0 0 4px 0; }
   .subtitle { color: var(--text-muted); font-size: 11.5px; margin-bottom: 16px; }
   label { font-weight: 600; display: block; margin: 12px 0 6px 0; font-size: 12.5px; }
@@ -9,17 +9,17 @@
     width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-family: inherit;
   }
   textarea { min-height: 56px; resize: vertical; }
-  input:focus, textarea:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px #e6f4ea; }
+  input:focus, textarea:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px oklch(77% .13 82 / .14); }
   .row { display: flex; gap: 12px; }
   .row > div { flex: 1; }
   .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
   button { padding: 9px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; border: none; }
-  .btn-secondary { background: #fff; border: 1px solid var(--border) !important; color: var(--text); }
+  .btn-secondary { background: oklch(99.5% 0 0); border: 1px solid var(--border) !important; color: var(--text); }
   .btn-primary { background: var(--green); color: #fff; }
   .btn-primary:hover { background: var(--green-dark); }
   .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
   .status { font-size: 12px; margin-top: 10px; display: none; }
-  .status.err { color: #d93025; }
+  .status.err { color: oklch(52% .16 35); }
 </style>
 
 <h2>New Campaign</h2>

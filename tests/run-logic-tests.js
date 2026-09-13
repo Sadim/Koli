@@ -599,5 +599,62 @@ console.log('licenseService.gs');
   });
 }
 
+// ---------- sheetWriter.gs (extractAllUrls_) ----------
+console.log('sheetWriter.gs');
+{
+  const m = loadGsMulti(['constants.gs', 'sheetWriter.gs'], NO_PROPERTIES_STUB);
+
+  test('extractAllUrls_: pulls every http(s) URL out of free text', () => {
+    const urls = m.extractAllUrls_('Merch: https://merch.example.com/shop\nAlso check https://example.org/page');
+    assert.strictEqual(urls.join('|'), 'https://merch.example.com/shop|https://example.org/page');
+  });
+  test('extractAllUrls_: dedupes repeats, keeps first-seen order', () => {
+    const urls = m.extractAllUrls_('https://a.example.com then again https://a.example.com then https://b.example.com');
+    assert.strictEqual(urls.join('|'), 'https://a.example.com|https://b.example.com');
+  });
+  test('extractAllUrls_: no links in the text returns an empty array, not null/undefined', () => {
+    const urls = m.extractAllUrls_('Just a plain description with no links at all.');
+    assert.strictEqual(urls.join('|'), '');
+    assert.strictEqual(Array.isArray(urls), true);
+  });
+  test('extractAllUrls_: blank/undefined input is safe, not a crash', () => {
+    assert.strictEqual(m.extractAllUrls_(undefined).length, 0);
+    assert.strictEqual(m.extractAllUrls_('').length, 0);
+  });
+}
+
+// ---------- outreachDraftService.gs ----------
+console.log('outreachDraftService.gs');
+{
+  const m = loadGs('outreachDraftService.gs');
+
+  // Arrays returned from a separate vm sandbox aren't deepStrictEqual to a
+  // main-realm array literal (different realm's Array constructor) even
+  // with identical contents -- comparing the joined string sidesteps that
+  // cross-realm identity check instead of asserting something false.
+  test('substituteMergeFields_: known field substitutes its value', () => {
+    const r = m.substituteMergeFields_('Hi {{Channel}}', { Channel: 'MrBeast' });
+    assert.strictEqual(r.result, 'Hi MrBeast');
+    assert.strictEqual(r.unknownFields.join('|'), '');
+  });
+  test('substituteMergeFields_: matches case- and whitespace-insensitively against the field name', () => {
+    const r = m.substituteMergeFields_('{{ channel }} and {{CHANNEL}}', { Channel: 'MrBeast' });
+    assert.strictEqual(r.result, 'MrBeast and MrBeast');
+  });
+  test('substituteMergeFields_: blank/undefined cell value substitutes to empty string, not "undefined"', () => {
+    const r = m.substituteMergeFields_('Rate: {{Rate}}.', { Rate: '' });
+    assert.strictEqual(r.result, 'Rate: .');
+  });
+  test('substituteMergeFields_: unrecognized token is left literal AND reported -- never silently blanked', () => {
+    const r = m.substituteMergeFields_('Offer: {{Rate}}', { Channel: 'MrBeast' });
+    assert.strictEqual(r.result, 'Offer: {{Rate}}');
+    assert.strictEqual(r.unknownFields.join('|'), 'Rate');
+  });
+  test('substituteMergeFields_: multiple unknown tokens are all reported, duplicates included per occurrence', () => {
+    const r = m.substituteMergeFields_('{{Rate}} then {{Rate}} again, also {{Deadline}}', {});
+    assert.strictEqual(r.unknownFields.join('|'), 'Rate|Rate|Deadline');
+  });
+}
+
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

@@ -68,7 +68,11 @@ function routeWebAppAction_(action, body) {
       // plain link, selection, or a non-YouTube platform) has nothing to
       // analyze, so it still queues to Prospects as before.
       if (body.type === 'channel') {
-        const result = analyzeChannelOne(body.value);
+        // domSocials: Links-chip data the extension already read live from
+        // the user's own browser tab (window.ytInitialData) when they sent
+        // this channel -- see contactService.gs's findContact for why
+        // that's preferred over this doing its own About-page fetch.
+        const result = analyzeChannelOne(body.value, body.domSocials);
         return result.ok
           ? {
               ok: true,
@@ -212,6 +216,37 @@ function doGet(e) {
   if (params.track) {
     try { recordEmailOpen_(params.track); } catch (err) { /* a broken tracking log must never break the pixel itself */ }
     return trackingPixelResponse_();
+  }
+
+  // Kolindar: one public booking page, no per-visit token (unlike ?p=,
+  // there's only one calendar to book against, not one page per channel).
+  if (params.kolindar) {
+    try {
+      if (params.action === 'slots') return jsonResponse_(getKolindarSlotsForWebApp_(params.type));
+      if (params.action === 'book') return jsonResponse_(createKolindarBooking_(params.type, params.start, params.name, params.email, params.notes));
+      return HtmlService.createHtmlOutput(renderKolindarPage_(getKolindarConfig_()));
+    } catch (err) {
+      return params.action ? jsonResponse_({ ok: false, error: errMsg_(err) }) : HtmlService.createHtmlOutput('<p>Booking is temporarily unavailable.</p>');
+    }
+  }
+
+  // Topic Research: viewing the page needs no secret, but the SEARCH
+  // action costs real YouTube quota (search.list is 100 units), so it
+  // requires the same shared secret the extension already uses --
+  // otherwise anyone who finds the bare URL could burn the account's
+  // daily quota with unauthenticated searches. Constant-time compare
+  // (constantTimeEquals_, defined below in this file) for the same reason
+  // the extension's own webhook auth uses it.
+  if (params.research) {
+    if (params.action === 'search') {
+      const configuredSecret = getProp_(PROP_KEYS.INBOX_SHARED_SECRET, '');
+      if (!configuredSecret || !constantTimeEquals_(String(params.k || ''), configuredSecret)) {
+        return jsonResponse_({ ok: false, error: 'Missing or invalid access key.' });
+      }
+      try { return jsonResponse_(runTopicResearch_(params.q, params.max)); }
+      catch (err) { return jsonResponse_({ ok: false, error: errMsg_(err) }); }
+    }
+    return HtmlService.createHtmlOutput(renderTopicResearchPage_());
   }
 
   if (params.p && params.express) {

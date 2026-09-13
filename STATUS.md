@@ -94,7 +94,39 @@ browser extension and a natural-language command tab layered on top.
 - **Dashboard**: KPI cells (channels/videos tracked, avg engagement,
   avg authenticity), room for your own charts.
 
-### Added this session (2026-09-12/13), not yet folded into the sections above
+### Added this session (2026-09-13), not yet folded into the sections above
+- **Airtable/Teable-grade record system** (`recordService.gs`, `RecordModal.html`,
+  `RecordModalDialog.html`, new): one schema-driven expanded-record modal
+  (`CHANNEL_FIELD_SCHEMA`/`CAMPAIGN_FIELD_SCHEMA` in constants.gs) reused by
+  three surfaces instead of three bespoke UIs -- the Sidebar's new Expand
+  button, a click on an Outreach Kanban card, and a click on the new
+  Campaigns Kanban card. Type-aware field rendering (enum as a colored
+  select-pill, date, longtext, currency, computed fields visibly locked),
+  autosave per field with optimistic update + revert-on-error. Sidebar's
+  channel-card also gained inline quick-edits directly (no modal needed) for
+  the three fields that had **no edit UI anywhere before this**: Outreach
+  (was a dead `<span>`, now a real inline single-select), Last Contact (new
+  date chip), and Notes (new textarea with Copy/Insert-timestamp/Clear/
+  Expand-to-full-editor quick actions).
+- **Campaigns Kanban** (`CampaignsKanban.html`, new; `campaignService.gs`,
+  extended): full drag-and-drop board across `CAMPAIGN_STAGES`, at parity
+  with the existing Outreach board -- Campaigns previously had no board at
+  all, just a plain sheet with a Stage dropdown. Needed a real per-row key
+  first (`Campaign ID`, new, backfilled for existing rows) since Channel ID
+  alone repeats across multiple deals with the same channel.
+- **Documents field** (`documentService.gs`, new), on both Channels and
+  Campaigns records: upload-and-OCR (same Gemini Vision mechanism as the
+  existing Brand Kit feature, generalized rather than modified) plus linking
+  an already-existing Drive file via the Google Picker, without duplicating
+  it into Koli's own Drive folder. Picker needs one manual step (enabling
+  the Picker API + a browser key in Cloud Console, pasted into Settings) --
+  no OAuth scope change either way, since Picker grants per-file access
+  under the `drive.file` scope already declared. Attachments are stored as a
+  structured list in the cell's Developer Metadata (what the modal actually
+  renders from) plus a human-readable log in the cell's Note (same
+  convention Brand Kit already uses).
+
+### Added 2026-09-12/13, not yet folded into the sections above
 - **Brand Discovery** (`Brand Intelligence > Discovery > Discover New
   Brands`): searches YouTube directly for a niche/keyword (no seed
   channel needed), scans candidate videos' descriptions for sponsor
@@ -225,7 +257,14 @@ prompt's actual output shape, the 500-char enforcement against a real
 response), and Brand Fit Score end to end (the brief-fit Gemini prompt's
 actual output shape, and whether the 7-component composite feels right
 against real channels/briefs: the math itself is unit-tested, the
-judgment calls behind the weights aren't). Also now: the `drive.file` +
+judgment calls behind the weights aren't). Also now: the entire record
+system/Campaigns Kanban/Documents feature added 2026-09-13 (Outreach pill
+inline single-select, Notes/Last Contact quick-edits, the expanded-record
+modal, drag-and-drop on the new Campaigns board, Documents upload+OCR, and
+especially the Google Picker "Connect from Drive" flow -- Picker+Apps-Script
+integration specifically, since it's the one piece of this batch resting on
+a claimed-but-unverified-here Google integration pattern rather than a
+already-proven Koli mechanism). Also now: the `drive.file` +
 Advanced Drive Service rewrite in reportService.gs: this is the exact
 class of change that broke Export once before (see ROADMAP.md round
 13), so treat Creator One-Pager/Deal Memo/Performance Report as
@@ -244,6 +283,125 @@ not something the test suite closes.
 
 ## Recent changelog
 
+- **2026-09-13: Sidebar selection-sync regression fixed (user-reported,
+  confirmed by screenshot) + coverage extended to Campaigns and 5 more
+  sheets.** The sidebar's reactive card was showing stale data on Channels
+  and nothing at all on Videos, regardless of what was actually selected.
+  Root cause: `getSelectedRowMarker()` (uiHandlers.gs) relied on an
+  `onSelectionChange` **simple trigger** writing to a cache -- simple
+  triggers can silently stop firing after enough live code pushes without
+  the spreadsheet being reloaded, which a long single-session build (this
+  one) does to it reliably. Fixed by removing the trigger+cache dependency
+  entirely: the marker function now reads `SpreadsheetApp.getActiveRange()`
+  live on every poll, so there's no staleness class left to hit. While
+  fixing it: **Campaigns now has a real reactive card**
+  (`getSelectedCampaignSummary`, reuses the existing Campaign record
+  schema/Expand dialog), and Sponsors/Brand Fit Scores/Attention/Brand
+  View/Outreach Drafts now show an honest "selected here, no card built
+  for this tab yet" message in the sidebar instead of looking broken --
+  full rich cards for those five sheets are real, separate, not-yet-built
+  scope.
+- **2026-09-13: Contact/About real bug fixed, video-description notes added,
+  type-scale pass across Sidebar + extension.** Found while investigating
+  a "social links still not showing" report: About summary + social links
+  were landing on the **Channel** column's note, not Contact
+  (`sheetWriter.gs`'s `writeChannelRow`) -- moved to Contact, where the
+  existing code comment already said they belonged. Found a real bug in
+  the same spot: the socials-note write unconditionally overwrote whatever
+  `writeEmailPreservingManual_` had just written moments earlier (a
+  legitimate "kept your entry, found a different address" warning),
+  silently destroyed every run -- fixed with a new shared `appendNote_`
+  helper so both writers merge onto the same cell instead of clobbering.
+  Traced the social-link extraction's own data flow end to end
+  (`findContact` → `bundle.contact` → `writeChannelRow`) and found it
+  intact -- the more likely explanation for "not showing" is that **no
+  surface built this session displayed cell Notes at all**: `RecordModal.html`
+  now reads and shows any cell Note (collapsed "Note" disclosure per
+  field) via `recordService.gs`'s `getRecordGeneric_`, so Contact's About/
+  socials block (and Grade's confidence breakdown, etc.) is finally visible
+  somewhere other than a raw-cell hover. If links are still genuinely
+  missing after this, `contactService.gs`'s existing "Test About-Page
+  Fetch" diagnostic is the tool to reach for -- I can't reproduce a live
+  YouTube fetch from this environment to rule out a fetch-side bug myself.
+  Separately: Videos' Views column now gets the video's own description +
+  every URL found in it as a note (`extractAllUrls_`, new, generalizes
+  `contactService.gs`'s social-domain matching to "any link at all").
+  Also: raised every functional/interactive text size below 11px to the
+  floor Impeccable holds the rest of this codebase to, across `Sidebar.html`
+  and `send-to-koli-extension/sidepanel.html` (one deliberate exception
+  left below it: the small circular brand-mark logo, a WCAG-exempt
+  logotype, not content text). Cleaned up a dead duplicate `.cc-outreach-pill`
+  CSS rule left over from an earlier edit this session. Low-contrast
+  findings in the extension (pre-existing, unrelated to text size) were
+  flagged but not touched -- a separate task if wanted.
+- **2026-09-13: Dislikes estimate added** (`dislikeService.gs`, new) —
+  YouTube removed public dislike counts from its own API in Dec 2021, no
+  official source exists anymore. Wired the free, keyless "Return YouTube
+  Dislike" community API in as a live, clearly-labeled *estimate* (never an
+  official figure) in the Sidebar's video card and the "Send to Koli"
+  extension's Pull Stats preview only -- deliberately **not** added to the
+  Videos sheet (VIDEO_HEADERS unchanged): an extrapolated third-party
+  number isn't something worth tracking a history of the way a real
+  YouTube-reported stat is. Same "live check, fails soft, never blocks"
+  pattern SponsorBlock detection already uses.
+- **2026-09-13: `ux-designer-skill` installed** (project-scoped,
+  `.claude/skills/ux-designer/`) — complements rather than duplicates
+  Impeccable: this one is a prescriptive pattern/reference library (23
+  anti-patterns, decision trees, domain-specific guidance for canvas/
+  collaborative/AI interfaces) rather than a detector+critique workflow.
+  Checked and installed directly: modest scale (60 stars), plausible
+  growth, no credibility red flags.
+- **2026-09-13: Bulk Template / Mail Merge shipped** (`BulkTemplateDialog.html`,
+  new; `outreachDraftService.gs`, extended) — write one rich-text email/
+  contract template with `{{Field}}` merge tokens (matched against the
+  Channels sheet's real header row, never a hardcoded list), apply it once
+  per selected creator, land each as its own row in the existing Outreach
+  Drafts sheet -- same review-then-Send-Approved-Drafts flow as every other
+  draft, no new send pipeline. Distinct from Draft Outreach Email (which has
+  Gemini author a whole new email per channel from scratch, no template at
+  all). An unrecognized `{{Field}}` is left literal and flagged after
+  generating, never silently blanked. Toolbar: Bold/Italic/Underline/
+  Strikethrough/bullet-and-number-as-text-prefix/links, plus an AI-assist
+  button (Gemini) that drafts/rewrites surrounding prose while leaving
+  `{{Field}}` tokens untouched. **Real bug fixed as part of this**: rich-text
+  formatting applied in any draft dialog (this one, Draft Outreach Email,
+  Reply Assistant) looked correct in the Sheet cell but was silently
+  flattened to plain text at send time -- `sendApprovedOutreachDrafts` now
+  builds the sent HTML body from the cell's actual `RichTextValue` runs
+  (new `cellRichTextToHtml_`), so bold/italic/links now actually reach the
+  delivered email, not just the sheet view. `applyRichTextToCell_` extended
+  to carry strikethrough + per-run link URLs. New pure-logic tests for the
+  merge-field substitution engine (`tests/run-logic-tests.js`).
+- **2026-09-13: Impeccable design skill installed + a real bug it (indirectly)
+  surfaced, fixed.** Installed `pbakaus/impeccable` (project-scoped, under
+  `.claude/`) and ran its detector + a design-director-style review against
+  the new pipeline UI. Most of the 50 detector flags were pre-existing (not
+  from today), a false positive (a dark-mode color checked against a
+  light-mode background that never actually co-renders), or an intentional
+  reuse of the app's existing shadow tokens -- one real hit was
+  `RecordModal.html`'s dialog shadow (thin border + 50px blur, the classic
+  "AI-generated card" look), fixed. The design review then caught a real,
+  confirmed data-integrity bug in the Sidebar's new quick-edit fields: the
+  channel ID used at *save* time was read live, not captured at *edit-start*
+  time, so typing a Note (or picking a date), then clicking a different
+  Channels row before the field lost focus, could silently save that text
+  onto the wrong channel's record. Fixed by having each field track its own
+  "owner" channel ID, captured only when it's safe to refresh that field.
+  Also unified Outreach-status coloring: Sidebar.html and RecordModal.html
+  used to compute status colors two different ways (an exact map vs. a regex
+  guess) that could drift apart -- now both read one shared
+  `OUTREACH_TONES`/`CAMPAIGN_STAGE_TONES` map from constants.gs, and the
+  Sidebar's outreach pill is now a native `<select>` (same widget the record
+  modal already used) instead of a separate hand-built popup menu. Two
+  low-contrast findings and the pervasive small-text sizing throughout
+  Sidebar.html were left as-is (a decorative logo badge exempt under WCAG's
+  logotype exception, and a much bigger whole-panel type-scale decision the
+  user hasn't weighed in on) -- flagged to the user rather than silently
+  fixed or silently ignored.
+- **2026-09-13: Airtable/Teable-grade pipeline UI build-out** -- see "Added
+  this session" above for the full breakdown. Pushed to Apps Script
+  (`clasp push`, no redeploy needed: nothing here touches `doGet`/`doPost`).
+  Not yet committed to git at time of writing.
 - **2026-09-12: Brand Discovery shipped** (`brandDiscoveryService.gs`,
   new) — the actual missing half of the acquisition pipeline: until now a
   brand only entered Koli if you already knew its name or it happened to

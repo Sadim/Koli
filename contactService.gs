@@ -37,13 +37,25 @@ const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
 
 /**
  * @param {string} description - channel About description text
- * @param {string} [channelId] - when given, also pulls the About page's
- *   structured Links chips (see fetchAboutPageLinks_) -- a field the free-
- *   text description above frequently doesn't contain at all, since it's a
- *   separate part of channel customization in YouTube's own UI.
+ * @param {string} [channelId] - when given (and domLinks isn't), pulls the
+ *   About page's structured Links chips server-side (see
+ *   fetchAboutPageLinks_) -- a field the free-text description above
+ *   frequently doesn't contain at all, since it's a separate part of
+ *   channel customization in YouTube's own UI.
+ * @param {Array<{title: string, value: string}>} [domLinks] - the same
+ *   Links-chip data, already read live from window.ytInitialData on the
+ *   actual channel page the user had open in their browser (the "Send to
+ *   Koli" extension's DOM capture). Strictly more reliable than this
+ *   function's own server-side About-page fetch when present -- a real
+ *   rendered page in a real browser session carries none of the redirect/
+ *   consent-wall/bot-detection risk a script's HTTP client fetching the
+ *   same page cold does -- so this skips fetchAboutPageLinks_ entirely and
+ *   uses domLinks as the Links-chip source instead. The description-text
+ *   regex pass and email search below are unaffected either way; DOM
+ *   capture only ever covers the Links chips specifically.
  * @return {{email: string, socials: Array<{platform: string, url: string}>}}
  */
-function findContact(description, channelId) {
+function findContact(description, channelId, domLinks) {
   const desc = description || '';
   const socials = extractSocials_(desc);
 
@@ -77,9 +89,12 @@ function findContact(description, channelId) {
   // 4. The About page's own Links chips (Facebook/Instagram/a business
   //    email/etc, set separately from the description box): frequently
   //    has real signal the three steps above never had a chance to see.
-  if (channelId) {
+  //    Prefer domLinks (live browser capture) over a fresh server-side
+  //    fetch when it's available -- see the doc comment above for why.
+  const linkEntries = (domLinks && domLinks.length) ? domLinks : (channelId ? fetchAboutPageLinks_(channelId) : []);
+  if (linkEntries.length) {
     const ABOUT_LINK_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    fetchAboutPageLinks_(channelId).forEach(function (link) {
+    linkEntries.forEach(function (link) {
       if (!link.value) return;
       if (ABOUT_LINK_EMAIL_RE.test(link.value)) {
         if (!email) email = link.value;

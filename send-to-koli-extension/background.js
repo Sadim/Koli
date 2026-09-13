@@ -62,7 +62,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'sync' && changes.locks) rebuildContextMenus();
 });
 
-chrome.contextMenus.onClicked.addListener((info, tab) => {
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === 'send-link-channel' && info.linkUrl) {
     send('channel', info.linkUrl, tab.title, tab.url);
   } else if (info.menuItemId === 'send-link-video' && info.linkUrl) {
@@ -70,7 +70,15 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   } else if (info.menuItemId === 'send-selection-to-koli' && info.selectionText) {
     send('note', info.selectionText, tab.title, tab.url);
   } else if (info.menuItemId === 'send-page-channel') {
-    send('channel', tab.url, tab.title, tab.url);
+    // The tab IS the channel's own page here, so its Links chips can be
+    // read live from window.ytInitialData before sending -- strictly more
+    // reliable than a server-side About-page fetch (see
+    // captureYoutubeLinksFromTab_ below and findContact in
+    // contactService.gs for why). A right-clicked link found elsewhere
+    // (send-link-channel above) has no such live page to read, so that
+    // path is unchanged.
+    const domSocials = await captureYoutubeLinksFromTab_(tab.id);
+    send('channel', tab.url, tab.title, tab.url, false, undefined, domSocials);
   } else if (info.menuItemId === 'send-page-video') {
     send('video', tab.url, tab.title, tab.url);
   } else if (info.menuItemId.indexOf('send-other-') === 0) {
@@ -79,6 +87,69 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     send('note', value, tab.title, tab.url, false, profileId); // non-YouTube platforms aren't auto-classified: always sent as a generic capture
   }
 });
+
+/**
+ * Injected into the live tab (world: 'MAIN', so it can see the page's own
+ * window.ytInitialData global -- a content script's default isolated
+ * world can't) when the user sends a channel page. Ports the exact same
+ * tree-walk contactService.gs's fetchAboutPageLinksDiagnostic_ already
+ * uses server-side, just reading it from a page the browser has already
+ * rendered correctly instead of an HTTP client's own fetch of the same
+ * page -- that sidesteps every fragility source the server-side version
+ * has documented (User-Agent spoofing, mobile-page redirects, consent
+ * interstitials, bot detection).
+ *
+ * Must be fully self-contained: chrome.scripting.executeScript serializes
+ * this function to run inside the target page's own context, not this
+ * file's -- it cannot reference anything defined outside itself.
+ */
+function extractYoutubeLinksFromPage_() {
+  try {
+    const data = window.ytInitialData;
+    if (!data) return [];
+    const found = [];
+    const seen = {};
+    (function walk(node, depth) {
+      if (!node || typeof node !== 'object' || depth > 40) return;
+      if (node.channelExternalLinkViewModel) {
+        try {
+          const v = node.channelExternalLinkViewModel;
+          const title = (v.title && v.title.content) || '';
+          const displayContent = (v.link && v.link.content) || '';
+          const run = v.link && v.link.commandRuns && v.link.commandRuns[0];
+          const redirectUrl = run && run.onTap && run.onTap.innertubeCommand &&
+            run.onTap.innertubeCommand.commandMetadata && run.onTap.innertubeCommand.commandMetadata.webCommandMetadata &&
+            run.onTap.innertubeCommand.commandMetadata.webCommandMetadata.url;
+          const qMatch = redirectUrl && redirectUrl.match(/[?&]q=([^&]+)/);
+          const resolvedRaw = qMatch ? decodeURIComponent(qMatch[1]) : displayContent;
+          const resolved = resolvedRaw && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resolvedRaw) && !/^https?:\/\//i.test(resolvedRaw)
+            ? 'https://' + resolvedRaw : resolvedRaw;
+          const key = title + '|' + resolved;
+          if (resolved && !seen[key]) { seen[key] = true; found.push({ title: title, value: resolved }); }
+        } catch (inner) { /* one malformed link node shouldn't drop the rest */ }
+      }
+      Object.keys(node).forEach(function (k) { walk(node[k], depth + 1); });
+    })(data, 0);
+    return found;
+  } catch (e) {
+    return [];
+  }
+}
+
+/** Runs extractYoutubeLinksFromPage_ in the given tab's own page context. Fails soft to an empty array -- a capture that can't read the DOM (a non-YouTube page, a page still loading, a permissions edge case) should never block the send itself, only lose this one enrichment; the server-side fetch in contactService.gs still runs as the fallback. */
+async function captureYoutubeLinksFromTab_(tabId) {
+  try {
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      world: 'MAIN',
+      func: extractYoutubeLinksFromPage_
+    });
+    return (results && results[0] && results[0].result) || [];
+  } catch (e) {
+    console.error('[Koli] DOM link capture failed:', e);
+    return [];
+  }
+}
 
 /**
  * Recognized platforms: each with its own rules for what counts as a
@@ -141,7 +212,7 @@ async function logActivity_(entry) {
  * guessed from the URL; always either the YouTube-specific menu items
  * or an explicit per-profile menu item chose it.
  */
-async function send(type, value, pageTitle, sourceUrl, silent, lockId) {
+async function send(type, value, pageTitle, sourceUrl, silent, lockId, domSocials) {
   const { locks } = await chrome.storage.sync.get('locks');
   const isYoutube = !lockId || lockId === 'youtube';
   const lock = isYoutube ? (locks && locks.youtube) : ((locks && locks.other) || []).find((p) => p.id === lockId);
@@ -179,7 +250,7 @@ async function send(type, value, pageTitle, sourceUrl, silent, lockId) {
     const resp = await fetch(lock.url, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids a CORS preflight against Apps Script
-      body: JSON.stringify({ secret: lock.secret, type, value, pageTitle, sourceUrl, targetTab: lock.tab || '' })
+      body: JSON.stringify({ secret: lock.secret, type, value, pageTitle, sourceUrl, targetTab: lock.tab || '', domSocials: domSocials || [] })
     });
     const data = await resp.json();
     if (data.ok) {
@@ -228,7 +299,13 @@ chrome.notifications.onClicked.addListener((notificationId) => {
 // identically and show up in the same Log tab the same way.
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || msg.kind !== 'koli-send') return false;
-  send(msg.type, msg.value, msg.pageTitle, msg.sourceUrl, msg.silent, msg.lockId)
+  // Side panel messages come from the extension's own page, not a content
+  // script, so sender.tab is never populated -- the side panel has to tell
+  // us which real page tab to read (msg.tabId), same DOM capture the
+  // context-menu path above does for a channel send.
+  const captureStep = (msg.type === 'channel' && msg.tabId) ? captureYoutubeLinksFromTab_(msg.tabId) : Promise.resolve([]);
+  captureStep
+    .then((domSocials) => send(msg.type, msg.value, msg.pageTitle, msg.sourceUrl, msg.silent, msg.lockId, domSocials))
     .then((result) => sendResponse(result || { ok: false })); // send() already resolves with a proper {ok, ...} shape in every branch
   return true; // keep the message channel open for the async response
 });

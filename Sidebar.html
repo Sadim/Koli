@@ -1,25 +1,46 @@
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
+  /* ---------- Impeccable design system adoption (2026-09-13) ----------
+     Full token swap to match impeccable.style's own visual language, read
+     directly off its live CSS custom properties rather than approximated --
+     Albert Sans, an oklch-based neutral "paper" palette (near-black ink,
+     46%-gray muted text, hairline rules at 8% alpha), a warm "kinpaku" gold
+     accent family and a cooler "patina" teal-gray family for interactive
+     text, "vermilion" for errors. Every EXISTING variable name below keeps
+     its old semantic role (--green is still "the primary interactive
+     accent," --error still "the error tone") -- only the underlying values
+     changed, so every component rule elsewhere in this file that already
+     reads var(--green)/var(--border)/etc. picks up the new system with no
+     further edits. Dark mode borrows the source's own "instrument panel"
+     dark tokens (--ks-instrument-*) rather than inventing one. */
   :root {
     color-scheme: light;
-    --green: #1B7F3B; --green-bg: #EAF3EB; --green-700: #145E2C; --teal: #2FB9C1; --teal-br: #3BC3CC;
-    --navy: #15243C; --ink: #141414; --label: #9A8F82; --border: #E4E2E4;
-    --seg: #C9C8CC; --mut: #6E6A62; --lime: #7F8F33; --lime-border: #DCE1C6; --lime-check: #B7CC33;
-    --bg: #F7F6F7; --surface: #FFFFFF; --error: #d93025; --error-bg: #fce8e6; --amber: #f9ab00; --amber-bg: #fef7e0; --amber-ink: #b06000;
-    --radius: 12px; --radius-sm: 6px; --radius-lg: 18px;
-    --shadow-xs: 0 1px 2px rgba(20,20,20,.05);
-    --shadow: 0 1px 4px rgba(20,20,20,.05);
-    --shadow-md: 0 6px 18px rgba(20,20,20,.09), 0 1px 3px rgba(20,20,20,.06);
-    --shadow-lg: 0 16px 36px rgba(15,15,15,.18), 0 3px 10px rgba(15,15,15,.08);
-    --ease: cubic-bezier(.32,.72,.35,1); --ease-out: cubic-bezier(.16,1,.3,1);
+    --green: oklch(45% .1 190); --green-bg: oklch(77% .13 82 / .14); --green-700: oklch(61% .085 78);
+    --teal: oklch(70% .12 188); --teal-br: oklch(82% .07 188);
+    --navy: oklch(22% 0 0); --ink: oklch(13% 0 0); --label: oklch(51% 0 0); --border: oklch(13% 0 0 / .08);
+    --seg: oklch(95% 0 0); --mut: oklch(46% 0 0);
+    --lime: oklch(61% .085 78); --lime-border: oklch(77% .13 82); --lime-check: oklch(84% .19 80.46);
+    --bg: oklch(97.8% 0 0); --surface: oklch(99.5% 0 0);
+    --error: oklch(52% .16 35); --error-bg: oklch(52% .16 35 / .12);
+    --amber: oklch(61% .085 78); --amber-bg: oklch(77% .13 82 / .14); --amber-ink: oklch(46% 0 0);
+    --radius: 12px; --radius-sm: 3px; --radius-lg: 16px;
+    --shadow-xs: 0 1px 1px oklch(13% 0 0/.05), 0 2px 3px oklch(13% 0 0/.04);
+    --shadow: 0 1px 1px oklch(13% 0 0/.05), 0 2px 3px oklch(13% 0 0/.04), 0 6px 12px oklch(13% 0 0/.05);
+    --shadow-md: 0 1px 1px oklch(13% 0 0/.04), 0 3px 5px oklch(13% 0 0/.05), 0 12px 20px oklch(13% 0 0/.06);
+    --shadow-lg: 0 1px 1px oklch(13% 0 0/.04), 0 3px 5px oklch(13% 0 0/.05), 0 12px 20px oklch(13% 0 0/.06), 0 32px 48px oklch(13% 0 0/.07);
+    --ease: cubic-bezier(.2,.8,.2,1); --ease-out: cubic-bezier(.16,1,.3,1);
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       color-scheme: dark;
-      --green: #3FCB7C; --green-bg: #143824; --green-700: #57DA92; --teal: #52D2DB; --teal-br: #5FD9E1;
-      --navy: #E9EFF4; --ink: #EEF1F0; --label: #9CA6A2; --border: #2C3934;
-      --seg: #354039; --mut: #93A19C; --lime: #B7CC33; --lime-border: #3A4530; --lime-check: #C6D94A;
-      --bg: #101512; --surface: #1A211D; --error: #FF6B5E; --error-bg: #3A1D19; --amber: #F5B95A; --amber-bg: #3A2D14; --amber-ink: #F5B95A;
+      --green: oklch(78% .1 188); --green-bg: oklch(61% .085 78 / .22); --green-700: oklch(87% .2 85);
+      --teal: oklch(82% .07 188); --teal-br: oklch(70% .12 188);
+      --navy: oklch(93% 0 0); --ink: oklch(93% 0 0); --label: oklch(68% 0 0); --border: oklch(100% 0 0 / .12);
+      --seg: oklch(31% 0 0); --mut: oklch(68% 0 0);
+      --lime: oklch(87% .2 85); --lime-border: oklch(77% .13 82); --lime-check: oklch(84% .19 80.46);
+      --bg: oklch(17% 0 0); --surface: oklch(24% 0 0);
+      --error: oklch(68% .16 35); --error-bg: oklch(52% .16 35 / .22);
+      --amber: oklch(78% .13 82); --amber-bg: oklch(61% .085 78 / .22); --amber-ink: oklch(84% .19 80.46);
       --shadow-xs: 0 1px 2px rgba(0,0,0,.35);
       --shadow: 0 1px 4px rgba(0,0,0,.35);
       --shadow-md: 0 6px 18px rgba(0,0,0,.45);
@@ -29,10 +50,14 @@
   /* Manual toggle override -- wins over prefers-color-scheme in both directions (see themeToggle_ script near the end of this file). */
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --green: #3FCB7C; --green-bg: #143824; --green-700: #57DA92; --teal: #52D2DB; --teal-br: #5FD9E1;
-    --navy: #E9EFF4; --ink: #EEF1F0; --label: #9CA6A2; --border: #2C3934;
-    --seg: #354039; --mut: #93A19C; --lime: #B7CC33; --lime-border: #3A4530; --lime-check: #C6D94A;
-    --bg: #101512; --surface: #1A211D; --error: #FF6B5E; --error-bg: #3A1D19; --amber: #F5B95A; --amber-bg: #3A2D14; --amber-ink: #F5B95A;
+    --green: oklch(78% .1 188); --green-bg: oklch(61% .085 78 / .22); --green-700: oklch(87% .2 85);
+    --teal: oklch(82% .07 188); --teal-br: oklch(70% .12 188);
+    --navy: oklch(93% 0 0); --ink: oklch(93% 0 0); --label: oklch(68% 0 0); --border: oklch(100% 0 0 / .12);
+    --seg: oklch(31% 0 0); --mut: oklch(68% 0 0);
+    --lime: oklch(87% .2 85); --lime-border: oklch(77% .13 82); --lime-check: oklch(84% .19 80.46);
+    --bg: oklch(17% 0 0); --surface: oklch(24% 0 0);
+    --error: oklch(68% .16 35); --error-bg: oklch(52% .16 35 / .22);
+    --amber: oklch(78% .13 82); --amber-bg: oklch(61% .085 78 / .22); --amber-ink: oklch(84% .19 80.46);
     --shadow-xs: 0 1px 2px rgba(0,0,0,.35);
     --shadow: 0 1px 4px rgba(0,0,0,.35);
     --shadow-md: 0 6px 18px rgba(0,0,0,.45);
@@ -41,14 +66,10 @@
   * { box-sizing: border-box; }
   html, body { height: 100%; }
   body {
-    font-family: 'Inter', 'Google Sans', Roboto, Arial, sans-serif; color: var(--ink); margin: 0;
+    font-family: 'Albert Sans', 'Avenir Next', 'Helvetica Neue', Arial, system-ui, sans-serif; color: var(--ink); margin: 0;
     font-size: 13px; background: var(--bg);
     display: flex; flex-direction: column; min-height: 100vh;
   }
-  @media (prefers-color-scheme: light) {
-    :root:not([data-theme="dark"]) body { background: linear-gradient(180deg,#EFEDF0,#FAF9FA 45%,#F5F4F6); }
-  }
-  :root[data-theme="light"] body { background: linear-gradient(180deg,#EFEDF0,#FAF9FA 45%,#F5F4F6); }
   button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; border-radius: 4px; }
   svg { display: block; }
   ::-webkit-scrollbar { width: 4px; }
@@ -59,7 +80,13 @@
   /* ---------- Compact header: logo + tabs + gear, all one row ---------- */
   .mini-header { display: flex; align-items: center; gap: 8px; padding: 10px 10px 8px 10px; flex-shrink: 0; }
   .brand-mark-small {
-    width: 24px; height: 24px; border-radius: 7px; background: linear-gradient(155deg, var(--green), var(--green-700)); color: #fff;
+    /* Fixed gradient, not var(--green)/var(--green-700): those two flip to
+       much lighter values in dark mode (correct for their OTHER role, text
+       on a dark page) but that made this badge's white "K" unreadable
+       against the lightened gradient (real bug, caught by the design
+       detector: 1.6:1 on the gold end). A brand mark doesn't need to invert
+       with theme -- fixed dark ends guarantee legible white text either way. */
+    width: 24px; height: 24px; border-radius: 7px; background: linear-gradient(155deg, oklch(45% .1 190), oklch(61% .085 78)); color: #fff;
     display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11.5px; flex-shrink: 0;
     position: relative; box-shadow: var(--shadow-xs), inset 0 1px 0 rgba(255,255,255,.25); letter-spacing: -.02em;
   }
@@ -76,9 +103,17 @@
   .icon-btn.open { transform: rotate(75deg); background: var(--green-bg); color: var(--green); }
 
   /* ---------- Quick settings drawer ---------- */
+  /* Grew from a 2-field API-key-status popover into the full settings
+     surface (everything from SettingsDialog.html except Web App URL and
+     the shared secret, which stay in that dialog on purpose -- rarely
+     touched, and the sidebar's job here is the "generate a connection
+     code" action, not re-editing those two raw values). Fixed max-height
+     + internal scroll instead of letting the drawer grow the whole sidebar
+     -- same slide-open transition as before, just against a bigger cap and
+     a scrollable inner instead of hidden overflow. */
   .drawer { max-height: 0; overflow: hidden; transition: max-height .25s var(--ease), margin .25s var(--ease); background: var(--surface); margin: 0 13px; flex-shrink: 0; }
-  .drawer.open { max-height: 340px; margin-bottom: 10px; border-radius: var(--radius); box-shadow: var(--shadow-md); border: 1px solid var(--border); }
-  .drawer-inner { padding: 12px; }
+  .drawer.open { max-height: 520px; margin-bottom: 10px; border-radius: var(--radius); box-shadow: var(--shadow-md); border: 1px solid var(--border); }
+  .drawer-inner { padding: 12px; max-height: 520px; overflow-y: auto; }
   .drawer-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; font-size: 12px; }
   .drawer-row .key-status { color: var(--mut); }
   .drawer-row .key-status.set::before { content: '●'; color: var(--green); margin-right: 4px; }
@@ -86,19 +121,77 @@
   .chk-row { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; }
   .chk-row input[type="checkbox"] { accent-color: var(--green); width: 15px; height: 15px; margin-top: 1px; flex-shrink: 0; }
   .chk-row label { font-weight: 500; font-size: 12px; cursor: pointer; }
-  .chk-row .chk-hint { color: var(--mut); font-size: 10.5px; display: block; margin-top: 1px; }
+  .chk-row .chk-hint { color: var(--mut); font-size: 11px; display: block; margin-top: 1px; }
   .drawer-link { color: var(--green); font-weight: 600; font-size: 11.5px; cursor: pointer; text-decoration: none; }
 
-  /* ---------- Top tabs: now share the header row: fills the space between logo and gear ---------- */
+  .drawer-field { margin: 10px 0; }
+  .drawer-field label { font-weight: 600; display: block; margin-bottom: 5px; font-size: 11.5px; }
+  .drawer-field .masked { color: var(--mut); font-size: 10.5px; margin-top: 3px; }
+  .drawer-field .hint { color: var(--mut); font-size: 10.5px; margin-top: 3px; line-height: 1.4; }
+  .drawer input[type="text"], .drawer input[type="password"], .drawer input[type="number"], .drawer select {
+    width: 100%; padding: 7px 9px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-size: 12px; font-family: inherit; background: var(--surface); color: var(--ink);
+  }
+  .drawer select { cursor: pointer; }
+  .drawer input:focus, .drawer select:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px var(--green-bg); }
+  .drawer-row-2 { display: flex; gap: 8px; }
+  .drawer-row-2 > div { flex: 1; min-width: 0; }
+  .drawer-section { background: var(--bg); border-radius: 10px; padding: 10px 11px; margin-top: 12px; }
+  .drawer-section-title { font-weight: 700; font-size: 10.5px; text-transform: uppercase; letter-spacing: .03em; color: var(--mut); margin-bottom: 6px; }
+  .drawer-section .hint { color: var(--mut); font-size: 10.5px; margin-bottom: 8px; line-height: 1.4; }
+  .drawer-save-btn {
+    width: 100%; margin-top: 14px; padding: 9px 0; border: none; border-radius: var(--radius-sm);
+    background: var(--green); color: #fff; font-weight: 700; font-size: 12px; cursor: pointer; font-family: inherit;
+  }
+  .drawer-save-btn:disabled { opacity: .55; cursor: not-allowed; }
+  .drawer-save-status { font-size: 11px; margin-top: 6px; text-align: center; min-height: 14px; }
+  .drawer-save-status.ok { color: var(--green); }
+  .drawer-save-status.err { color: var(--error); }
+
+  /* ---------- Discover: default target regions (country picker), ported
+     verbatim from SettingsDialog.html so the sidebar has the real thing,
+     not a stripped-down substitute. ---------- */
+  .cp-field { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; min-height: 22px; margin-bottom: 7px; }
+  .cp-pill {
+    display: inline-flex; align-items: center; gap: 4px; background: var(--green-bg); color: var(--green);
+    border-radius: 999px; padding: 2px 5px 2px 7px; font-size: 11px; font-weight: 600; white-space: nowrap;
+  }
+  .cp-pill .flag { font-size: 12px; }
+  .cp-pill button { background: none; border: none; padding: 1px; margin-left: 0; cursor: pointer; color: var(--green); font-size: 12px; line-height: 1; border-radius: 50%; }
+  .cp-pill button:hover { background: rgba(0,0,0,.08); }
+  .cp-search { margin-top: 6px; }
+
+  .connection-code-box {
+    width: 100%; padding: 7px 9px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-size: 10.5px; font-family: 'JetBrains Mono', ui-monospace, monospace; resize: none; background: var(--seg);
+    color: var(--ink); margin-top: 6px;
+  }
+  .drawer-btn-row { display: flex; gap: 6px; margin-top: 6px; }
+  .drawer-btn-secondary {
+    flex: 1; padding: 7px 0; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface);
+    color: var(--ink); font-weight: 600; font-size: 11.5px; cursor: pointer; font-family: inherit;
+  }
+  .drawer-btn-secondary:hover { background: var(--seg); }
+
+  /* ---------- Top tabs: the impeccable.style segmented-pill pattern (its
+     "designing-phasenav" component, verified against the live site's own
+     computed styles) -- a padded track with a floating surface-color pill
+     for the active item, instead of the old flat-bar + colored-underline
+     tab style. Same shape now shared by .cc-tabs and .seg below. ---------- */
   .top-tabs {
-    display: flex; flex: 1; min-width: 0; box-shadow: 0 1px 2px rgba(0,0,0,.04); flex-shrink: 1;
+    display: flex; flex: 1; min-width: 0; flex-shrink: 1;
+    background: var(--seg); border: 1px solid var(--border); border-radius: 999px;
+    padding: 3px; box-shadow: var(--shadow); gap: 2px;
   }
   .top-tab {
-    flex: 1; text-align: center; padding: 7px 0; background: var(--surface); color: var(--green);
-    font-weight: 700; font-size: 12.5px; border: none; border-top: 3px solid transparent; cursor: pointer;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: border-color .18s var(--ease);
+    flex: 1; text-align: center; padding: 6px 0; background: none; color: var(--mut);
+    font-weight: 600; font-size: 12.5px; border: none; border-radius: 999px; cursor: pointer;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: all .18s var(--ease);
   }
-  .top-tab.active { border-top-color: var(--green); }
+  .top-tab.active {
+    background: var(--surface); color: var(--ink); font-weight: 700;
+    box-shadow: inset 0 0 0 1px var(--border), var(--shadow-xs);
+  }
 
   /* ---------- Selected-channel summary card: pinned above the tab panels (outside .content-scroll so it never scrolls away), reacts to whatever row is selected on the Channels sheet ---------- */
   .channel-card {
@@ -115,44 +208,135 @@
   .channel-card-grade.grade-low { background: var(--error-bg); color: var(--error); }
   .channel-card-id { min-width: 0; }
   .channel-card-name { font-weight: 700; font-size: 12.5px; color: var(--ink); line-height: 1.25; }
-  .channel-card-niche { font-size: 10px; color: var(--mut); line-height: 1.3; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .cc-tabs { display: flex; gap: 2px; background: var(--seg); border-radius: 8px; padding: 2px; margin-bottom: 10px; }
+  .channel-card-niche { font-size: 11px; color: var(--mut); line-height: 1.3; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* The generic preview's subtitle often holds a full video title or a
+     brand name, not a short niche tag -- unlike .channel-card-niche
+     (single-line, truncated, fine for a short tag), this wraps to as many
+     lines as it needs so "Video name incomplete" can't happen again. */
+  .gp-subtitle { font-size: 11px; color: var(--mut); line-height: 1.35; margin-top: 1px; }
+  .cc-tabs { display: flex; gap: 2px; background: var(--seg); border: 1px solid var(--border); border-radius: 999px; padding: 3px; margin-bottom: 10px; }
   .cc-tabs button {
-    flex: 1; border: none; background: none; border-radius: 6px; padding: 5px 0;
-    font-size: 10.5px; font-weight: 700; color: var(--mut); cursor: pointer;
+    flex: 1; border: none; background: none; border-radius: 999px; padding: 5px 0;
+    font-size: 11px; font-weight: 700; color: var(--mut); cursor: pointer;
   }
-  .cc-tabs button.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-xs); }
+  .cc-tabs button.active { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--border), var(--shadow-xs); }
   .cc-tabpanel { display: none; }
   .cc-tabpanel.active { display: block; }
   .cc-chart-wrap { min-height: 108px; }
-  .cc-chart-empty { font-size: 10.5px; color: var(--mut); text-align: center; padding: 30px 10px; line-height: 1.4; }
-  .cc-chart-svg text { font-family: 'Inter', sans-serif; fill: var(--mut); font-variant-numeric: tabular-nums; }
+  .cc-chart-empty { font-size: 11px; color: var(--mut); text-align: center; padding: 30px 10px; line-height: 1.4; }
+  .cc-chart-svg text { font-family: 'Albert Sans', sans-serif; fill: var(--mut); font-variant-numeric: tabular-nums; }
   .cc-chart-svg .cc-line { fill: none; stroke: var(--green); stroke-width: 1.75; }
   .cc-chart-svg .cc-dot { fill: var(--green); }
   .cc-chart-svg .cc-grid { stroke: var(--border); stroke-width: 1; }
   .channel-card-stats {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; padding: 10px 0;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; padding: 10px 0;
     border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-bottom: 10px;
   }
+  /* Same real bug as .krm-overlay (RecordModal.html) and .top-tabs earlier
+     this session: an author rule setting display unconditionally always
+     beats the browser's own default [hidden]{display:none}, so setting
+     .hidden=true on an empty #gpStats (every field routed through the new
+     explicit row-groups instead, e.g. Videos) left a blank bordered strip
+     on screen -- exactly the "empty rows" reported. */
+  .channel-card-stats[hidden] { display: none; }
   .cc-stat b { display: block; font-size: 14px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
-  .cc-stat span { font-size: 9.5px; color: var(--mut); }
+  .cc-stat span { font-size: 11px; color: var(--mut); line-height: 1.3; }
   .channel-card-rate { font-size: 11px; color: var(--mut); margin-bottom: 10px; min-height: 1px; }
   .channel-card-rate b { color: var(--green); font-weight: 700; }
   .channel-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-  .cc-outreach-pill {
-    font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 20px;
-    background: var(--seg); color: var(--mut); white-space: nowrap;
-  }
-  .cc-outreach-pill.contacted, .cc-outreach-pill.replied, .cc-outreach-pill.negotiating { background: var(--amber-bg); color: var(--amber-ink); }
-  .cc-outreach-pill.won { background: var(--green-bg); color: var(--green); }
-  .cc-outreach-pill.lost, .cc-outreach-pill.passed, .cc-outreach-pill.donotcontact { background: var(--error-bg); color: var(--error); }
   .cc-brandview-btn {
-    border: none; background: none; color: var(--green); font-weight: 700; font-size: 10.5px;
+    border: none; background: none; color: var(--green); font-weight: 700; font-size: 11px;
     cursor: pointer; padding: 0; white-space: nowrap;
   }
+  .cc-expand-btn {
+    margin-left: auto; width: 24px; height: 24px; border: none; background: none; color: var(--mut);
+    border-radius: 6px; cursor: pointer; font-size: 13px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  }
+  .cc-expand-btn:hover { background: var(--bg); color: var(--green); }
+
+  /* ---------- Quick-edit fields: Outreach (now a real inline single-select), Last Contact, Notes -- the fields Notes/Last Contact had NO edit UI for at all before this. ---------- */
+  .cc-quickfields { margin-bottom: 10px; }
+  .cc-quickfield-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  /* A native <select> styled as a pill -- the same widget RecordModal.html's
+     enum fields use (see .krm-pill-select there), so Outreach status is
+     edited the same way regardless of which screen you're on, instead of a
+     hand-built floating menu here and a real dropdown there. */
+  .cc-outreach-pill-wrap { position: relative; }
+  .cc-outreach-pill {
+    appearance: none; -webkit-appearance: none; font-size: 11px; font-weight: 700; padding: 4px 22px 4px 10px;
+    border-radius: 20px; border: none; cursor: pointer; background: var(--seg); color: var(--mut);
+    white-space: nowrap; font-family: inherit;
+  }
+  .cc-outreach-pill-wrap::after {
+    content: '▾'; position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    font-size: 11px; color: inherit; pointer-events: none; opacity: .7;
+  }
+  .cc-outreach-pill.tone-good { background: var(--green-bg); color: var(--green); }
+  .cc-outreach-pill.tone-bad { background: var(--error-bg); color: var(--error); }
+  .cc-outreach-pill.tone-mid { background: var(--amber-bg); color: var(--amber-ink); }
+  .cc-lastcontact {
+    border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--mut);
+    font-size: 11px; padding: 3px 6px; height: 27px; font-family: inherit;
+  }
+
+  .cc-notes-block { border: 1px solid var(--border); border-radius: 10px; padding: 8px 9px; background: var(--surface); }
+  .cc-notes-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+  .cc-notes-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--label); }
+  .cc-notes-actions { display: flex; gap: 2px; }
+  .cc-notes-actions button {
+    width: 20px; height: 20px; border: none; background: none; color: var(--mut); border-radius: 5px;
+    cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; padding: 0;
+  }
+  .cc-notes-actions button:hover { background: var(--bg); color: var(--ink); }
+  .cc-notes-textarea {
+    width: 100%; border: none; background: none; resize: none; font-family: inherit; font-size: 11px;
+    color: var(--ink); padding: 0; min-height: 32px; max-height: 140px;
+  }
+  .cc-notes-textarea:focus { outline: none; }
+  .cc-notes-feedback { font-size: 11px; margin-top: 3px; min-height: 12px; color: var(--mut); }
+  .cc-notes-feedback.err { color: var(--error); }
   .channel-card-empty {
     margin: 0 10px 8px; padding: 13px; text-align: center; font-size: 11px; color: var(--mut);
     background: var(--surface); border: 1px dashed var(--border); border-radius: var(--radius); flex-shrink: 0;
+  }
+
+  /* ---------- Generic per-row preview: any sheet without a bespoke card above (Sponsors, Attention, Brand Fit Scores, etc.). Same visual language as the Channel/Video/Campaign cards above -- title+subtitle head with a badge, short values as stat tiles (reuses .channel-card-stats/.cc-stat), long values as readable blocks (same shape as .cc-notes-block) -- rather than a plain spreadsheet-style label:value list. ---------- */
+  /* Explicit row-groups (server-assigned via field.row, e.g. Videos'
+     Views/Likes/Comments together, Age/Gender together) -- a precise
+     layout the user specified, distinct from the auto stats-grid below
+     (which just fills a fixed 2-column grid in whatever order fields
+     arrive, fine for sheets nobody's asked to lay out more exactly). Same
+     bordered-block shell as .channel-card-stats, but each row is its own
+     flex container so row width splits evenly by however many fields are
+     actually in it (3 across for Views/Likes/Comments, 2 for Age/Gender,
+     1 for Location alone) instead of always 2 columns. */
+  .gp-stat-rows {
+    display: flex; flex-direction: column; gap: 10px; padding: 10px 0;
+    border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-bottom: 10px;
+  }
+  .gp-stat-rows[hidden] { display: none; } /* same [hidden]-vs-author-CSS bug as .channel-card-stats above */
+  .gp-stat-row { display: flex; gap: 12px; }
+  .gp-stat-row .cc-stat { flex: 1; min-width: 0; }
+
+  .gp-blocks { display: flex; flex-direction: column; gap: 8px; }
+  .gp-block { border: 1px solid var(--border); border-radius: 10px; padding: 8px 9px; background: var(--surface); }
+  .gp-block-label { font-size: 10.5px; font-weight: 700; color: var(--mut); text-transform: uppercase; letter-spacing: .02em; margin-bottom: 4px; }
+  .gp-block-value { font-size: 12px; color: var(--ink); line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+
+  /* ---------- Annotation tag: impeccable.style's own ".proof-annotation" callout
+     (verified against its live computed styles: JetBrains Mono, vivid solid gold,
+     sharp near-square corners) -- for flagging a qualifier on real content
+     (an estimate, a beta label), never a whole element's only label. ---------- */
+  span.ks-annotation {
+    /* element+class selector, not just .ks-annotation: matches ".cc-stat span"'s
+       own specificity so this actually wins the cascade there instead of
+       silently inheriting the muted gray meant for the label around it --
+       a real bug the design detector caught (rendered as gray text on the
+       vivid gold background below, confirmed via computed styles). */
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 9px; font-weight: 500;
+    letter-spacing: .02em; text-transform: uppercase; color: oklch(15% .02 95);
+    background: oklch(84% .19 80.46); border-radius: 2px; padding: 1px 4px; margin-left: 4px;
+    display: inline-block; vertical-align: 1px;
   }
 
   /* ---------- Scrollable content area ---------- */
@@ -166,10 +350,10 @@
   @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
 
   label.field-label, .output-label {
-    font-size: 10px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; color: var(--label);
+    font-size: 11px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; color: var(--label);
     display: block; margin: 14px 10px 7px;
   }
-  .hint { color: var(--mut); font-size: 10.5px; margin-top: 4px; }
+  .hint { color: var(--mut); font-size: 11px; margin-top: 4px; }
 
   input[type="text"], input[type="number"], input[type="date"] {
     padding: 0 9px; border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -184,12 +368,12 @@
   .field-block { margin-bottom: 4px; }
 
   /* ---------- One unified segmented-toggle style for Append/Replace, Channels/Video ---------- */
-  .seg { display: inline-flex; background: var(--seg); border-radius: 8px; padding: 2px; gap: 2px; }
+  .seg { display: inline-flex; background: var(--seg); border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 2px; }
   .seg button {
-    border: 1px solid transparent; background: none; border-radius: 6px; padding: 5px 12px;
+    border: 1px solid transparent; background: none; border-radius: 999px; padding: 5px 12px;
     font-size: 11px; font-weight: 600; color: var(--mut); cursor: pointer; transition: all .15s var(--ease);
   }
-  .seg button.active { background: var(--surface); border-color: var(--border); color: var(--ink); box-shadow: var(--shadow-xs); }
+  .seg button.active { background: var(--surface); border-color: transparent; color: var(--ink); box-shadow: inset 0 0 0 1px var(--border), var(--shadow-xs); }
   .seg-row { margin: 0 8px 4px 8px; }
 
   /* ---------- Custom checkboxes (native inputs can't do a two-tone border/fill, these can) ---------- */
@@ -221,14 +405,14 @@
   .filters .filter-label.lime { color: var(--lime); }
   .minmax { display: flex; gap: 8px; }
   .minmax input {
-    width: 42px; height: 22px; border: 1px solid var(--border); border-radius: 5px; background: var(--surface);
-    font-size: 10px; font-weight: 400; color: var(--mut); text-align: center; padding: 0;
+    width: 44px; height: 24px; border: 1px solid var(--border); border-radius: 5px; background: var(--surface);
+    font-size: 11px; font-weight: 400; color: var(--mut); text-align: center; padding: 0;
   }
 
   .progress-track { width: 100%; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; margin: 10px 8px 6px 8px; width: calc(100% - 16px); }
   .progress-fill { height: 100%; background: var(--green); width: 0%; transition: width .25s ease; }
   .progress-chips { display: flex; gap: 6px; margin: 0 8px 10px 8px; flex-wrap: wrap; }
-  .chip { font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+  .chip { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
   .chip.idle { background: var(--surface); color: var(--mut); border: 1px solid var(--border); }
   .chip.ok { background: var(--green-bg); color: var(--green); }
   .chip.skip { background: var(--amber-bg); color: var(--amber-ink); }
@@ -250,7 +434,7 @@
     width: 40px; height: 40px; margin: 0 auto 10px auto; border-radius: 50%; background: var(--bg);
   }
   .discover-note { background: var(--green-bg); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; font-size: 11px; color: var(--green); margin: 8px 8px 4px 8px; }
-  .plain-hint { font-size: 10.5px; font-style: italic; color: var(--mut); margin: 10px 12px; line-height: 1.55; }
+  .plain-hint { font-size: 11px; font-style: italic; color: var(--mut); margin: 10px 12px; line-height: 1.55; }
   .bottom-spacer { height: 6px; flex-shrink: 0; }
 
   /* ---------- Composer (bottom bar): one card holding input + toggle + send, per the reference ---------- */
@@ -262,7 +446,7 @@
   .composer:focus-within { box-shadow: var(--shadow-lg); }
   .composer textarea {
     width: 100%; border: none; background: none; resize: none; min-height: 20px; max-height: 70px;
-    font-family: inherit; font-size: 10.5px; font-style: italic; color: var(--mut); padding: 2px; margin-bottom: 12px;
+    font-family: inherit; font-size: 11px; font-style: italic; color: var(--mut); padding: 2px; margin-bottom: 12px;
   }
   .composer textarea:focus { outline: none; font-style: normal; color: var(--ink); }
   .composer-row { display: flex; justify-content: flex-end; align-items: center; }
@@ -308,8 +492,64 @@
 
 <div class="drawer" id="settingsDrawer">
   <div class="drawer-inner">
-    <div class="drawer-row"><span>YouTube API key</span><span class="key-status" id="ytKeyStatus">checking…</span></div>
-    <div class="drawer-row"><span>Gemini API key</span><span class="key-status" id="geminiKeyStatus">checking…</span></div>
+
+    <div class="drawer-field">
+      <label for="qsYoutubeKey">YouTube Data API v3 key</label>
+      <input type="password" id="qsYoutubeKey" placeholder="Paste key to replace" />
+      <div class="masked" id="qsYoutubeMasked"></div>
+    </div>
+
+    <div class="drawer-field">
+      <label for="qsGeminiKey">Gemini API key</label>
+      <input type="password" id="qsGeminiKey" placeholder="Paste key to replace" />
+      <div class="masked" id="qsGeminiMasked"></div>
+      <div class="hint">Used for niche, About summaries, comment authenticity, audience estimates, and sponsor detection.</div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">Optional fallback provider</div>
+      <div class="hint">Tried only when Gemini's own retries are exhausted (e.g. free-tier rate limits). Leave blank to skip.</div>
+      <select id="qsOptionalProvider">
+        <option value="mistral">Mistral API key</option>
+        <option value="groq">Groq API key</option>
+      </select>
+      <div class="drawer-field" id="qsMistralField" style="margin-top:8px;">
+        <input type="password" id="qsMistralKey" placeholder="Paste key to replace" />
+        <div class="masked" id="qsMistralMasked"></div>
+      </div>
+      <div class="drawer-field" id="qsGroqField" style="margin-top:8px;display:none;">
+        <input type="password" id="qsGroqKey" placeholder="Paste key to replace" />
+        <div class="masked" id="qsGroqMasked"></div>
+      </div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">Documents: connect from Drive</div>
+      <div class="hint">Optional. Upload-and-extract works with no setup. Linking an existing Drive file needs the Google Picker API enabled once in Cloud Console, plus a browser key restricted to it.</div>
+      <div class="drawer-field" style="margin:0;">
+        <label for="qsPickerKey">Google Picker API key</label>
+        <input type="password" id="qsPickerKey" placeholder="Paste key to replace" />
+        <div class="masked" id="qsPickerMasked"></div>
+      </div>
+    </div>
+
+    <div class="drawer-row-2" style="margin-top:12px;">
+      <div class="drawer-field" style="margin:0;">
+        <label for="qsLookback">Lookback window (days)</label>
+        <input type="number" id="qsLookback" min="7" max="365" />
+      </div>
+      <div class="drawer-field" style="margin:0;">
+        <label for="qsSampleSize">Comment sample size</label>
+        <input type="number" id="qsSampleSize" min="5" max="100" />
+      </div>
+    </div>
+
+    <div class="drawer-field">
+      <label for="qsTimezone">Timezone</label>
+      <input type="text" id="qsTimezone" placeholder="e.g. America/New_York, Etc/UTC" />
+      <div class="hint">Any IANA timezone name. Defaults to UTC.</div>
+    </div>
+
     <div class="chk-row">
       <input type="checkbox" id="qsScanSponsors" />
       <div><label for="qsScanSponsors">Scan recent videos for sponsors during Channel analysis</label></div>
@@ -318,7 +558,42 @@
       <input type="checkbox" id="qsAttemptTimestamp" />
       <div><label for="qsAttemptTimestamp">Attempt in-video timestamp for mentions</label><span class="chk-hint">Best-effort, uses auto-captions when available</span></div>
     </div>
-    <a class="drawer-link" id="openFullSettings">Edit API keys & full settings →</a>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">Discover: default target regions</div>
+      <div class="hint">Steers Discover results toward these countries when a channel has one declared. Leave empty to turn off.</div>
+      <div class="cp-field" id="qsRegionField"></div>
+      <select id="qsRegionSelect">
+        <option value="" disabled selected>+ Add a country…</option>
+      </select>
+      <input type="text" id="qsRegionSearch" class="cp-search" placeholder="Type to filter…" autocomplete="off" />
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">Premium access</div>
+      <div class="drawer-field" style="margin:0;">
+        <label for="qsAccessCode">Access code</label>
+        <input type="password" id="qsAccessCode" placeholder="Paste your access code" />
+        <div class="masked" id="qsAccessCodeStatus"></div>
+      </div>
+      <div class="hint">Unlocks Gap Analysis, Brand Fit Score, Draft Outreach Email, every Export, Campaigns, and Brand View.</div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">Browser extension connection code</div>
+      <div class="hint">Generates from the Web App URL and shared secret already set (Koli menu → Settings). One string decodes to both for the extension's "Connection code" field.</div>
+      <textarea id="qsConnectionCode" class="connection-code-box" readonly rows="2" placeholder="Click Generate below"></textarea>
+      <div class="drawer-save-status" id="qsConnectionCodeStatus" style="min-height:0;"></div>
+      <div class="drawer-btn-row">
+        <button type="button" class="drawer-btn-secondary" id="qsGenerateCodeBtn">Generate</button>
+        <button type="button" class="drawer-btn-secondary" id="qsCopyCodeBtn">Copy</button>
+      </div>
+    </div>
+
+    <button type="button" class="drawer-save-btn" id="qsSaveBtn">Save settings</button>
+    <div class="drawer-save-status" id="qsSaveStatus"></div>
+
+    <a class="drawer-link" id="openFullSettings" style="display:block;margin-top:10px;text-align:center;">Set Web App URL & secret →</a>
   </div>
 </div>
 
@@ -334,6 +609,7 @@
         <div class="channel-card-name" id="ccName"></div>
         <div class="channel-card-niche" id="ccNiche"></div>
       </div>
+      <button type="button" class="cc-expand-btn" id="ccExpandBtn" title="Open full record">⤢</button>
     </div>
     <div class="cc-tabs" id="ccTabs">
       <button type="button" class="active" data-cctab="overview">Overview</button>
@@ -354,29 +630,58 @@
     <div class="cc-tabpanel" id="cc-tabpanel-views"><div class="cc-chart-wrap" id="cc-chart-views"></div></div>
     <div class="cc-tabpanel" id="cc-tabpanel-likes"><div class="cc-chart-wrap" id="cc-chart-likes"></div></div>
     <div class="cc-tabpanel" id="cc-tabpanel-comments"><div class="cc-chart-wrap" id="cc-chart-comments"></div></div>
+    <div class="cc-quickfields">
+      <div class="cc-quickfield-row">
+        <span class="cc-outreach-pill-wrap">
+          <select class="cc-outreach-pill" id="ccOutreachPill" title="Change outreach status" aria-label="Outreach status"></select>
+        </span>
+        <input type="date" class="cc-lastcontact" id="ccLastContact" title="Last Contact" aria-label="Last Contact date" />
+      </div>
+      <div class="cc-notes-block">
+        <div class="cc-notes-toolbar">
+          <span class="cc-notes-label">Notes</span>
+          <div class="cc-notes-actions">
+            <button type="button" id="ccNotesCopy" title="Copy" aria-label="Copy note text">⧉</button>
+            <button type="button" id="ccNotesTimestamp" title="Insert timestamp" aria-label="Insert today's date">🕓</button>
+            <button type="button" id="ccNotesClear" title="Clear" aria-label="Clear note">🗑</button>
+            <button type="button" id="ccNotesExpand" title="Expand to full editor" aria-label="Expand to full editor">⤢</button>
+          </div>
+        </div>
+        <textarea class="cc-notes-textarea" id="ccNotes" placeholder="Add a note…" rows="2"></textarea>
+        <div class="cc-notes-feedback" id="ccNotesFeedback"></div>
+      </div>
+    </div>
     <div class="channel-card-footer">
-      <span class="cc-outreach-pill" id="ccOutreachPill">Not Contacted</span>
       <button type="button" class="cc-brandview-btn" id="ccBrandViewBtn">Open in Brand View (Premium) →</button>
     </div>
   </div>
-  <div class="channel-card" id="videoCard" hidden>
+  <div class="channel-card" id="campaignCard" hidden>
     <div class="channel-card-head">
       <div class="channel-card-id">
-        <div class="channel-card-name" id="vcTitle"></div>
-        <div class="channel-card-niche" id="vcChannel"></div>
+        <div class="channel-card-name" id="cpBrand"></div>
+        <div class="channel-card-niche" id="cpChannel"></div>
       </div>
+      <button type="button" class="cc-expand-btn" id="cpExpandBtn" title="Open full record">⤢</button>
     </div>
     <div class="channel-card-stats">
-      <div class="cc-stat"><b id="vcViews">N/A</b><span>Views</span></div>
-      <div class="cc-stat"><b id="vcLikes">N/A</b><span>Likes</span></div>
-      <div class="cc-stat"><b id="vcComments">N/A</b><span>Comments</span></div>
-      <div class="cc-stat"><b id="vcEngagement">N/A</b><span>Eng</span></div>
-      <div class="cc-stat"><b id="vcAuth">N/A</b><span>Authy</span></div>
-      <div class="cc-stat"><b id="vcSponsor">N/A</b><span>Sponsor</span></div>
+      <div class="cc-stat"><b id="cpStage">N/A</b><span>Stage</span></div>
+      <div class="cc-stat"><b id="cpValue">N/A</b><span>Value</span></div>
+      <div class="cc-stat"><b id="cpDeadline">N/A</b><span>Deadline</span></div>
     </div>
-    <div class="channel-card-rate" id="vcAudience"></div>
   </div>
   <div class="channel-card-empty" id="channelCardEmpty">Select a row on Channels or Videos to preview it here.</div>
+  <div class="channel-card" id="genericCard" hidden>
+    <div class="channel-card-head">
+      <div class="channel-card-grade" id="gpBadge"></div>
+      <div class="channel-card-id">
+        <div class="channel-card-name" id="gpTitle"></div>
+        <div class="gp-subtitle" id="gpSubtitle"></div>
+      </div>
+    </div>
+    <div class="gp-stat-rows" id="gpRowGroups" hidden></div>
+    <div class="channel-card-stats" id="gpStats" hidden></div>
+    <div class="gp-blocks" id="gpBlocks"></div>
+  </div>
 
   <!-- ===================== PROFILE ===================== -->
   <div class="top-panel active" id="toppanel-profile">
@@ -530,41 +835,170 @@
       'Closed - Won': 'won', 'Closed - Lost': 'lost', 'Passed': 'passed', 'Do Not Contact': 'donotcontact'
     };
     let lastMarker = null;
+    let currentChannelId = null;
+    // "Owner" ids: the channel each field's in-progress edit belongs to,
+    // captured when the field was last safely refreshed (see renderChannelCard).
+    // A save always targets these, never the live currentChannelId, so a row
+    // switch mid-edit can't misattribute the save (see the fix note above).
+    let pillOwnerChannelId = null;
+    let lastContactOwnerChannelId = null;
+    let notesOwnerChannelId = null;
 
-    function renderChannelCardEmpty() {
+    // Single source of truth for "hide every card but the one I'm about to
+    // show" -- each render* function used to hand-roll its own hide list,
+    // and two of them (video, channel) drifted to miss a sibling, leaving a
+    // stale card (e.g. the lightweight "not built yet" message) visible
+    // underneath the real one after switching sheets. Routing every render
+    // through this first closes off that whole class of drift.
+    function hideAllCards() {
       document.getElementById('channelCard').hidden = true;
-      document.getElementById('videoCard').hidden = true;
+      document.getElementById('campaignCard').hidden = true;
+      document.getElementById('channelCardEmpty').hidden = true;
+      document.getElementById('genericCard').hidden = true;
+    }
+
+    function renderChannelCardEmpty(reason) {
+      currentChannelId = null;
+      pillOwnerChannelId = null;
+      lastContactOwnerChannelId = null;
+      notesOwnerChannelId = null;
+      hideAllCards();
       const empty = document.getElementById('channelCardEmpty');
       empty.hidden = false;
-      empty.textContent = 'Select a row on Channels or Videos to preview it here.';
+      empty.textContent = reason || 'Select a row on Channels or Videos to preview it here.';
+    }
+
+    // Any sheet without a bespoke card above (Sponsors, Attention, Brand Fit
+    // Scores, Brand Targets, Outreach Drafts, etc.) -- a plain label:value
+    // listing of that row's own columns, built server-side from whatever
+    // headers actually exist (getGenericRowPreview, uiHandlers.gs). textContent
+    // throughout, never innerHTML: some of these rows (Prospects especially)
+    // hold text captured from arbitrary web pages via the browser extension,
+    // so treating any cell value as HTML would be a real XSS opening.
+    // Same head/stats/detail-block shape as the Channel/Video/Campaign cards,
+    // built generically: the sheet's FIRST populated column is treated as the
+    // row's "name" (title), the sheet name + row number becomes the caption
+    // (subtitle), and every other field is a stat tile (short value) or a
+    // full-width block (long value, e.g. an email body) -- a length cutoff,
+    // not a per-field name list, so this needs no maintenance as sheets change.
+    // What actually shows here is still an open question the user's going to
+    // weigh in on ("trim" pass) -- this only fixes how it LOOKS, not which
+    // fields survive.
+    const GP_STAT_MAX_LEN = 40;
+
+    function buildStatTile_(f) {
+      const tile = document.createElement('div');
+      tile.className = 'cc-stat';
+      const b = document.createElement('b');
+      b.textContent = f.value;
+      const span = document.createElement('span');
+      span.textContent = f.label;
+      tile.appendChild(b);
+      tile.appendChild(span);
+      return tile;
+    }
+
+    function renderGenericCard(resp) {
+      if (!resp || !resp.ok) { renderChannelCardEmpty(resp && resp.reason); return; }
+      currentChannelId = null;
+      pillOwnerChannelId = null;
+      lastContactOwnerChannelId = null;
+      notesOwnerChannelId = null;
+      hideAllCards();
+      document.getElementById('genericCard').hidden = false;
+
+      const fields = resp.fields || [];
+      const first = fields[0];
+      const second = fields[1];
+      // Videos gets the channel's real Grade on the badge when the server
+      // could find one (see findChannelGradeByName_) -- "if you can get
+      // that, if not leave the circle plain" was the explicit ask, so a
+      // miss (resp.grade null/undefined) falls back to the plain
+      // sheet-initial letter, never an empty or broken-looking badge.
+      const badge = document.getElementById('gpBadge');
+      if (resp.grade) {
+        badge.textContent = resp.grade;
+        badge.className = 'channel-card-grade' + (GRADE_TIER[resp.grade] ? ' grade-' + GRADE_TIER[resp.grade] : '');
+      } else {
+        badge.textContent = resp.sheetName ? resp.sheetName.charAt(0).toUpperCase() : '?';
+        badge.className = 'channel-card-grade';
+      }
+      document.getElementById('gpTitle').textContent = first ? first.value : ('Row ' + resp.row);
+      // Second field as the subtitle (own line below the title, same slot
+      // the Channel/Video cards use for niche/channel name) -- falls back
+      // to a plain sheet+row caption only when there's no second field at
+      // all, which shouldn't normally happen for a configured sheet.
+      document.getElementById('gpSubtitle').textContent = second ? second.value : (resp.sheetName + ' · Row ' + resp.row);
+
+      const rest = fields.slice(second ? 2 : (first ? 1 : 0));
+      const rowGroupsEl = document.getElementById('gpRowGroups');
+      const statsEl = document.getElementById('gpStats');
+      const blocksEl = document.getElementById('gpBlocks');
+      rowGroupsEl.innerHTML = '';
+      statsEl.innerHTML = '';
+      blocksEl.innerHTML = '';
+
+      // Fields with an explicit row number (server-assigned, e.g. Videos'
+      // Views/Likes/Comments together) render as their own precise flex
+      // row, grouped and ordered by that number. Everything else falls
+      // back to the old auto stats-grid/blocks split below, unchanged --
+      // sheets that were never given explicit rows (Sponsors, Brand Fit
+      // Scores, Brand View) look exactly like they did before this.
+      const grouped = rest.filter((f) => typeof f.row === 'number');
+      const auto = rest.filter((f) => typeof f.row !== 'number');
+
+      const rowNumbers = [...new Set(grouped.map((f) => f.row))].sort((a, b) => a - b);
+      rowGroupsEl.hidden = rowNumbers.length === 0;
+      rowNumbers.forEach((rowNum) => {
+        const rowEl = document.createElement('div');
+        rowEl.className = 'gp-stat-row';
+        grouped.filter((f) => f.row === rowNum).forEach((f) => rowEl.appendChild(buildStatTile_(f)));
+        rowGroupsEl.appendChild(rowEl);
+      });
+
+      // A field can force block treatment from the server (f.block, e.g.
+      // Sponsors' Evidence -- meant to be read in full on its own line,
+      // never squeezed into a tile even when short) in addition to the
+      // plain length cutoff.
+      const stats = auto.filter((f) => !f.block && f.value.length <= GP_STAT_MAX_LEN);
+      const blocks = auto.filter((f) => f.block || f.value.length > GP_STAT_MAX_LEN);
+
+      statsEl.hidden = stats.length === 0;
+      stats.forEach((f) => statsEl.appendChild(buildStatTile_(f)));
+
+      blocks.forEach((f) => {
+        const block = document.createElement('div');
+        block.className = 'gp-block';
+        const label = document.createElement('div');
+        label.className = 'gp-block-label';
+        label.textContent = f.label;
+        const value = document.createElement('div');
+        value.className = 'gp-block-value';
+        value.textContent = f.value;
+        block.appendChild(label);
+        block.appendChild(value);
+        blocksEl.appendChild(block);
+      });
+    }
+
+    function renderCampaignCard(resp) {
+      if (!resp || !resp.ok) { renderChannelCardEmpty(resp && resp.reason); return; }
+      const d = resp.data;
+      hideAllCards();
+      document.getElementById('campaignCard').hidden = false;
+
+      document.getElementById('cpBrand').textContent = d.brand || '(no brand)';
+      document.getElementById('cpChannel').textContent = d.channel || '';
+      document.getElementById('cpStage').textContent = d.stage || 'N/A';
+      document.getElementById('cpValue').textContent = (d.value || d.value === 0) ? ('$' + Number(d.value).toLocaleString()) : 'N/A';
+      document.getElementById('cpDeadline').textContent = d.deadline || 'N/A';
+      document.getElementById('cpExpandBtn').onclick = () => { google.script.run.showCampaignRecordDialog(d.campaignId); };
     }
 
     function compactNumber(n) {
       return n >= 1000000 ? (n / 1000000).toFixed(1) + 'M' : n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(Math.round(n));
     }
 
-    function renderVideoCard(resp) {
-      if (!resp || !resp.ok) { renderChannelCardEmpty(); return; }
-      const d = resp.data;
-      document.getElementById('channelCardEmpty').hidden = true;
-      document.getElementById('channelCard').hidden = true;
-      document.getElementById('videoCard').hidden = false;
-
-      document.getElementById('vcTitle').textContent = d.title || d.videoId || 'Untitled';
-      document.getElementById('vcChannel').textContent = d.channel || '';
-      document.getElementById('vcViews').textContent = (typeof d.views === 'number') ? compactNumber(d.views) : (d.views || 'N/A');
-      document.getElementById('vcLikes').textContent = (typeof d.likes === 'number') ? compactNumber(d.likes) : (d.likes || 'N/A');
-      document.getElementById('vcComments').textContent = (typeof d.comments === 'number') ? compactNumber(d.comments) : (d.comments || 'N/A');
-      document.getElementById('vcEngagement').textContent = (typeof d.engPct === 'number') ? d.engPct.toFixed(1) + '%' : (d.engPct || 'N/A');
-      document.getElementById('vcAuth').textContent = d.auth || 'N/A';
-      document.getElementById('vcSponsor').textContent = d.sponsorDetected ? ('Yes @ ' + d.sponsorTimestamp) : 'None found';
-
-      const parts = [];
-      if (d.location) parts.push('Audience: ' + d.location);
-      if (d.gender) parts.push('Gender: ' + d.gender);
-      if (d.age) parts.push('Age: ' + d.age);
-      document.getElementById('vcAudience').innerHTML = parts.length ? parts.join(' · ') : '';
-    }
 
     // Small inline SVG line chart -- no charting library needed for one
     // series of a handful of points. Sparse by design (see
@@ -601,10 +1035,9 @@
     }
 
     function renderChannelCard(resp) {
-      if (!resp || !resp.ok) { renderChannelCardEmpty(); return; }
+      if (!resp || !resp.ok) { renderChannelCardEmpty(resp && resp.reason); return; }
       const d = resp.data;
-      document.getElementById('channelCardEmpty').hidden = true;
-      document.getElementById('videoCard').hidden = true;
+      hideAllCards();
       const card = document.getElementById('channelCard');
       card.hidden = false;
 
@@ -623,10 +1056,35 @@
       const rateEl = document.getElementById('ccRate');
       rateEl.innerHTML = d.suggestedRate ? 'Suggested rate: <b>' + d.suggestedRate + '</b>' : '';
 
-      const pill = document.getElementById('ccOutreachPill');
-      const status = d.outreach || 'Not Contacted';
-      pill.textContent = status;
-      pill.className = 'cc-outreach-pill' + (OUTREACH_CLASS[status] ? ' ' + OUTREACH_CLASS[status] : '');
+      currentChannelId = d.channelId;
+
+      // This card re-polls every 1.5s (see refreshChannelCard below). Two
+      // separate things must both survive that poll landing mid-edit:
+      // (1) an in-progress keystroke/selection must not be overwritten by
+      // the server's last-known value, and (2) a save triggered *after* the
+      // poll must still land on the record that was on-screen when editing
+      // *started*, not whatever row is selected by the time the field is
+      // committed. A prior version only handled (1) -- typing a note, then
+      // clicking a different Channels row before tabbing out of the
+      // textarea, saved that text onto the NEW row instead of the one it
+      // was written for. So each editable field tracks its own "owner" id,
+      // advanced only in the branch where it's safe to overwrite the field.
+      const pillSelect = document.getElementById('ccOutreachPill');
+      if (document.activeElement !== pillSelect) {
+        pillOwnerChannelId = d.channelId;
+        renderOutreachOptions(pillSelect, resp.outreachStatuses || [], resp.outreachTones || {}, d.outreach || 'Not Contacted');
+      }
+
+      const lastContactInput = document.getElementById('ccLastContact');
+      if (document.activeElement !== lastContactInput) {
+        lastContactOwnerChannelId = d.channelId;
+        lastContactInput.value = toDateInputValue(d.lastContact);
+      }
+      const notesInput = document.getElementById('ccNotes');
+      if (document.activeElement !== notesInput) {
+        notesOwnerChannelId = d.channelId;
+        notesInput.value = d.notes || '';
+      }
 
       const history = resp.history || [];
       renderSparkline('cc-chart-views', history.map((h) => ({ date: h.date, value: h.avgViews })), compactNumber);
@@ -641,29 +1099,183 @@
     // falling back to the generic empty state, so a real problem is
     // visibly a problem, not indistinguishable from normal idle.
     function renderChannelCardError(err) {
-      document.getElementById('channelCard').hidden = true;
-      document.getElementById('videoCard').hidden = true;
+      hideAllCards();
       const empty = document.getElementById('channelCardEmpty');
       empty.hidden = false;
       empty.textContent = 'Could not load: ' + (err && err.message ? err.message : String(err));
     }
 
+    // Same blind spot as the comment below, one level down: an exception
+    // thrown INSIDE renderChannelCard/renderCampaignCard/renderGenericCard
+    // themselves (not just in the marker-dispatch callback) would also be
+    // invisible -- withFailureHandler never sees a throw from its own
+    // successHandler. Every server round-trip below runs its success
+    // handler through this so a bug in the render function itself becomes
+    // visible error text too, not silence.
+    function safeHandler(fn) {
+      return function (resp) {
+        try { fn(resp); } catch (e) { renderChannelCardError(e); }
+      };
+    }
+
+    // google.script.run's success/failure handlers only cover the SERVER
+    // round-trip -- a client-side JS exception thrown inside this callback
+    // (e.g. a bad DOM reference) is NOT routed to withFailureHandler, it's
+    // just an uncaught error in the browser console the user never sees.
+    // That failure mode looks identical to "the card just isn't updating,"
+    // which is exactly the unhelpful symptom this whole card-refresh path
+    // has already caused twice. Wrapping the callback body itself in
+    // try/catch and routing any client-side throw through the same
+    // renderChannelCardError path closes that last gap: from here on, a
+    // real bug in this code shows up as visible error text in the sidebar,
+    // not silence.
     function refreshChannelCard() {
       google.script.run
         .withSuccessHandler((marker) => {
-          if (marker === lastMarker) return;
-          lastMarker = marker;
-          if (!marker) { renderChannelCardEmpty(); return; }
-          const sheetName = marker.split(':')[0];
-          if (sheetName === 'Videos') {
-            google.script.run.withSuccessHandler(renderVideoCard).withFailureHandler(renderChannelCardError).getSelectedVideoSummary();
-          } else {
-            google.script.run.withSuccessHandler(renderChannelCard).withFailureHandler(renderChannelCardError).getSelectedChannelSummary();
+          try {
+            if (marker === lastMarker) return;
+            lastMarker = marker;
+            if (!marker) { renderChannelCardEmpty(); return; }
+            const parts = marker.split(':');
+            const sheetName = parts[0], row = parts[1];
+            if (sheetName === 'Campaigns') {
+              google.script.run.withSuccessHandler(safeHandler(renderCampaignCard)).withFailureHandler(renderChannelCardError).getSelectedCampaignSummary();
+            } else if (sheetName === 'Channels') {
+              google.script.run.withSuccessHandler(safeHandler(renderChannelCard)).withFailureHandler(renderChannelCardError).getSelectedChannelSummary();
+            } else {
+              // Every other real sheet (Videos, Sponsors, Attention, Brand Fit
+              // Scores, Brand Targets, Outreach Drafts, Prospects, Discover
+              // Results, etc.) -- getSelectedRowMarker() now recognizes all of
+              // them, so this is a real fallback, not a leftover "Channels"
+              // branch. Videos moved here 2026-09-13 (see
+              // GENERIC_PREVIEW_FIELD_CONFIG.Videos, uiHandlers.gs) after its
+              // bespoke card went unconfirmed through several fix rounds.
+              google.script.run.withSuccessHandler(safeHandler(renderGenericCard)).withFailureHandler(renderChannelCardError).getGenericRowPreview();
+            }
+          } catch (e) {
+            renderChannelCardError(e);
           }
         })
         .withFailureHandler(renderChannelCardError)
         .getSelectedRowMarker();
     }
+
+    function toDateInputValue(v) {
+      if (!v) return '';
+      const d = v instanceof Date ? v : new Date(v);
+      return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+    }
+
+    // Generic per-field autosave: optimistic (the control already shows the
+    // new value the moment the user commits it), reverts + shows the real
+    // error inline on failure rather than silently discarding the edit.
+    // channelId is whatever the caller captured as that field's "owner" --
+    // never read from the live currentChannelId here, see the fix note above.
+    function saveChannelField(channelId, header, value, feedbackEl, revert) {
+      if (!channelId) return;
+      if (feedbackEl) { feedbackEl.className = 'cc-notes-feedback'; feedbackEl.textContent = 'Saving…'; }
+      google.script.run
+        .withSuccessHandler(() => {
+          if (feedbackEl) { feedbackEl.textContent = '✓ Saved'; setTimeout(() => { feedbackEl.textContent = ''; }, 1400); }
+        })
+        .withFailureHandler((err) => {
+          if (feedbackEl) { feedbackEl.className = 'cc-notes-feedback err'; feedbackEl.textContent = err && err.message ? err.message : String(err); }
+          if (revert) revert();
+        })
+        .setChannelField(channelId, header, value);
+    }
+
+    // ---------- Outreach: a native <select> styled as a pill -- the same widget RecordModal.html's enum fields use, not a separate hand-built menu ----------
+    // confirmedOutreachStatus is the last value the SERVER actually has, kept
+    // separate from the <select>'s own live value: by the time a 'change'
+    // event fires, the browser has already updated select.value to the NEW
+    // choice, so that's the wrong place to read "what to revert to" from.
+    let confirmedOutreachStatus = null;
+    let outreachTonesRef = {};
+    function applyOutreachTone(select, status) {
+      select.className = 'cc-outreach-pill' + (outreachTonesRef[status] ? ' tone-' + outreachTonesRef[status] : '');
+    }
+    function renderOutreachOptions(select, statuses, tones, current) {
+      outreachTonesRef = tones;
+      if (select.dataset.rendered !== JSON.stringify(statuses)) {
+        select.innerHTML = '';
+        statuses.forEach((status) => {
+          const opt = document.createElement('option');
+          opt.value = status; opt.textContent = status;
+          select.appendChild(opt);
+        });
+        select.dataset.rendered = JSON.stringify(statuses);
+      }
+      select.value = current;
+      confirmedOutreachStatus = current;
+      applyOutreachTone(select, current);
+    }
+    setup('outreach pill dropdown', () => {
+      const pill = document.getElementById('ccOutreachPill');
+      pill.onchange = () => {
+        const editingId = pillOwnerChannelId;
+        const previous = confirmedOutreachStatus;
+        const chosen = pill.value;
+        applyOutreachTone(pill, chosen);
+        confirmedOutreachStatus = chosen; // optimistic; reset below if the save actually fails
+        saveChannelField(editingId, 'Outreach', chosen, null, () => {
+          pill.value = previous;
+          applyOutreachTone(pill, previous);
+          confirmedOutreachStatus = previous;
+        });
+      };
+    });
+
+    // ---------- Last Contact: native date input, autosaves on change ----------
+    setup('last contact field', () => {
+      const input = document.getElementById('ccLastContact');
+      let original = '';
+      let editingId = null;
+      input.onfocus = () => { original = input.value; editingId = lastContactOwnerChannelId; };
+      input.onchange = () => saveChannelField(editingId, 'Last Contact', input.value, null, () => { input.value = original; });
+    });
+
+    // ---------- Notes: the field with no edit UI anywhere before this, plus a small quick-action toolbar ----------
+    setup('notes field', () => {
+      const notesInput = document.getElementById('ccNotes');
+      const feedback = document.getElementById('ccNotesFeedback');
+      let original = '';
+      let editingId = null;
+      notesInput.onfocus = () => { original = notesInput.value; editingId = notesOwnerChannelId; };
+      notesInput.onblur = () => {
+        if (notesInput.value !== original) saveChannelField(editingId, 'Notes', notesInput.value, feedback, () => { notesInput.value = original; });
+      };
+      document.getElementById('ccNotesCopy').onclick = () => {
+        navigator.clipboard.writeText(notesInput.value).then(
+          () => { feedback.className = 'cc-notes-feedback'; feedback.textContent = 'Copied.'; setTimeout(() => { feedback.textContent = ''; }, 1400); },
+          () => { feedback.className = 'cc-notes-feedback err'; feedback.textContent = 'Could not copy (clipboard access blocked).'; }
+        );
+      };
+      document.getElementById('ccNotesTimestamp').onclick = () => {
+        const stamp = new Date().toLocaleDateString() + ': ';
+        notesInput.value = stamp + (notesInput.value ? '\n' + notesInput.value : '');
+        notesInput.focus();
+        saveChannelField(notesOwnerChannelId, 'Notes', notesInput.value, feedback);
+      };
+      document.getElementById('ccNotesClear').onclick = () => {
+        if (!notesInput.value) return;
+        const previous = notesInput.value;
+        const clearId = notesOwnerChannelId;
+        notesInput.value = '';
+        saveChannelField(clearId, 'Notes', '', feedback, () => { notesInput.value = previous; });
+        feedback.className = 'cc-notes-feedback';
+        feedback.innerHTML = 'Cleared. <button type="button" style="border:none;background:none;color:var(--green);font-weight:700;cursor:pointer;padding:0;font-size:inherit;">Undo</button>';
+        feedback.querySelector('button').onclick = () => {
+          notesInput.value = previous;
+          saveChannelField(clearId, 'Notes', previous, feedback);
+        };
+      };
+      document.getElementById('ccNotesExpand').onclick = () => { google.script.run.showChannelRecordDialog(notesOwnerChannelId); };
+    });
+
+    setup('expand button', () => {
+      document.getElementById('ccExpandBtn').onclick = () => { google.script.run.showChannelRecordDialog(currentChannelId); };
+    });
 
     document.getElementById('ccBrandViewBtn').onclick = () => { google.script.run.showBrandView(); };
 
@@ -700,6 +1312,80 @@
   setup('initial tab activation', () => setActiveTopTab(currentTopTab));
 
   // ---------- Quick settings drawer ----------
+  // Everything from SettingsDialog.html except Web App URL and the shared
+  // secret (that link at the bottom still opens the full dialog for those
+  // two specifically). Country list/picker logic below is ported verbatim
+  // from SettingsDialog.html, same ISO codes discoverService.gs expects.
+  const QS_COUNTRIES = [
+    ['AF','Afghanistan'],['AL','Albania'],['DZ','Algeria'],['AD','Andorra'],['AO','Angola'],['AG','Antigua and Barbuda'],
+    ['AR','Argentina'],['AM','Armenia'],['AU','Australia'],['AT','Austria'],['AZ','Azerbaijan'],['BS','Bahamas'],
+    ['BH','Bahrain'],['BD','Bangladesh'],['BB','Barbados'],['BY','Belarus'],['BE','Belgium'],['BZ','Belize'],
+    ['BJ','Benin'],['BT','Bhutan'],['BO','Bolivia'],['BA','Bosnia and Herzegovina'],['BW','Botswana'],['BR','Brazil'],
+    ['BN','Brunei'],['BG','Bulgaria'],['BF','Burkina Faso'],['BI','Burundi'],['KH','Cambodia'],['CM','Cameroon'],
+    ['CA','Canada'],['CV','Cape Verde'],['CF','Central African Republic'],['TD','Chad'],['CL','Chile'],['CN','China'],
+    ['CO','Colombia'],['KM','Comoros'],['CG','Congo'],['CR','Costa Rica'],['HR','Croatia'],['CU','Cuba'],
+    ['CY','Cyprus'],['CZ','Czechia'],['DK','Denmark'],['DJ','Djibouti'],['DM','Dominica'],['DO','Dominican Republic'],
+    ['EC','Ecuador'],['EG','Egypt'],['SV','El Salvador'],['GQ','Equatorial Guinea'],['ER','Eritrea'],['EE','Estonia'],
+    ['SZ','Eswatini'],['ET','Ethiopia'],['FJ','Fiji'],['FI','Finland'],['FR','France'],['GA','Gabon'],
+    ['GM','Gambia'],['GE','Georgia'],['DE','Germany'],['GH','Ghana'],['GR','Greece'],['GD','Grenada'],
+    ['GT','Guatemala'],['GN','Guinea'],['GW','Guinea-Bissau'],['GY','Guyana'],['HT','Haiti'],['HN','Honduras'],
+    ['HK','Hong Kong'],['HU','Hungary'],['IS','Iceland'],['IN','India'],['ID','Indonesia'],['IR','Iran'],
+    ['IQ','Iraq'],['IE','Ireland'],['IL','Israel'],['IT','Italy'],['JM','Jamaica'],['JP','Japan'],
+    ['JO','Jordan'],['KZ','Kazakhstan'],['KE','Kenya'],['KI','Kiribati'],['KW','Kuwait'],['KG','Kyrgyzstan'],
+    ['LA','Laos'],['LV','Latvia'],['LB','Lebanon'],['LS','Lesotho'],['LR','Liberia'],['LY','Libya'],
+    ['LI','Liechtenstein'],['LT','Lithuania'],['LU','Luxembourg'],['MO','Macao'],['MG','Madagascar'],['MW','Malawi'],
+    ['MY','Malaysia'],['MV','Maldives'],['ML','Mali'],['MT','Malta'],['MH','Marshall Islands'],['MR','Mauritania'],
+    ['MU','Mauritius'],['MX','Mexico'],['FM','Micronesia'],['MD','Moldova'],['MC','Monaco'],['MN','Mongolia'],
+    ['ME','Montenegro'],['MA','Morocco'],['MZ','Mozambique'],['MM','Myanmar'],['NA','Namibia'],['NR','Nauru'],
+    ['NP','Nepal'],['NL','Netherlands'],['NZ','New Zealand'],['NI','Nicaragua'],['NE','Niger'],['NG','Nigeria'],
+    ['KP','North Korea'],['MK','North Macedonia'],['NO','Norway'],['OM','Oman'],['PK','Pakistan'],['PW','Palau'],
+    ['PS','Palestine'],['PA','Panama'],['PG','Papua New Guinea'],['PY','Paraguay'],['PE','Peru'],['PH','Philippines'],
+    ['PL','Poland'],['PT','Portugal'],['PR','Puerto Rico'],['QA','Qatar'],['RO','Romania'],['RU','Russia'],
+    ['RW','Rwanda'],['KN','Saint Kitts and Nevis'],['LC','Saint Lucia'],['WS','Samoa'],['SM','San Marino'],
+    ['SA','Saudi Arabia'],['SN','Senegal'],['RS','Serbia'],['SC','Seychelles'],['SL','Sierra Leone'],['SG','Singapore'],
+    ['SK','Slovakia'],['SI','Slovenia'],['SB','Solomon Islands'],['SO','Somalia'],['ZA','South Africa'],
+    ['KR','South Korea'],['SS','South Sudan'],['ES','Spain'],['LK','Sri Lanka'],['SD','Sudan'],['SR','Suriname'],
+    ['SE','Sweden'],['CH','Switzerland'],['SY','Syria'],['TW','Taiwan'],['TJ','Tajikistan'],['TZ','Tanzania'],
+    ['TH','Thailand'],['TL','Timor-Leste'],['TG','Togo'],['TO','Tonga'],['TT','Trinidad and Tobago'],['TN','Tunisia'],
+    ['TR','Turkey'],['TM','Turkmenistan'],['TV','Tuvalu'],['UG','Uganda'],['UA','Ukraine'],
+    ['AE','United Arab Emirates'],['GB','United Kingdom'],['US','United States'],['UY','Uruguay'],['UZ','Uzbekistan'],
+    ['VU','Vanuatu'],['VA','Vatican City'],['VE','Venezuela'],['VN','Vietnam'],['YE','Yemen'],['ZM','Zambia'],['ZW','Zimbabwe']
+  ];
+  function qsFlagEmoji_(code) {
+    return code.toUpperCase().replace(/./g, (c) => String.fromCodePoint(127397 + c.charCodeAt(0)));
+  }
+  const qsSelectedRegions = new Set();
+  function qsRenderRegionPills_() {
+    const field = document.getElementById('qsRegionField');
+    field.innerHTML = '';
+    [...qsSelectedRegions].forEach((code) => {
+      const c = QS_COUNTRIES.find((c) => c[0] === code);
+      const pill = document.createElement('span');
+      pill.className = 'cp-pill';
+      const flag = document.createElement('span');
+      flag.className = 'flag'; flag.textContent = qsFlagEmoji_(code);
+      pill.appendChild(flag);
+      pill.appendChild(document.createTextNode(c ? c[1] : code));
+      const rm = document.createElement('button');
+      rm.type = 'button'; rm.textContent = '×'; rm.title = 'Remove';
+      rm.onclick = () => { qsSelectedRegions.delete(code); qsRenderRegionPills_(); qsRenderRegionSelect_(); };
+      pill.appendChild(rm);
+      field.appendChild(pill);
+    });
+  }
+  function qsRenderRegionSelect_() {
+    const select = document.getElementById('qsRegionSelect');
+    const q = document.getElementById('qsRegionSearch').value.trim().toLowerCase();
+    const matches = QS_COUNTRIES.filter((c) => !qsSelectedRegions.has(c[0]) && (!q || c[1].toLowerCase().includes(q) || c[0].toLowerCase() === q));
+    select.innerHTML = '<option value="" disabled selected>' + (matches.length ? '+ Add a country…' : 'No matching country') + '</option>';
+    matches.forEach(([code, name]) => {
+      const opt = document.createElement('option');
+      opt.value = code;
+      opt.textContent = qsFlagEmoji_(code) + ' ' + name + ' (' + code + ')';
+      select.appendChild(opt);
+    });
+  }
+
   setup('settings drawer', () => {
     const drawer = document.getElementById('settingsDrawer');
     const settingsToggle = document.getElementById('settingsToggle');
@@ -710,27 +1396,103 @@
       settingsToggle.classList.toggle('open', opening);
       if (opening && !drawerLoaded) loadQuickSettings();
     };
+
+    function maskedLine_(isSet, masked) { return isSet ? 'Currently set: ' + masked : 'Not set'; }
+
     function loadQuickSettings() {
       google.script.run.withSuccessHandler((s) => {
         drawerLoaded = true;
-        const yt = document.getElementById('ytKeyStatus');
-        yt.textContent = s.youtubeKeySet ? 'Set (…' + s.youtubeKeyMasked.slice(-4) + ')' : 'Not set';
-        yt.className = 'key-status ' + (s.youtubeKeySet ? 'set' : 'unset');
-        const gm = document.getElementById('geminiKeyStatus');
-        gm.textContent = s.geminiKeySet ? 'Set (…' + s.geminiKeyMasked.slice(-4) + ')' : 'Not set';
-        gm.className = 'key-status ' + (s.geminiKeySet ? 'set' : 'unset');
+        document.getElementById('qsYoutubeMasked').textContent = maskedLine_(s.youtubeKeySet, s.youtubeKeyMasked);
+        document.getElementById('qsGeminiMasked').textContent = maskedLine_(s.geminiKeySet, s.geminiKeyMasked);
+        document.getElementById('qsMistralMasked').textContent = maskedLine_(s.mistralKeySet, s.mistralKeyMasked);
+        document.getElementById('qsGroqMasked').textContent = maskedLine_(s.groqKeySet, s.groqKeyMasked);
+        document.getElementById('qsPickerMasked').textContent = maskedLine_(s.pickerApiKeySet, s.pickerApiKeyMasked);
+        document.getElementById('qsLookback').value = s.lookbackDays;
+        document.getElementById('qsSampleSize').value = s.commentSampleSize;
+        document.getElementById('qsTimezone').value = s.timezone;
         document.getElementById('qsScanSponsors').checked = !!s.scanChannelSponsors;
         document.getElementById('qsAttemptTimestamp').checked = !!s.attemptSponsorTimestamp;
+        document.getElementById('qsAccessCodeStatus').textContent = s.premiumUnlocked ? '✓ Premium unlocked.' : (s.accessCodeSet ? 'Code set, but not valid.' : 'Not set: free tier.');
+        qsSelectedRegions.clear();
+        (s.defaultTargetRegions || '').split(',').map((r) => r.trim().toUpperCase()).filter(Boolean).forEach((r) => qsSelectedRegions.add(r));
+        qsRenderRegionPills_();
+        qsRenderRegionSelect_();
       }).getSettings();
     }
-    ['qsScanSponsors', 'qsAttemptTimestamp'].forEach(id => {
-      document.getElementById(id).onchange = () => {
-        google.script.run.saveSettings({
-          scanChannelSponsors: document.getElementById('qsScanSponsors').checked,
-          attemptSponsorTimestamp: document.getElementById('qsAttemptTimestamp').checked
-        });
-      };
+
+    // Optional fallback provider: a dropdown picks which ONE key input
+    // shows (both are still saved independently -- switching the dropdown
+    // never discards whatever's typed in the hidden one).
+    document.getElementById('qsOptionalProvider').onchange = (e) => {
+      const isMistral = e.target.value === 'mistral';
+      document.getElementById('qsMistralField').style.display = isMistral ? '' : 'none';
+      document.getElementById('qsGroqField').style.display = isMistral ? 'none' : '';
+    };
+
+    document.getElementById('qsRegionSelect').addEventListener('change', (e) => {
+      if (!e.target.value) return;
+      qsSelectedRegions.add(e.target.value);
+      document.getElementById('qsRegionSearch').value = '';
+      qsRenderRegionPills_();
+      qsRenderRegionSelect_();
     });
+    document.getElementById('qsRegionSearch').addEventListener('input', qsRenderRegionSelect_);
+
+    document.getElementById('qsGenerateCodeBtn').onclick = () => {
+      const box = document.getElementById('qsConnectionCode');
+      const status = document.getElementById('qsConnectionCodeStatus');
+      status.className = 'drawer-save-status'; status.textContent = '';
+      box.value = 'Generating…';
+      google.script.run
+        .withSuccessHandler((resp) => {
+          if (!resp.ok) { box.value = ''; status.className = 'drawer-save-status err'; status.textContent = resp.message; return; }
+          box.value = resp.code;
+        })
+        .withFailureHandler((err) => {
+          box.value = ''; status.className = 'drawer-save-status err'; status.textContent = err.message || String(err);
+        })
+        .generateConnectionCode();
+    };
+    document.getElementById('qsCopyCodeBtn').onclick = () => {
+      const box = document.getElementById('qsConnectionCode');
+      const status = document.getElementById('qsConnectionCodeStatus');
+      if (!box.value || box.value === 'Generating…') return;
+      box.select();
+      document.execCommand('copy');
+      status.className = 'drawer-save-status ok'; status.textContent = 'Copied.';
+    };
+
+    document.getElementById('qsSaveBtn').onclick = () => {
+      const btn = document.getElementById('qsSaveBtn');
+      const status = document.getElementById('qsSaveStatus');
+      btn.disabled = true;
+      google.script.run
+        .withSuccessHandler(() => {
+          status.className = 'drawer-save-status ok'; status.textContent = 'Saved.';
+          btn.disabled = false;
+          ['qsYoutubeKey', 'qsGeminiKey', 'qsMistralKey', 'qsGroqKey', 'qsPickerKey', 'qsAccessCode'].forEach((id) => { document.getElementById(id).value = ''; });
+          loadQuickSettings();
+        })
+        .withFailureHandler((err) => {
+          status.className = 'drawer-save-status err'; status.textContent = err.message || String(err);
+          btn.disabled = false;
+        })
+        .saveSettings({
+          youtubeApiKey: document.getElementById('qsYoutubeKey').value.trim(),
+          geminiApiKey: document.getElementById('qsGeminiKey').value.trim(),
+          mistralApiKey: document.getElementById('qsMistralKey').value.trim(),
+          groqApiKey: document.getElementById('qsGroqKey').value.trim(),
+          pickerApiKey: document.getElementById('qsPickerKey').value.trim(),
+          lookbackDays: Number(document.getElementById('qsLookback').value),
+          commentSampleSize: Number(document.getElementById('qsSampleSize').value),
+          accessCode: document.getElementById('qsAccessCode').value.trim(),
+          timezone: document.getElementById('qsTimezone').value.trim(),
+          scanChannelSponsors: document.getElementById('qsScanSponsors').checked,
+          attemptSponsorTimestamp: document.getElementById('qsAttemptTimestamp').checked,
+          defaultTargetRegions: [...qsSelectedRegions].join(',')
+        });
+    };
+
     document.getElementById('openFullSettings').onclick = () => google.script.run.showSettingsDialog();
   });
 

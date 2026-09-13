@@ -1,7 +1,7 @@
 <style>
-  :root { --green: #188038; --green-dark: #0d652d; --border: #dadce0; --text: #202124; --text-muted: #5f6368; --bg: #f8f9fa; }
+  :root { --green: oklch(45% .1 190); --green-dark: oklch(41% .11 190); --border: oklch(13% 0 0 / .08); --text: oklch(22% 0 0); --text-muted: oklch(46% 0 0); --bg: oklch(95% 0 0); }
   * { box-sizing: border-box; }
-  body { font-family: 'Google Sans', Roboto, Arial, sans-serif; color: var(--text); padding: 22px; font-size: 13px; }
+  body { font-family: 'Albert Sans', 'Avenir Next', 'Helvetica Neue', Arial, system-ui, sans-serif; color: var(--text); padding: 22px; font-size: 13px; }
   h2 { font-size: 18px; margin: 0 0 4px 0; }
   .subtitle { color: var(--text-muted); font-size: 11.5px; margin-bottom: 18px; }
   label { font-weight: 600; display: block; margin: 14px 0 6px 0; font-size: 12.5px; }
@@ -9,7 +9,7 @@
   input[type="text"], input[type="password"], input[type="number"] {
     width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: 10px; font-size: 13px;
   }
-  input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px #e6f4ea; }
+  input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px oklch(77% .13 82 / .14); }
   .masked { color: var(--text-muted); font-size: 11.5px; margin-top: 4px; }
   .row { display: flex; gap: 12px; }
   .row > div { flex: 1; }
@@ -21,18 +21,18 @@
   .chk-row .chk-hint { color: var(--text-muted); font-size: 11px; display: block; margin-top: 1px; font-weight: 400; }
   .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
   button { padding: 9px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px; border: none; }
-  .btn-secondary { background: #fff; border: 1px solid var(--border) !important; color: var(--text); }
+  .btn-secondary { background: oklch(99.5% 0 0); border: 1px solid var(--border) !important; color: var(--text); }
   .btn-primary { background: var(--green); color: #fff; }
   .btn-primary:hover { background: var(--green-dark); }
   .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
   .status { font-size: 12px; margin-top: 10px; display: none; }
-  .status.ok { color: var(--green); } .status.err { color: #d93025; }
+  .status.ok { color: var(--green); } .status.err { color: oklch(52% .16 35); }
 
   .country-picker-field {
     display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 24px;
   }
   .country-pill {
-    display: inline-flex; align-items: center; gap: 5px; background: #e6f4ea; color: var(--green-dark);
+    display: inline-flex; align-items: center; gap: 5px; background: oklch(77% .13 82 / .14); color: var(--green-dark);
     border-radius: 999px; padding: 3px 6px 3px 8px; font-size: 12px; font-weight: 600; white-space: nowrap;
   }
   .country-pill .flag { font-size: 13px; }
@@ -46,13 +46,13 @@
      positioned dropdown, which didn't reliably show up there. */
   #regionSelect {
     width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: 10px; font-size: 13px;
-    background: #fff; color: var(--text); cursor: pointer;
+    background: oklch(99.5% 0 0); color: var(--text); cursor: pointer;
   }
-  #regionSelect:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px #e6f4ea; }
+  #regionSelect:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px oklch(77% .13 82 / .14); }
 </style>
 
 <h2>Settings</h2>
-<div class="subtitle" id="versionLabel" style="color:#5f6368;font-size:11px;margin:-2px 0 14px 0;">Koli v…</div>
+<div class="subtitle" id="versionLabel" style="color:oklch(46% 0 0);font-size:11px;margin:-2px 0 14px 0;">Koli v…</div>
 <div class="subtitle">Same settings whether you get here from the sidebar's gear icon or this menu.</div>
 
 <label for="youtubeKey">YouTube Data API v3 key</label>
@@ -75,6 +75,14 @@
   <label for="groqKey">Groq API key</label>
   <input type="password" id="groqKey" placeholder="Paste key to replace" />
   <div class="masked" id="groqMasked"></div>
+</div>
+
+<div class="section">
+  <div class="section-title">Documents: connect from Drive</div>
+  <div class="hint" style="margin-bottom:10px;">Optional. Upload-and-extract on a record's Documents field works with no setup. Linking an <i>existing</i> Drive file (instead of uploading a copy) needs the Google Picker API enabled once in your Cloud Console, plus a browser API key restricted to it — pasted here. No OAuth/scope change either way.</div>
+  <label for="pickerKey">Google Picker API key</label>
+  <input type="password" id="pickerKey" placeholder="Paste key to replace" />
+  <div class="masked" id="pickerMasked"></div>
 </div>
 
 <div class="row" style="margin-top:14px">
@@ -138,7 +146,7 @@
   <div class="hint">Deploy &gt; Manage deployments &gt; copy the URL next to the "Web app" deployment (ends in <code>/exec</code>). Pasting it here — instead of letting the code auto-detect it — avoids it picking the wrong deployment when more than one exists.</div>
 
   <label for="connectionCode" style="margin-top:16px;">Connection code</label>
-  <textarea id="connectionCode" readonly rows="2" style="width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:10px;font-size:11px;font-family:monospace;resize:none;background:#fff;" placeholder="Save your secret above (and deploy this as a Web App, if you haven't), then click Generate"></textarea>
+  <textarea id="connectionCode" readonly rows="2" style="width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:10px;font-size:11px;font-family:monospace;resize:none;background:oklch(99.5% 0 0);" placeholder="Save your secret above (and deploy this as a Web App, if you haven't), then click Generate"></textarea>
   <div class="status" id="connectionCodeStatus" style="margin-top:6px;"></div>
   <div style="display:flex;gap:8px;margin-top:8px;">
     <button type="button" class="btn-secondary" id="generateCodeBtn" style="flex:1;">Generate</button>
@@ -247,6 +255,7 @@
       document.getElementById('geminiMasked').textContent = s.geminiKeySet ? 'Currently set: ' + s.geminiKeyMasked : 'Not set';
       document.getElementById('mistralMasked').textContent = s.mistralKeySet ? 'Currently set: ' + s.mistralKeyMasked : 'Not set';
       document.getElementById('groqMasked').textContent = s.groqKeySet ? 'Currently set: ' + s.groqKeyMasked : 'Not set';
+      document.getElementById('pickerMasked').textContent = s.pickerApiKeySet ? 'Currently set: ' + s.pickerApiKeyMasked : 'Not set';
       document.getElementById('lookback').value = s.lookbackDays;
       document.getElementById('sampleSize').value = s.commentSampleSize;
       document.getElementById('scanSponsors').checked = !!s.scanChannelSponsors;
@@ -306,6 +315,7 @@
         document.getElementById('geminiKey').value = '';
         document.getElementById('mistralKey').value = '';
         document.getElementById('groqKey').value = '';
+        document.getElementById('pickerKey').value = '';
         document.getElementById('inboxSecret').value = '';
         document.getElementById('accessCode').value = '';
         load();
@@ -320,6 +330,7 @@
         geminiApiKey: document.getElementById('geminiKey').value.trim(),
         mistralApiKey: document.getElementById('mistralKey').value.trim(),
         groqApiKey: document.getElementById('groqKey').value.trim(),
+        pickerApiKey: document.getElementById('pickerKey').value.trim(),
         lookbackDays: Number(document.getElementById('lookback').value),
         commentSampleSize: Number(document.getElementById('sampleSize').value),
         inboxSecret: document.getElementById('inboxSecret').value.trim(),

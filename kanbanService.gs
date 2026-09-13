@@ -11,7 +11,10 @@
 
 function showOutreachKanban() {
   if (!hasPremiumAccess_()) { showUpgradeAlert_('Outreach Kanban'); return; }
-  const html = HtmlService.createHtmlOutputFromFile('OutreachKanban').setWidth(1180).setHeight(720);
+  // Evaluated as a template (not createHtmlOutputFromFile) so the
+  // <?!= include_('RecordModal'); ?> scriptlet that pulls in the shared
+  // expanded-record overlay actually runs.
+  const html = HtmlService.createTemplateFromFile('OutreachKanban').evaluate().setWidth(1180).setHeight(720);
   SpreadsheetApp.getUi().showModalDialog(html, 'Outreach Pipeline');
 }
 

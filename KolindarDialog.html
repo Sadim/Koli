@@ -1,0 +1,186 @@
+<style>
+  :root {
+    --green: oklch(45% .1 190); --green-dark: oklch(41% .11 190); --border: oklch(13% 0 0 / .08);
+    --text: oklch(22% 0 0); --text-muted: oklch(46% 0 0); --bg: oklch(95% 0 0); --surface: oklch(99.5% 0 0);
+    --error: oklch(52% .16 35);
+  }
+  * { box-sizing: border-box; }
+  body { font-family: 'Albert Sans', 'Avenir Next', 'Helvetica Neue', Arial, system-ui, sans-serif; color: var(--text); padding: 20px 22px; font-size: 13px; }
+  h2 { font-size: 17px; margin: 0 0 4px; }
+  .subtitle { color: var(--text-muted); font-size: 11.5px; margin-bottom: 16px; }
+  label { font-weight: 600; display: block; margin: 10px 0 5px; font-size: 12px; }
+  input[type="text"], input[type="number"], input[type="time"] {
+    padding: 7px 9px; border: 1px solid var(--border); border-radius: 8px; font-size: 12.5px; font-family: inherit;
+  }
+  input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px oklch(77% .13 82 / .14); }
+  .hint { color: var(--text-muted); font-size: 10.5px; margin-top: 3px; }
+  .section { background: var(--bg); border-radius: 12px; padding: 12px 14px; margin-top: 14px; }
+  .section-title { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: var(--text-muted); margin-bottom: 8px; }
+  .type-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .type-row input[type="text"] { flex: 1; }
+  .type-row input[type="number"] { width: 64px; }
+  .rm-btn { background: none; border: none; color: var(--error); cursor: pointer; font-size: 15px; padding: 2px 6px; }
+  .add-btn { background: none; border: 1px dashed var(--border); border-radius: 8px; color: var(--green); font-weight: 600; font-size: 11.5px; padding: 6px 10px; cursor: pointer; font-family: inherit; margin-top: 2px; }
+  .day-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; }
+  .day-row input[type="checkbox"] { accent-color: var(--green); width: 15px; height: 15px; cursor: pointer; }
+  .day-row .day-name { width: 40px; font-weight: 600; font-size: 12px; }
+  .day-row input[type="time"] { width: 100px; }
+  .day-row .to { color: var(--text-muted); font-size: 11px; }
+  .row3 { display: flex; gap: 10px; }
+  .row3 > div { flex: 1; }
+  .link-box { display: flex; gap: 6px; margin-top: 6px; }
+  .link-box input { flex: 1; font-family: monospace; font-size: 11px; background: var(--surface); }
+  .link-box button { padding: 7px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); font-size: 11.5px; font-weight: 600; cursor: pointer; }
+  .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+  button.primary { padding: 9px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px; border: none; background: var(--green); color: #fff; }
+  button.primary:hover { background: var(--green-dark); }
+  button.secondary { padding: 9px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+  .status { font-size: 12px; margin-top: 10px; text-align: right; }
+  .status.ok { color: var(--green); } .status.err { color: var(--error); }
+</style>
+
+<h2>Set Up Kolindar</h2>
+<div class="subtitle">Koli's free scheduling page -- built on your own Google Calendar, no other account needed.</div>
+
+<div class="section">
+  <div class="section-title">Your booking link</div>
+  <div class="link-box">
+    <input type="text" id="bookingLink" readonly value="Set your Web App URL in Settings first" />
+    <button type="button" id="copyLinkBtn">Copy</button>
+  </div>
+  <div class="hint">Same Web App URL Settings uses for the extension's connection code -- if that's not set yet, set it there first.</div>
+</div>
+
+<div class="section">
+  <div class="section-title">Meeting types</div>
+  <div id="typesList"></div>
+  <button type="button" class="add-btn" id="addTypeBtn">+ Add meeting type</button>
+</div>
+
+<div class="section">
+  <div class="section-title">Weekly availability</div>
+  <div id="hoursList"></div>
+  <div class="hint">One time window per day for now -- times are in your own timezone (Settings).</div>
+</div>
+
+<div class="row3">
+  <div>
+    <label for="bufferMinutes">Buffer (min)</label>
+    <input type="number" id="bufferMinutes" min="0" max="120" />
+    <div class="hint">Gap kept around existing events.</div>
+  </div>
+  <div>
+    <label for="lookaheadDays">Book up to (days)</label>
+    <input type="number" id="lookaheadDays" min="1" max="90" />
+  </div>
+  <div>
+    <label for="minNoticeHours">Min notice (hrs)</label>
+    <input type="number" id="minNoticeHours" min="0" max="336" />
+  </div>
+</div>
+
+<div class="status" id="status"></div>
+<div class="actions">
+  <button class="secondary" onclick="google.script.host.close()">Cancel</button>
+  <button class="primary" id="saveBtn">Save</button>
+</div>
+
+<script>
+  const DAYS = [['sun', 'Sun'], ['mon', 'Mon'], ['tue', 'Tue'], ['wed', 'Wed'], ['thu', 'Thu'], ['fri', 'Fri'], ['sat', 'Sat']];
+  let typeIdCounter = 0;
+
+  function addTypeRow(type) {
+    const row = document.createElement('div');
+    row.className = 'type-row';
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text'; nameInput.placeholder = 'e.g. 30-min Call'; nameInput.value = (type && type.name) || '';
+    const minInput = document.createElement('input');
+    minInput.type = 'number'; minInput.min = 5; minInput.max = 240; minInput.value = (type && type.minutes) || 30;
+    const rm = document.createElement('button');
+    rm.type = 'button'; rm.className = 'rm-btn'; rm.textContent = '×'; rm.title = 'Remove';
+    rm.onclick = () => row.remove();
+    row.dataset.id = (type && type.id) || ('type' + (++typeIdCounter));
+    row.appendChild(nameInput); row.appendChild(minInput); row.appendChild(document.createTextNode('min')); row.appendChild(rm);
+    document.getElementById('typesList').appendChild(row);
+  }
+  document.getElementById('addTypeBtn').onclick = () => addTypeRow(null);
+
+  function renderDayRows(weeklyHours) {
+    const list = document.getElementById('hoursList');
+    list.innerHTML = '';
+    DAYS.forEach(([key, label]) => {
+      const windows = (weeklyHours && weeklyHours[key]) || [];
+      const win = windows[0] || null;
+      const row = document.createElement('div');
+      row.className = 'day-row';
+      row.dataset.day = key;
+      const chk = document.createElement('input');
+      chk.type = 'checkbox'; chk.checked = !!win;
+      const name = document.createElement('span'); name.className = 'day-name'; name.textContent = label;
+      const start = document.createElement('input'); start.type = 'time'; start.value = (win && win[0]) || '09:00'; start.disabled = !win;
+      const to = document.createElement('span'); to.className = 'to'; to.textContent = 'to';
+      const end = document.createElement('input'); end.type = 'time'; end.value = (win && win[1]) || '17:00'; end.disabled = !win;
+      chk.onchange = () => { start.disabled = end.disabled = !chk.checked; };
+      row.appendChild(chk); row.appendChild(name); row.appendChild(start); row.appendChild(to); row.appendChild(end);
+      list.appendChild(row);
+    });
+  }
+
+  function load() {
+    google.script.run.withSuccessHandler((s) => {
+      if (s.bookingLink) document.getElementById('bookingLink').value = s.bookingLink;
+      document.getElementById('typesList').innerHTML = '';
+      s.config.meetingTypes.forEach(addTypeRow);
+      renderDayRows(s.config.weeklyHours);
+      document.getElementById('bufferMinutes').value = s.config.bufferMinutes;
+      document.getElementById('lookaheadDays').value = s.config.lookaheadDays;
+      document.getElementById('minNoticeHours').value = s.config.minNoticeHours;
+    }).getKolindarSettingsForDialog();
+  }
+  load();
+
+  document.getElementById('copyLinkBtn').onclick = () => {
+    const box = document.getElementById('bookingLink');
+    box.select();
+    document.execCommand('copy');
+  };
+
+  document.getElementById('saveBtn').onclick = () => {
+    const btn = document.getElementById('saveBtn');
+    const status = document.getElementById('status');
+    btn.disabled = true;
+
+    const meetingTypes = [...document.querySelectorAll('.type-row')].map((row) => ({
+      id: row.dataset.id,
+      name: row.children[0].value.trim(),
+      minutes: Number(row.children[1].value)
+    }));
+
+    const weeklyHours = {};
+    [...document.querySelectorAll('.day-row')].forEach((row) => {
+      const chk = row.children[0];
+      weeklyHours[row.dataset.day] = chk.checked ? [[row.children[2].value, row.children[4].value]] : [];
+    });
+
+    const config = {
+      meetingTypes: meetingTypes,
+      weeklyHours: weeklyHours,
+      bufferMinutes: Number(document.getElementById('bufferMinutes').value),
+      lookaheadDays: Number(document.getElementById('lookaheadDays').value),
+      minNoticeHours: Number(document.getElementById('minNoticeHours').value)
+    };
+
+    google.script.run
+      .withSuccessHandler((resp) => {
+        btn.disabled = false;
+        if (!resp.ok) { status.className = 'status err'; status.textContent = resp.error; return; }
+        status.className = 'status ok'; status.textContent = 'Saved.';
+        setTimeout(() => google.script.host.close(), 900);
+      })
+      .withFailureHandler((err) => {
+        btn.disabled = false;
+        status.className = 'status err'; status.textContent = err.message || String(err);
+      })
+      .saveKolindarSettings(config);
+  };
+</script>

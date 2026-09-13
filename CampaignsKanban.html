@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: oklch(97.8% 0 0); --surface: oklch(99.5% 0 0); --border: oklch(13% 0 0 / .08); --border-soft: oklch(13% 0 0 / .05);
+    --ink-900: oklch(13% 0 0); --ink-700: oklch(22% 0 0); --ink-500: oklch(46% 0 0); --ink-300: oklch(66% 0 0);
+    --green-700: oklch(45% .1 190); --green-600: oklch(70% .12 188); --green-500: oklch(70% .12 188); --green-bg: oklch(77% .13 82 / .14);
+    --amber-bg: oklch(77% .13 82 / .14); --amber-ink: oklch(46% 0 0); --red-bg: oklch(52% .16 35 / .12); --red-ink: oklch(52% .16 35);
+    --col-bg: oklch(95% 0 0);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --bg: oklch(17% 0 0); --surface: oklch(24% 0 0); --border: oklch(100% 0 0 / .12); --border-soft: oklch(100% 0 0 / .08);
+      --ink-900: oklch(93% 0 0); --ink-700: oklch(85% 0 0); --ink-500: oklch(68% 0 0); --ink-300: oklch(50% 0 0);
+      --green-700: oklch(78% .1 188); --green-600: oklch(82% .07 188); --green-500: oklch(82% .07 188); --green-bg: oklch(61% .085 78 / .22);
+      --amber-bg: oklch(61% .085 78 / .22); --amber-ink: oklch(84% .19 80.46); --red-bg: oklch(52% .16 35 / .22); --red-ink: oklch(68% .16 35);
+      --col-bg: oklch(31% 0 0);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { font-family: 'Albert Sans', 'Avenir Next', 'Helvetica Neue', Arial, system-ui, sans-serif; background: var(--bg); color: var(--ink-700); margin: 0; padding: 16px 20px; font-size: 13px; }
+  header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+  h1 { font-size: 17px; font-weight: 700; color: var(--ink-900); margin: 0; }
+  .sub { font-size: 12px; color: var(--ink-500); }
+  .board { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; height: calc(100vh - 90px); }
+  .column { flex: 0 0 210px; background: var(--col-bg); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; }
+  .column-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 4px 10px; }
+  .column-title { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--ink-500); }
+  .column-count { font-size: 10.5px; color: var(--ink-300); background: var(--surface); border-radius: 10px; padding: 1px 7px; }
+  .cards { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; min-height: 40px; }
+  .column.dragover .cards { background: var(--green-bg); border-radius: 8px; }
+  .card { position: relative; background: var(--surface); border: 1px solid var(--border-soft); border-radius: 10px; padding: 10px 11px; cursor: grab; box-shadow: 0 1px 2px rgba(20,20,20,.04); }
+  .card:active { cursor: grabbing; }
+  .card.dragging { opacity: .4; }
+  .card-expand {
+    position: absolute; top: 6px; right: 6px; width: 20px; height: 20px; border-radius: 6px; border: none;
+    background: var(--surface); color: var(--ink-500); display: flex; align-items: center; justify-content: center;
+    font-size: 11px; cursor: pointer; opacity: 0; transition: opacity .12s; box-shadow: 0 1px 3px rgba(0,0,0,.12);
+  }
+  .card:hover .card-expand { opacity: 1; }
+  .card-expand:hover { background: var(--green-bg); color: var(--green-600); }
+  .card-name { font-weight: 700; font-size: 12.5px; color: var(--ink-900); margin-bottom: 2px; }
+  .card-channel { font-size: 10.5px; color: var(--ink-500); margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card-meta { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .card-value { font-size: 11.5px; font-weight: 700; color: var(--green-600); }
+  .card-deadline { font-size: 10.5px; color: var(--ink-500); }
+  .card-deadline.overdue { color: var(--red-ink); font-weight: 600; }
+  .empty { text-align: center; color: var(--ink-300); font-size: 11px; padding: 20px 4px; }
+  .status-line { font-size: 11.5px; margin-top: 8px; min-height: 14px; }
+  .status-line.err { color: var(--red-ink); }
+</style></head>
+<body>
+  <header>
+    <h1>Campaigns Pipeline</h1>
+    <div class="sub" id="totalCount"></div>
+  </header>
+  <div class="board" id="board"></div>
+  <div class="status-line" id="statusLine"></div>
+
+<script>
+  let boardData = null;
+
+  function compactCurrency(v) {
+    if (v === '' || v === null || v === undefined) return '';
+    const n = Number(v);
+    return isNaN(n) ? String(v) : '$' + n.toLocaleString();
+  }
+
+  function isOverdue(dateStr) {
+    if (!dateStr) return false;
+    const d = new Date(dateStr + 'T00:00:00');
+    return !isNaN(d.getTime()) && d < new Date(new Date().toDateString());
+  }
+
+  function render() {
+    const board = document.getElementById('board');
+    board.innerHTML = '';
+    document.getElementById('totalCount').textContent = boardData.cards.length + ' campaign(s)';
+
+    boardData.statuses.forEach((status) => {
+      const col = document.createElement('div');
+      col.className = 'column';
+      col.dataset.status = status;
+
+      const head = document.createElement('div');
+      head.className = 'column-head';
+      const cardsInStatus = boardData.cards.filter((c) => c.status === status);
+      head.innerHTML = '<span class="column-title">' + status + '</span><span class="column-count">' + cardsInStatus.length + '</span>';
+      col.appendChild(head);
+
+      const cardsEl = document.createElement('div');
+      cardsEl.className = 'cards';
+      if (!cardsInStatus.length) {
+        cardsEl.innerHTML = '<div class="empty">Nothing here</div>';
+      }
+      cardsInStatus.forEach((c) => cardsEl.appendChild(renderCard(c)));
+      col.appendChild(cardsEl);
+
+      col.addEventListener('dragover', (e) => { e.preventDefault(); col.classList.add('dragover'); });
+      col.addEventListener('dragleave', () => col.classList.remove('dragover'));
+      col.addEventListener('drop', (e) => {
+        e.preventDefault();
+        col.classList.remove('dragover');
+        const campaignId = e.dataTransfer.getData('text/plain');
+        moveCard(campaignId, status);
+      });
+
+      board.appendChild(col);
+    });
+  }
+
+  function renderCard(c) {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.draggable = true;
+    el.dataset.id = c.id;
+    const overdue = isOverdue(c.deadline) ? ' overdue' : '';
+    el.innerHTML =
+      '<button type="button" class="card-expand" title="Open record">⤢</button>' +
+      '<div class="card-name">' + escapeHtml(c.brand || '(no brand)') + '</div>' +
+      '<div class="card-channel">' + escapeHtml(c.channel || '') + '</div>' +
+      '<div class="card-meta">' +
+      '<div class="card-value">' + compactCurrency(c.value) + '</div>' +
+      (c.deadline ? '<div class="card-deadline' + overdue + '">' + escapeHtml(c.deadline) + '</div>' : '') +
+      '</div>';
+    el.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', c.id);
+      setTimeout(() => el.classList.add('dragging'), 0);
+    });
+    el.addEventListener('dragend', () => el.classList.remove('dragging'));
+    el.addEventListener('click', () => openRecordModal('campaign', c.id));
+    el.querySelector('.card-expand').addEventListener('click', (e) => { e.stopPropagation(); openRecordModal('campaign', c.id); });
+    return el;
+  }
+
+  window.onRecordModalClose = function () {
+    google.script.run.withSuccessHandler((data) => { boardData = data; render(); }).getCampaignsKanbanData();
+  };
+
+  function moveCard(campaignId, newStage) {
+    const card = boardData.cards.find((c) => c.id === campaignId);
+    if (!card || card.status === newStage) return;
+    const previousStage = card.status;
+    card.status = newStage; // optimistic: move it visually now, confirm/revert after the server responds
+    render();
+
+    google.script.run
+      .withSuccessHandler((resp) => {
+        const status = document.getElementById('statusLine');
+        if (resp.ok) { status.className = 'status-line'; status.textContent = ''; }
+        else {
+          card.status = previousStage; render();
+          status.className = 'status-line err'; status.textContent = resp.error || 'Could not save that move.';
+        }
+      })
+      .withFailureHandler((err) => {
+        card.status = previousStage; render();
+        const status = document.getElementById('statusLine');
+        status.className = 'status-line err'; status.textContent = 'Could not reach the sheet: ' + (err && err.message ? err.message : err);
+      })
+      .updateCampaignStage(campaignId, newStage);
+  }
+
+  function escapeHtml(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+  google.script.run.withSuccessHandler((data) => { boardData = data; render(); }).getCampaignsKanbanData();
+</script>
+
+<?!= include_('RecordModal'); ?>
+</body></html>

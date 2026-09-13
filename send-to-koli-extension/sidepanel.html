@@ -2,22 +2,28 @@
 <html>
 <head>
 <meta charset="utf-8">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     color-scheme: light;
-    --green-50: #EBF7EF; --green-100: #D7F0DF; --green-500: #1E8A4C; --green-600: #166B3A; --green-700: #0F5029;
-    --teal: #1CA0B0; --teal-600: #158390;
-    --navy: #132A35; --navy-soft: #26414F;
-    --ink-900: #14232B; --ink-700: #1F2D36; --ink-500: #5E6B72; --ink-300: #97A3AB;
-    --surface: #FFFFFF; --surface-sunken: #F6F9F8; --surface-raised: #FFFFFF;
-    --border: #E1E7E6; --border-soft: #EDF1F0;
-    --error: #D93025; --error-bg: #FCE9E7; --amber: #B06000; --amber-bg: #FEF3DC;
+    /* green-500/600 back real CTA buttons and grade badges with hardcoded
+       white text in both themes, so (unlike the other theme-adaptive tokens
+       here) they stay fixed dark/saturated patina in light AND dark mode
+       instead of flipping lightness -- flipping would leave white button
+       text unreadable against a pale dark-mode fill. green-700 is only ever
+       used as text color on the green-50 tint, so it stays adaptive. */
+    --green-50: oklch(77% .13 82 / .14); --green-100: oklch(77% .13 82 / .24); --green-500: oklch(45% .1 190); --green-600: oklch(41% .11 190); --green-700: oklch(45% .1 190);
+    --teal: oklch(70% .12 188); --teal-600: oklch(45% .1 190);
+    --navy: oklch(22% 0 0); --navy-soft: oklch(46% 0 0);
+    --ink-900: oklch(13% 0 0); --ink-700: oklch(22% 0 0); --ink-500: oklch(46% 0 0); --ink-300: oklch(66% 0 0);
+    --surface: oklch(99.5% 0 0); --surface-sunken: oklch(95% 0 0); --surface-raised: oklch(99.5% 0 0);
+    --border: oklch(13% 0 0 / .08); --border-soft: oklch(13% 0 0 / .05);
+    --error: oklch(52% .16 35); --error-bg: oklch(52% .16 35 / .12); --amber: oklch(46% 0 0); --amber-bg: oklch(77% .13 82 / .14);
     --radius-sm: 7px; --radius-md: 11px; --radius-lg: 16px; --radius-pill: 999px;
-    --shadow-xs: 0 1px 2px rgba(15,30,25,.05);
-    --shadow-sm: 0 2px 6px rgba(15,30,25,.07), 0 1px 2px rgba(15,30,25,.05);
-    --shadow-md: 0 8px 20px rgba(15,30,25,.12), 0 2px 6px rgba(15,30,25,.06);
-    --shadow-lg: 0 20px 44px rgba(11,20,16,.22), 0 4px 12px rgba(11,20,16,.10);
+    --shadow-xs: 0 1px 1px oklch(13% 0 0/.05);
+    --shadow-sm: 0 1px 1px oklch(13% 0 0/.05), 0 2px 3px oklch(13% 0 0/.04), 0 6px 12px oklch(13% 0 0/.05);
+    --shadow-md: 0 1px 1px oklch(13% 0 0/.04), 0 3px 5px oklch(13% 0 0/.05), 0 12px 20px oklch(13% 0 0/.06);
+    --shadow-lg: 0 1px 1px oklch(13% 0 0/.04), 0 3px 5px oklch(13% 0 0/.05), 0 12px 20px oklch(13% 0 0/.06), 0 32px 48px oklch(13% 0 0/.07);
     --ease: cubic-bezier(.32,.72,.35,1);
     --ease-out: cubic-bezier(.16,1,.3,1);
     --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -25,13 +31,13 @@
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       color-scheme: dark;
-      --green-50: #143324; --green-100: #164229; --green-500: #34C77A; --green-600: #2CB06B; --green-700: #229158;
-      --teal: #4FCADA; --teal-600: #35B0C0;
-      --navy: #EAF2F4; --navy-soft: #C7D6DA;
-      --ink-900: #F2F6F5; --ink-700: #DCE4E3; --ink-500: #93A3A1; --ink-300: #64726F;
-      --surface: #182420; --surface-sunken: #101815; --surface-raised: #1F2C27;
-      --border: #2B3B36; --border-soft: #23302B;
-      --error: #FF6B5E; --error-bg: #3A1D19; --amber: #F5B95A; --amber-bg: #3A2D14;
+      --green-50: oklch(61% .085 78 / .22); --green-100: oklch(61% .085 78 / .3); --green-500: oklch(45% .1 190); --green-600: oklch(41% .11 190); --green-700: oklch(78% .1 188);
+      --teal: oklch(82% .07 188); --teal-600: oklch(78% .1 188);
+      --navy: oklch(93% 0 0); --navy-soft: oklch(68% 0 0);
+      --ink-900: oklch(93% 0 0); --ink-700: oklch(85% 0 0); --ink-500: oklch(68% 0 0); --ink-300: oklch(50% 0 0);
+      --surface: oklch(24% 0 0); --surface-sunken: oklch(17% 0 0); --surface-raised: oklch(31% 0 0);
+      --border: oklch(100% 0 0 / .12); --border-soft: oklch(100% 0 0 / .08);
+      --error: oklch(68% .16 35); --error-bg: oklch(52% .16 35 / .22); --amber: oklch(84% .19 80.46); --amber-bg: oklch(61% .085 78 / .22);
       --shadow-xs: 0 1px 2px rgba(0,0,0,.3);
       --shadow-sm: 0 2px 6px rgba(0,0,0,.35);
       --shadow-md: 0 8px 20px rgba(0,0,0,.45);
@@ -41,13 +47,13 @@
   /* Manual toggle override -- wins over prefers-color-scheme in both directions (see the theme-toggle script near the end of sidepanel.js). */
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --green-50: #143324; --green-100: #164229; --green-500: #34C77A; --green-600: #2CB06B; --green-700: #229158;
-    --teal: #4FCADA; --teal-600: #35B0C0;
-    --navy: #EAF2F4; --navy-soft: #C7D6DA;
-    --ink-900: #F2F6F5; --ink-700: #DCE4E3; --ink-500: #93A3A1; --ink-300: #64726F;
-    --surface: #182420; --surface-sunken: #101815; --surface-raised: #1F2C27;
-    --border: #2B3B36; --border-soft: #23302B;
-    --error: #FF6B5E; --error-bg: #3A1D19; --amber: #F5B95A; --amber-bg: #3A2D14;
+    --green-50: oklch(61% .085 78 / .22); --green-100: oklch(61% .085 78 / .3); --green-500: oklch(45% .1 190); --green-600: oklch(41% .11 190); --green-700: oklch(78% .1 188);
+    --teal: oklch(82% .07 188); --teal-600: oklch(78% .1 188);
+    --navy: oklch(93% 0 0); --navy-soft: oklch(68% 0 0);
+    --ink-900: oklch(93% 0 0); --ink-700: oklch(85% 0 0); --ink-500: oklch(68% 0 0); --ink-300: oklch(50% 0 0);
+    --surface: oklch(24% 0 0); --surface-sunken: oklch(17% 0 0); --surface-raised: oklch(31% 0 0);
+    --border: oklch(100% 0 0 / .12); --border-soft: oklch(100% 0 0 / .08);
+    --error: oklch(68% .16 35); --error-bg: oklch(52% .16 35 / .22); --amber: oklch(84% .19 80.46); --amber-bg: oklch(61% .085 78 / .22);
     --shadow-xs: 0 1px 2px rgba(0,0,0,.3);
     --shadow-sm: 0 2px 6px rgba(0,0,0,.35);
     --shadow-md: 0 8px 20px rgba(0,0,0,.45);
@@ -56,7 +62,7 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
   body {
-    font-family: 'Inter', 'Google Sans', Roboto, Arial, sans-serif; color: var(--ink-700); min-width: 300px;
+    font-family: 'Albert Sans', 'Avenir Next', 'Helvetica Neue', Arial, system-ui, sans-serif; color: var(--ink-700); min-width: 300px;
     font-size: 13px; background: var(--surface); -webkit-font-smoothing: antialiased;
     display: flex; flex-direction: column;
   }
@@ -74,12 +80,12 @@
 
   /* ---------- Header ---------- */
   .hdr {
-    display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px 14px 13px;
+    display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 16px 14px 13px;
     background: linear-gradient(180deg, var(--green-50), var(--surface) 130%);
     border-bottom: 1px solid var(--border-soft); flex-shrink: 0;
   }
   .brand-mark {
-    width: 28px; height: 28px; border-radius: 9px; background: linear-gradient(155deg, var(--green-500), var(--green-700));
+    width: 28px; height: 28px; border-radius: 9px; background: linear-gradient(155deg, var(--green-500), var(--green-600));
     color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px;
     box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.25); letter-spacing: -.02em;
   }
@@ -130,15 +136,18 @@
        constant accent (like a badge), not UI chrome that should invert in
        dark mode; --navy itself flips to near-white there for text-on-
        surface contrast, which would make white chip text disappear. */
-    background: #132A35; border-radius: var(--radius-pill); width: fit-content;
-    font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; letter-spacing: .01em;
+    background: oklch(22% 0 0); border-radius: var(--radius-pill); width: fit-content;
+    font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: .01em;
     box-shadow: var(--shadow-xs);
   }
   .brand-chip-mark {
     width: 17px; height: 17px; border-radius: 50%; flex-shrink: 0;
     background: linear-gradient(155deg, var(--green-500), var(--green-600));
     display: flex; align-items: center; justify-content: center;
-    font-family: 'Inter', sans-serif; font-weight: 800; font-size: 9.5px; color: #fff;
+    /* Deliberately below the 11px floor: a single-letter logo mark in a
+       17px circle (the brand badge, not content text) -- WCAG's contrast/
+       legibility bar exempts logotypes for the same reason. */
+    font-family: 'Albert Sans', 'Avenir Next', 'Helvetica Neue', Arial, system-ui, sans-serif; font-weight: 800; font-size: 9.5px; color: #fff;
   }
   .brand-chip-text { color: #fff; }
   .brand-chip-sep { color: #fff; opacity: .35; }
@@ -148,9 +157,9 @@
     margin: 16px 16px 0; padding: 14px 15px; border-radius: var(--radius-lg); background: var(--surface-sunken);
     border: 1px solid var(--border-soft);
   }
-  .page-card .kicker { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-300); margin-bottom: 6px; }
+  .page-card .kicker { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-300); margin-bottom: 6px; }
   .page-card .title { font-size: 13px; font-weight: 700; color: var(--ink-900); line-height: 1.4; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-  .page-card .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: var(--radius-pill); margin-top: 8px; }
+  .page-card .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: var(--radius-pill); margin-top: 8px; }
   .page-card .badge.channel { background: var(--green-50); color: var(--green-700); }
   .page-card .badge.video { background: color-mix(in srgb, var(--teal) 16%, transparent); color: var(--teal-600); }
   .page-card .badge.other { background: var(--border-soft); color: var(--ink-500); }
@@ -177,16 +186,16 @@
     width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
     font-size: 15px; font-weight: 800; color: #fff; background: linear-gradient(155deg, var(--green-500), var(--green-600));
   }
-  .preview-grade.grade-d, .preview-grade.grade-f { background: linear-gradient(155deg, var(--error), #B0392F); }
-  .preview-grade.grade-c { background: linear-gradient(155deg, var(--amber), #9A6A1E); }
+  .preview-grade.grade-d, .preview-grade.grade-f { background: linear-gradient(155deg, var(--error), oklch(42% .15 35)); }
+  .preview-grade.grade-c { background: linear-gradient(155deg, var(--amber), oklch(35% 0 0)); }
   .preview-head-text { flex: 1; min-width: 0; }
   .preview-grade-label { font-size: 12.5px; font-weight: 700; color: var(--ink-900); }
-  .preview-confidence { font-size: 10.5px; color: var(--ink-500); text-transform: capitalize; }
+  .preview-confidence { font-size: 11px; color: var(--ink-500); text-transform: capitalize; }
   .preview-view-link { font-size: 11px; font-weight: 700; color: var(--teal-600); white-space: nowrap; flex-shrink: 0; }
-  .preview-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 12px; }
+  .preview-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; margin-top: 12px; }
   .preview-stats div { display: flex; flex-direction: column; }
   .preview-stats b { font-size: 14px; font-weight: 800; color: var(--ink-900); font-variant-numeric: tabular-nums; }
-  .preview-stats span { font-size: 10px; color: var(--ink-500); }
+  .preview-stats span { font-size: 11px; color: var(--ink-500); line-height: 1.3; }
   /* Video card only -- Views/Engagement/Comments/Likes are the numbers that
      actually decide whether a video's worth adding, so they get their own
      row with more visual weight than the demographic/timing stats below. */
@@ -217,7 +226,7 @@
   .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 16px 0; }
   .stat-tile { background: var(--surface-raised); border: 1px solid var(--border-soft); border-radius: var(--radius-md); padding: 11px 13px; }
   .stat-tile .num { font-size: 20px; font-weight: 800; color: var(--ink-900); font-variant-numeric: tabular-nums; line-height: 1.1; }
-  .stat-tile .lbl { font-size: 10.5px; color: var(--ink-500); margin-top: 3px; }
+  .stat-tile .lbl { font-size: 11px; color: var(--ink-500); margin-top: 3px; }
   .stat-tile.err .num { color: var(--error); }
 
   /* ---------- Disclosure sections (Profile / Discover) ---------- */
@@ -233,7 +242,7 @@
   .disclosure-body { padding: 14px 15px; }
   .field-row { display: flex; gap: 8px; margin-bottom: 10px; }
   .field-row > div { flex: 1; }
-  .field-row label, .form-label { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--ink-300); margin-bottom: 5px; }
+  .field-row label, .form-label { display: block; font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--ink-300); margin-bottom: 5px; }
   .disclosure-body input[type="text"], .disclosure-body input[type="date"], .disclosure-body input[type="number"] {
     width: 100%; padding: 8px 9px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 12px;
     background: var(--surface); color: var(--ink-900);
@@ -293,7 +302,7 @@
   .col-item:hover { border-color: var(--ink-300); box-shadow: var(--shadow-xs); }
   .col-item.dragging { opacity: .4; }
   .col-item.drag-over { border-color: var(--teal); border-width: 2px; }
-  .col-item b { font-weight: 700; margin-right: 1px; color: var(--navy-soft); flex-shrink: 0; font-size: 10.5px; }
+  .col-item b { font-weight: 700; margin-right: 1px; color: var(--navy-soft); flex-shrink: 0; font-size: 11px; }
   .col-item span, .col-item input { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .col-item input { border: 0; outline: 0; font: inherit; color: var(--ink-700); background: none; }
   .col-item input::placeholder { color: var(--ink-300); }
@@ -334,7 +343,7 @@
   /* ---------- Other Platforms / type toggle ---------- */
   .profile-row { display: flex; gap: 8px; padding: 15px 18px 0; flex-wrap: wrap; }
   #youtubeTypeToggle { justify-content: center; }
-  .type-toggle-hint { font-size: 10.5px; color: var(--ink-300); padding: 14px 18px 0; line-height: 1.5; }
+  .type-toggle-hint { font-size: 11px; color: var(--ink-300); padding: 14px 18px 0; line-height: 1.5; }
   .profile-chip {
     background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 7px 13px; font-size: 11.5px;
     font-weight: 600; color: var(--ink-500); cursor: pointer; transition: all .15s var(--ease);
@@ -343,7 +352,7 @@
   .profile-chip.active { background: var(--navy); color: #fff; border-color: var(--navy); box-shadow: var(--shadow-sm); }
   .profile-chip.add-new { color: var(--teal-600); border-color: var(--teal); border-style: dashed; }
   .no-profiles { padding: 26px 18px; text-align: center; color: var(--ink-500); font-size: 12px; line-height: 1.6; }
-  .no-profiles button { margin-top: 12px; background: var(--teal); color: #fff; border: none; border-radius: var(--radius-sm); padding: 9px 18px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: transform .15s var(--ease); }
+  .no-profiles button { margin-top: 12px; background: var(--green-600); color: #fff; border: none; border-radius: var(--radius-sm); padding: 9px 18px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: transform .15s var(--ease); }
   .no-profiles button:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
 
   /* ---------- Log ---------- */
@@ -373,7 +382,7 @@
   /* ---------- Settings screen ---------- */
   .settings-body { padding: 17px 18px; }
   .settings-section { margin-bottom: 20px; }
-  .settings-section h3 { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-300); margin-bottom: 9px; }
+  .settings-section h3 { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-300); margin-bottom: 9px; }
   #themeSegment button.theme-choice-active { background: var(--surface); color: var(--ink-900); box-shadow: var(--shadow-xs); }
   .lock-summary-row { display: flex; align-items: center; justify-content: space-between; background: var(--surface-sunken); border: 1px solid var(--border-soft); border-radius: var(--radius-md); padding: 10px 12px; margin-bottom: 7px; font-size: 12px; }
   .lock-summary-row .name { font-weight: 600; color: var(--ink-900); }
@@ -385,7 +394,7 @@
   .status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: var(--green-500); }
   .status-dot.dim { background: var(--ink-300); }
   .setup-steps { font-size: 11px; color: var(--ink-500); line-height: 1.8; }
-  .setup-steps .num { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; background: var(--surface-sunken); color: var(--ink-700); font-weight: 700; font-size: 9.5px; margin-right: 6px; }
+  .setup-steps .num { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: var(--surface-sunken); color: var(--ink-700); font-weight: 700; font-size: 11px; margin-right: 6px; }
 
   /* ---------- Modals ---------- */
   .modal-backdrop {
@@ -414,7 +423,7 @@
   .modal .status { font-size: 11px; margin-top: 9px; display: none; line-height: 1.5; }
   .modal .status.err { color: var(--error); display: block; }
   .modal .status.ok { color: var(--green-600); display: block; }
-  .modal .divider-or { display: flex; align-items: center; gap: 10px; margin: 14px 0 2px; font-size: 10px; font-weight: 700; color: var(--ink-300); text-transform: uppercase; letter-spacing: .05em; }
+  .modal .divider-or { display: flex; align-items: center; gap: 10px; margin: 14px 0 2px; font-size: 11px; font-weight: 700; color: var(--ink-300); text-transform: uppercase; letter-spacing: .05em; }
   .modal .divider-or::before, .modal .divider-or::after { content: ''; flex: 1; height: 1px; background: var(--border-soft); }
   .modal .link-btn-inline { background: none; border: none; color: var(--teal-600); font-weight: 600; font-size: 11px; cursor: pointer; padding: 0; margin-top: 6px; }
 
@@ -495,7 +504,6 @@
         <div class="preview-grade" id="videoPreviewAuthBadge">?</div>
         <div class="preview-head-text">
           <div class="preview-grade-label" id="videoPreviewSub"></div>
-          <div class="preview-confidence" id="videoPreviewPostedLine"></div>
         </div>
       </div>
       <div class="preview-stats video-preview-stats-primary">
@@ -637,7 +645,7 @@
   <div class="body-scroll">
   <div class="settings-body">
     <div class="settings-section">
-      <h3>Worksheet locks</h3>
+      <h2>Worksheet locks</h2>
       <div class="lock-summary-row">
         <div><div class="name">YouTube</div><div class="target" id="ytSummaryTarget">Not connected</div></div>
         <button id="ytSummaryEdit">Edit</button>
@@ -645,12 +653,12 @@
       <div id="otherLocksSummary"></div>
     </div>
     <div class="settings-section">
-      <h3>Recognized platforms</h3>
+      <h2>Recognized platforms</h2>
       <div class="status-note"><span class="status-dot"></span>YouTube: channel/video links auto-detected</div>
       <div class="status-note dim"><span class="status-dot dim"></span>Anything captured under Other Platforms is sent as-is: auto-detection is YouTube-specific for now.</div>
     </div>
     <div class="settings-section">
-      <h3>Appearance</h3>
+      <h2>Appearance</h2>
       <div class="lock-summary-row" style="align-items:center;">
         <div class="name">Theme</div>
         <div id="themeSegment" style="display:flex;gap:4px;background:var(--surface-sunken);border-radius:var(--radius-sm);padding:3px;">
@@ -661,14 +669,14 @@
       </div>
     </div>
     <div class="settings-section">
-      <h3>Privacy</h3>
+      <h2>Privacy</h2>
       <div class="status-note dim" style="line-height:1.6;align-items:flex-start;">
         <span class="status-dot dim" style="margin-top:5px;"></span>
         <span>This extension talks only to the Web App URL you connect above: a script you deploy and control with your own Google account. Nothing is sent to Koli's developer or any third party, no usage analytics are collected, and your locks/columns/activity log stay in this browser (<code style="font-family:var(--font-mono);">chrome.storage</code>), never elsewhere. Source will be published under the MIT license so this can be checked, not just taken on faith.</span>
       </div>
     </div>
     <div class="settings-section">
-      <h3>Quick setup</h3>
+      <h2>Quick setup</h2>
       <div class="setup-steps">
         <span class="num">1</span>In Koli's Apps Script editor: Deploy → New deployment → Web app → Execute as "Me" → Who has access "Anyone."<br>
         <span class="num">2</span>In Koli's Settings, save a shared secret, then click "Generate" next to Connection code.<br>
@@ -688,7 +696,7 @@
 <!-- ===================== LOCK TARGET MODAL ===================== -->
 <div class="modal-backdrop" id="lockModal">
   <div class="modal">
-    <h3 id="lockModalTitle">Choose worksheet</h3>
+    <h2 id="lockModalTitle">Choose worksheet</h2>
     <div class="hint">This connects one Koli spreadsheet: sends from this profile always go here until you unlock it.</div>
     <label>Connection code</label>
     <textarea id="lockCode" rows="2" placeholder="Paste the code from Koli > Settings > Connection code"></textarea>
@@ -712,7 +720,7 @@
 <!-- ===================== APPLY COLUMNS CONFIRM MODAL ===================== -->
 <div class="modal-backdrop" id="applyColumnsModal">
   <div class="modal">
-    <h3>Apply to worksheet?</h3>
+    <h2>Apply to worksheet?</h2>
     <div class="hint" id="applyColumnsHint">This reorders your real Channels sheet's columns to match what's shown here, and hides any column you removed (nothing is deleted: hidden columns can be unhidden anytime in Sheets). Anyone else viewing this sheet will see the new layout too.</div>
     <div class="status" id="applyColumnsStatus"></div>
     <div class="modal-actions">
@@ -725,7 +733,7 @@
 <!-- ===================== ADD PLATFORM MODAL ===================== -->
 <div class="modal-backdrop" id="addPlatformModal">
   <div class="modal">
-    <h3>Add a platform</h3>
+    <h2>Add a platform</h2>
     <div class="hint">A name to tell it apart: Instagram, TikTok, whatever fits.</div>
     <label>Platform name</label>
     <input type="text" id="newPlatformName" placeholder="e.g. Instagram" />

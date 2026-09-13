@@ -67,7 +67,7 @@ let activeOtherProfileId = null;
 let activeColType = 'channel'; // 'channel' | 'video' | 'profile' | 'discover': which column list/apply-target is showing
 let logPage = 0;
 const LOG_PAGE_SIZE = 5;
-let currentTab = null; // { url, title } of the active tab, refreshed on Home focus
+let currentTab = null; // { url, title, id } of the active tab, refreshed on Home focus
 
 const ICONS = {
   lockOpen: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 7.3-2.3"/></svg>',
@@ -185,7 +185,7 @@ async function refreshCurrentPageCard() {
   try {
     [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   } catch (e) { /* no active tab (rare) */ }
-  currentTab = tab ? { url: tab.url || '', title: tab.title || '' } : { url: '', title: '' };
+  currentTab = tab ? { url: tab.url || '', title: tab.title || '', id: tab.id } : { url: '', title: '', id: null };
   hidePreviewCard_(); // a different page is now current: the last card's numbers no longer apply to it
 
   titleEl.textContent = resolveDisplayName_(currentTab.title, currentTab.url) || 'No page detected';
@@ -248,7 +248,7 @@ async function quickSend(type, buttonEl) {
   try {
     const resp = await chrome.runtime.sendMessage({
       kind: 'koli-send', type, value: currentTab.url, pageTitle: currentTab.title,
-      sourceUrl: currentTab.url, silent: false, lockId: 'youtube'
+      sourceUrl: currentTab.url, silent: false, lockId: 'youtube', tabId: currentTab.id
     });
     await refreshStatTiles();
     return resp;
@@ -450,7 +450,6 @@ function notifyVideoInline_(message) {
   document.getElementById('videoPreviewAuthBadge').className = 'preview-grade';
   document.getElementById('videoPreviewTitle').textContent = '';
   document.getElementById('videoPreviewSub').textContent = '';
-  document.getElementById('videoPreviewPostedLine').textContent = '';
   ['Views', 'Likes', 'Comments', 'Engagement', 'NewSubs', 'Location', 'Age', 'Gender'].forEach((id) => {
     document.getElementById('videoPreview' + id).textContent = 'N/A';
   });
@@ -510,8 +509,6 @@ function renderVideoPreviewCard_(p, mode) {
   document.getElementById('videoPreviewEngagement').textContent = (typeof p.engagementRatio === 'number' ? p.engagementRatio.toFixed(1) : 'N/A') + '%';
   document.getElementById('videoPreviewComments').textContent = formatCompactNumber_(p.commentCount);
   document.getElementById('videoPreviewLikes').textContent = formatCompactNumber_(p.likes);
-  const published = p.publishedAt ? new Date(p.publishedAt) : null;
-  document.getElementById('videoPreviewPostedLine').textContent = published ? 'Posted ' + relativeOrDate_(published) : '';
   document.getElementById('videoPreviewNewSubs').textContent = (p.newSubscribers === undefined || p.newSubscribers === null || p.newSubscribers === '') ? 'N/A' : String(p.newSubscribers);
   document.getElementById('videoPreviewLocation').textContent = p.location || 'N/A';
   document.getElementById('videoPreviewAge').textContent = p.age || 'N/A';
@@ -525,21 +522,6 @@ function renderVideoPreviewCard_(p, mode) {
   document.getElementById('videoPreviewActionStatus').hidden = true;
 
   card.hidden = false;
-}
-
-// "Posted Fri, Sep 11" reads fine for anything older, but for a video
-// that just went up, the absolute date makes you do the math yourself --
-// relative phrasing for the first 24h is the whole point of a "just
-// happened" stat, so switch to it inside that window and fall back to the
-// date once relative time stops being useful (nobody thinks in "9 days ago").
-function relativeOrDate_(published) {
-  const diffMs = Date.now() - published.getTime();
-  const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return mins + ' min ago';
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return hrs + ' hr' + (hrs === 1 ? '' : 's') + ' ago';
-  return published.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
 function formatCompactNumber_(n) {

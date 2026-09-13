@@ -160,6 +160,12 @@ function hyperlinkFormula_(url, label) {
   return '=HYPERLINK("' + url + '","' + String(label || url).replace(/"/g, "'") + '")';
 }
 
+/** Inverse of hyperlinkFormula_: pulls {url,label} back out of a cell's =HYPERLINK(...) formula string, for read-only "link"-type fields in recordService.gs. Returns null if the formula doesn't match that exact shape. */
+function parseHyperlinkFormula_(formula) {
+  const m = /^=HYPERLINK\("([^"]*)"\s*,\s*"([^"]*)"\)$/.exec(String(formula || ''));
+  return m ? { url: m[1], label: m[2] } : null;
+}
+
 /**
  * Status cells get a glyph + color instead of plain text: "☑ Done" in
  * green, "✗ Error: ..." in red, "○ New" in gray: same icon language
@@ -190,6 +196,20 @@ function formatStatusCell_(cell, rawStatus) {
 function sanitizeCellText_(text) {
   const s = String(text === null || text === undefined ? '' : text);
   return /^[=+\-@]/.test(s) ? "'" + s : s;
+}
+
+/**
+ * Appends to a cell's existing note rather than overwriting it. Needed
+ * because more than one part of the write pipeline can set a note on the
+ * same cell (Contact gets both writeEmailPreservingManual_'s "kept your
+ * entry" conflict warning AND the About/socials block below) -- a plain
+ * setNote() from the second writer used to silently destroy whatever the
+ * first one had just written.
+ */
+function appendNote_(cell, text) {
+  if (!text) return;
+  const existing = cell.getNote();
+  cell.setNote(existing ? existing + '\n\n' + text : text);
 }
 
 /**
@@ -305,20 +325,19 @@ function writeChannelRow(channel) {
     );
   }
 
+  // About summary + social links live on Contact, not Channel: this is
+  // genuinely where someone looking to reach out would think to check
+  // first. appendNote_ (not setNote) because writeEmailPreservingManual_
+  // above may have already put a real warning on this same cell (a kept
+  // manual entry that disagrees with what auto-detection just found) --
+  // overwriting it here used to silently destroy that warning every time.
   const socialsText = channel.contact.socials.length
     ? channel.contact.socials.map(function (s) { return s.platform + ': ' + s.url; }).join('\n')
     : 'None found';
   const aboutText = channel.aboutSummary ? channel.aboutSummary : '';
-  if (colOf('Channel')) {
-    sheet.getRange(row, colOf('Channel')).setNote(
-      (aboutText ? 'About:\n' + aboutText + '\n\n' : '') + 'Other socials:\n' + socialsText
-    );
-  }
-  // Same social links, also on Contact: this is genuinely where someone
-  // looking to reach out would think to check first, not just on the
-  // channel-name cell.
   if (contactCol) {
-    sheet.getRange(row, contactCol).setNote('Other ways to reach them:\n' + socialsText);
+    appendNote_(sheet.getRange(row, contactCol),
+      (aboutText ? 'About:\n' + aboutText + '\n\n' : '') + 'Other ways to reach them:\n' + socialsText);
   }
 
   recordSubscriberSnapshot_(channel.channelId, channel.subCount, channel.avgViews, channel.avgLikes, channel.avgComments);
@@ -441,6 +460,27 @@ function getChannelRowData_(sheet, row) {
   };
 }
 
+/**
+ * Best-effort Grade lookup by channel display NAME, not ID -- Videos rows
+ * only ever stored the channel's display name (see writeVideoRow), never
+ * its ID, so this is a real, accepted limitation: two channels sharing the
+ * exact same name would collide. Used only to decorate the sidebar's
+ * generic-preview badge for Videos; returns null (never throws) on any
+ * miss so the caller can fall back to a plain badge instead of an error.
+ */
+function findChannelGradeByName_(channelName) {
+  if (!channelName) return null;
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.CHANNELS);
+  if (!sheet || sheet.getLastRow() < 2) return null;
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const nameCol = headers.indexOf('Channel');
+  const gradeCol = headers.indexOf('Grade');
+  if (nameCol === -1 || gradeCol === -1) return null;
+  const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+  const match = data.find(function (r) { return r[nameCol] === channelName; });
+  return (match && match[gradeCol]) ? match[gradeCol] : null;
+}
+
 /** Finds the sheet row for a given active cell/range, if it's on the Channels sheet. */
 function getActiveChannelRow_() {
   const range = SpreadsheetApp.getActiveRange();
@@ -449,29 +489,6 @@ function getActiveChannelRow_() {
   const row = range.getRow();
   if (row < 2) return null;
   return row;
-}
-
-/** Same idea as getActiveChannelRow_, for the Videos sheet. */
-function getActiveVideoRow_() {
-  const range = SpreadsheetApp.getActiveRange();
-  const sheet = SpreadsheetApp.getActiveSheet();
-  if (!range || sheet.getName() !== SHEET_NAMES.VIDEOS) return null;
-  const row = range.getRow();
-  if (row < 2) return null;
-  return row;
-}
-
-/** Mirrors getChannelRowData_: reads by the sheet's ACTUAL header row, not fixed position. */
-function getVideoRowData_(sheet, row) {
-  const actualHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const values = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const get = function (name) { const idx = actualHeaders.indexOf(name); return idx === -1 ? undefined : values[idx]; };
-  return {
-    videoId: get('ID'), title: get('Video'), channel: get('Channel'),
-    views: get('Views'), likes: get('Likes'), comments: get('Comments'),
-    auth: get('Auth'), engPct: get('Eng %'), location: get('Location'),
-    age: get('Age'), gender: get('Gender')
-  };
 }
 
 /**
@@ -578,6 +595,16 @@ function writeVideoRow(video) {
     video.newSubscribers, sanitizeCellText_(video.audience.location),
     sanitizeCellText_(video.audience.age), sanitizeCellText_(video.audience.gender), new Date()
   ];
+  // Real bug, same root cause as the Engagement % one fixed earlier this
+  // project's life: authDisplay is a plain string like "9/10", and Sheets
+  // silently reinterprets ANY "N/10" shaped string as a date (month/day)
+  // the instant it's written -- "9/10" becomes September 10 -- unless the
+  // cell is ALREADY formatted as plain text before the value lands. Setting
+  // the format on setValues's own target range AFTER the write is too late:
+  // by then the value has already been coerced into a date serial, and
+  // reformatting only changes how that wrong value displays. This format
+  // call must run on column 8 BEFORE the row-wide setValues below.
+  sheet.getRange(row, 8).setNumberFormat('@');
   sheet.getRange(row, 1, 1, values.length).setValues([values]);
   formatStatusCell_(sheet.getRange(row, 1), STATUS.DONE);
   sheet.getRange(row, 2).setFormula(hyperlinkFormula_(videoUrl_(video.videoId), video.title));
@@ -590,8 +617,100 @@ function writeVideoRow(video) {
   if (video.channelAboutSummary) {
     sheet.getRange(row, 4).setNote('About ' + video.channelTitle + ':\n' + video.channelAboutSummary);
   }
+  if (video.description) {
+    const links = extractAllUrls_(video.description);
+    sheet.getRange(row, 5).setNote(
+      'Description:\n' + video.description + '\n\n' +
+      'Links found:\n' + (links.length ? links.join('\n') : 'None found in the description.')
+    );
+  }
 
   return row;
+}
+
+/**
+ * Recovers the original 1-10 authenticity score from a cell Sheets already
+ * mangled into a date -- "N/10" is a valid month/day (or day/month) pair
+ * for every N from 1-10, so this bug was 100% reproducible, not an edge
+ * case, and it happened regardless of the spreadsheet's date-order locale.
+ * Whichever of month/day equals exactly 10 is the literal "/10" suffix;
+ * the OTHER component is the real score, which recovers it correctly
+ * whether Sheets parsed "9/10" as Sep-10 (month/day locale) or Oct-9
+ * (day/month locale). "10/10" is unambiguous either way. Returns null
+ * (never guesses) for a date that doesn't fit that exact shape.
+ *
+ * Real bug fixed here: this used to read `d.getMonth()`/`d.getDate()`
+ * directly, which resolve in the Apps Script RUNTIME's own default
+ * timezone -- not necessarily the same zone the spreadsheet itself used
+ * when it originally mis-parsed "9/10" into a date. A one-hour offset near
+ * midnight shifts the calendar day, so neither component lands on exactly
+ * 10 anymore and this silently returned null (the symptom: the field just
+ * vanished from the sidebar instead of showing a wrong value). Reading the
+ * components through the SPREADSHEET's own timezone -- the zone that
+ * actually did the original mis-parsing -- removes that mismatch instead
+ * of guessing which runtime default might happen to agree with it.
+ */
+function recoverAuthScoreFromDate_(d) {
+  const tz = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+  const month = Number(Utilities.formatDate(d, tz, 'M'));
+  const day = Number(Utilities.formatDate(d, tz, 'd'));
+  if (month === 10 && day === 10) return 10;
+  if (day === 10 && month !== 10) return month;
+  if (month === 10 && day !== 10) return day;
+  return null;
+}
+
+/**
+ * One-time repair for rows written before writeVideoRow_/writeProfileRow's
+ * Auth column got an explicit plain-text format: Sheets had already
+ * auto-parsed every "N/10" string into a real date by the time those rows
+ * were written (see recoverAuthScoreFromDate_'s doc comment -- guaranteed,
+ * not occasional), so the go-forward fix alone doesn't touch what's
+ * already sitting in the sheet. Menu-triggered, not automatic: this
+ * rewrites cells, worth a confirmation rather than running silently.
+ */
+function repairAuthColumnDates() {
+  const ui = SpreadsheetApp.getUi();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const targets = [
+    { sheet: ss.getSheetByName(SHEET_NAMES.VIDEOS), col: 8, name: 'Videos' },
+    { sheet: ss.getSheetByName(SHEET_NAMES.PROFILE), col: 10, name: 'Profile' }
+  ];
+
+  let fixed = 0, skipped = 0;
+  targets.forEach(function (t) {
+    if (!t.sheet || t.sheet.getLastRow() < 2) return;
+    const range = t.sheet.getRange(2, t.col, t.sheet.getLastRow() - 1, 1);
+    const values = range.getValues();
+    values.forEach(function (r, i) {
+      const v = r[0];
+      if (!(v instanceof Date)) return;
+      const score = recoverAuthScoreFromDate_(v);
+      const cell = t.sheet.getRange(2 + i, t.col);
+      if (score === null) { skipped++; return; }
+      cell.setNumberFormat('@'); // must precede setValue, same ordering reason as the write-path fix
+      cell.setValue(score + '/10');
+      fixed++;
+    });
+  });
+
+  ui.alert(
+    'Auth column repair',
+    fixed + ' cell(s) fixed across Videos/Profile.' +
+    (skipped ? ' ' + skipped + ' skipped (didn\'t fit the expected "N/10" date shape -- check manually).' : ''),
+    ui.ButtonSet.OK
+  );
+}
+
+/** Every http(s) URL in a block of free text, deduped, in first-seen order. Generalizes contactService.gs's social-domain matching (extractSocials_) to "any link at all" -- a video description can point anywhere (merch, a landing page, an unrelated channel), not just a known social platform. */
+function extractAllUrls_(text) {
+  const matches = String(text || '').match(/https?:\/\/[^\s)]+/g) || [];
+  const seen = {};
+  const result = [];
+  matches.forEach(function (url) {
+    if (!seen[url]) { seen[url] = true; result.push(url); }
+  });
+  return result;
 }
 
 function writeVideoError_(videoInput, errorMessage) {
@@ -740,6 +859,9 @@ function writeProfileRow(entry) {
     sanitizeCellText_(entry.audience.location), sanitizeCellText_(entry.audience.age),
     sanitizeCellText_(entry.audience.gender), entry.subDelta, new Date()
   ];
+  // Same "N/10" -> auto-parsed-as-a-date bug as writeVideoRow, same fix:
+  // format column 10 (Auth) as plain text BEFORE the value lands, not after.
+  sheet.getRange(row, 10).setNumberFormat('@');
   sheet.getRange(row, 1, 1, values.length).setValues([values]);
   formatStatusCell_(sheet.getRange(row, 1), STATUS.DONE);
   sheet.getRange(row, 2).setFormula(hyperlinkFormula_(channelUrl_(entry.channelId), entry.channelName));

@@ -1,0 +1,23 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "createdAt": "2026-09-13T10:25:02.040Z",
+        "reason": "Agent: Inter is Koli's established brand typeface (Sidebar + extension), confirmed intentional in PRODUCT.md's Brand Commitments section"
+      },
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          "Sidebar.html"
+        ],
+        "createdAt": "2026-09-13T14:46:55.731Z",
+        "reason": "Detector can't resolve @media/[data-theme] conditional scoping -- confirmed 2 of 3 flagged pairs cross-match a dark-mode color value against a light-mode-only background from a different conditional block on the same selector (never co-render in reality; verified via oklch math + no matching literal color exists in source). The 3rd (real: white text on a too-light dark-mode gradient end) was fixed directly, not ignored. Re-audit if Sidebar.html's light/dark token structure changes materially."
+      }
+    ]
+  }
+}

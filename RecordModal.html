@@ -1,0 +1,434 @@
+<style>
+  /* Same palette as OutreachKanban.html/CampaignsKanban.html so this overlay
+     never looks like a bolted-on foreign UI when embedded in either board;
+     redeclared here (not just relied-upon) so the standalone record dialog
+     (RecordModalDialog.html, no board around it) looks right on its own too. */
+  :root {
+    --krm-bg: oklch(97.8% 0 0); --krm-surface: oklch(99.5% 0 0); --krm-border: oklch(13% 0 0 / .08); --krm-border-soft: oklch(13% 0 0 / .05);
+    --krm-ink-900: oklch(13% 0 0); --krm-ink-700: oklch(22% 0 0); --krm-ink-500: oklch(46% 0 0); --krm-ink-300: oklch(66% 0 0);
+    --krm-green-700: oklch(45% .1 190); --krm-green-600: oklch(70% .12 188); --krm-green-500: oklch(70% .12 188); --krm-green-bg: oklch(77% .13 82 / .14);
+    --krm-amber-bg: oklch(77% .13 82 / .14); --krm-amber-ink: oklch(46% 0 0); --krm-red-bg: oklch(52% .16 35 / .12); --krm-red-ink: oklch(52% .16 35);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --krm-bg: oklch(17% 0 0); --krm-surface: oklch(24% 0 0); --krm-border: oklch(100% 0 0 / .12); --krm-border-soft: oklch(100% 0 0 / .08);
+      --krm-ink-900: oklch(93% 0 0); --krm-ink-700: oklch(85% 0 0); --krm-ink-500: oklch(68% 0 0); --krm-ink-300: oklch(50% 0 0);
+      --krm-green-700: oklch(78% .1 188); --krm-green-600: oklch(82% .07 188); --krm-green-500: oklch(82% .07 188); --krm-green-bg: oklch(61% .085 78 / .22);
+      --krm-amber-bg: oklch(61% .085 78 / .22); --krm-amber-ink: oklch(84% .19 80.46); --krm-red-bg: oklch(52% .16 35 / .22); --krm-red-ink: oklch(68% .16 35);
+    }
+  }
+  .krm-overlay {
+    position: fixed; inset: 0; background: rgba(20,20,16,.45); display: flex;
+    align-items: center; justify-content: center; z-index: 50; font-family: 'Albert Sans', 'Avenir Next', 'Helvetica Neue', Arial, system-ui, sans-serif;
+  }
+  /* Real bug: an author rule setting display:flex unconditionally always
+     beats the browser's own default "[hidden]{display:none}" -- author CSS
+     outranks user-agent CSS regardless of specificity, so closeRecordModal's
+     `overlay.hidden = true` was doing nothing visually. This compound
+     selector is more specific than the bare .krm-overlay rule above, so it
+     actually wins when the attribute is set. */
+  .krm-overlay[hidden] { display: none; }
+  .krm-overlay.krm-standalone { position: static; background: none; padding: 0; height: 100vh; }
+  .krm-modal {
+    width: 460px; max-width: calc(100vw - 32px); max-height: calc(100vh - 32px); overflow-y: auto;
+    background: var(--krm-surface); border-radius: 14px;
+    /* Thin border + very wide soft blur reads as a generic AI-generated
+       card; a tighter, denser shadow (less blur, more spread/opacity, no
+       border at all) reads as an intentionally-elevated surface instead. */
+    box-shadow: 0 8px 16px rgba(0,0,0,.16), 0 2px 6px rgba(0,0,0,.12);
+  }
+  .krm-standalone .krm-modal { width: 100%; height: 100vh; max-height: 100vh; border-radius: 0; border: none; box-shadow: none; }
+  .krm-header {
+    display: flex; align-items: center; justify-content: space-between; padding: 14px 16px;
+    border-bottom: 1px solid var(--krm-border-soft); position: sticky; top: 0; background: var(--krm-surface); z-index: 1;
+  }
+  .krm-title { font-size: 14px; font-weight: 700; color: var(--krm-ink-900); }
+  .krm-close { border: none; background: none; color: var(--krm-ink-500); font-size: 15px; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+  .krm-close:hover { background: var(--krm-bg); }
+  .krm-body { padding: 6px 16px 18px; }
+  .krm-loading, .krm-error { padding: 30px 10px; text-align: center; color: var(--krm-ink-500); font-size: 12.5px; }
+  .krm-error { color: var(--krm-red-ink); }
+
+  .krm-field { padding: 10px 0; border-bottom: 1px solid var(--krm-border-soft); }
+  .krm-field:last-child { border-bottom: none; }
+  .krm-label {
+    font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--krm-ink-500);
+    margin-bottom: 5px; display: flex; align-items: center; gap: 5px;
+  }
+  .krm-lock { font-size: 10px; opacity: .7; cursor: help; }
+  .krm-control input[type="text"], .krm-control input[type="date"], .krm-control input[type="number"], .krm-control textarea {
+    width: 100%; border: 1px solid var(--krm-border); border-radius: 8px; padding: 7px 9px; font-size: 12.5px;
+    font-family: inherit; color: var(--krm-ink-900); background: var(--krm-surface);
+  }
+  .krm-control input:focus, .krm-control textarea:focus, .krm-control select:focus { outline: none; border-color: var(--krm-green-500); box-shadow: 0 0 0 3px var(--krm-green-bg); }
+  .krm-control textarea { resize: vertical; min-height: 54px; }
+  .krm-readonly { font-size: 12.5px; color: var(--krm-ink-700); padding: 3px 0; }
+  .krm-readonly.krm-empty { color: var(--krm-ink-300); font-style: italic; }
+  .krm-link { font-size: 12.5px; color: var(--krm-green-600); text-decoration: none; font-weight: 600; }
+  .krm-link:hover { text-decoration: underline; }
+  .krm-currency-wrap { display: flex; align-items: center; gap: 6px; }
+  .krm-currency-affix { color: var(--krm-ink-500); font-weight: 700; font-size: 12.5px; }
+
+  .krm-pill-select { position: relative; }
+  .krm-pill-select select {
+    width: 100%; appearance: none; -webkit-appearance: none; border: 1px solid var(--krm-border); border-radius: 999px;
+    padding: 5px 26px 5px 12px; font-size: 11.5px; font-weight: 700; cursor: pointer; background: var(--krm-bg); color: var(--krm-ink-700);
+  }
+  .krm-pill-select::after {
+    content: '▾'; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 9px; color: var(--krm-ink-500); pointer-events: none;
+  }
+  .krm-pill-select.tone-good select { background: var(--krm-green-bg); color: var(--krm-green-700); }
+  .krm-pill-select.tone-bad select { background: var(--krm-red-bg); color: var(--krm-red-ink); }
+  .krm-pill-select.tone-mid select { background: var(--krm-amber-bg); color: var(--krm-amber-ink); }
+
+  .krm-feedback { font-size: 10.5px; margin-top: 4px; min-height: 13px; }
+  .krm-feedback.ok { color: var(--krm-green-600); }
+  .krm-feedback.err { color: var(--krm-red-ink); }
+
+  .krm-docs-drop {
+    border: 1.5px dashed var(--krm-border); border-radius: 10px; padding: 14px; text-align: center;
+    color: var(--krm-ink-500); font-size: 11.5px; cursor: pointer; transition: border-color .15s;
+  }
+  .krm-docs-drop.over { border-color: var(--krm-green-500); background: var(--krm-green-bg); }
+  .krm-docs-drop input { display: none; }
+  .krm-docs-actions { display: flex; gap: 8px; margin-top: 8px; }
+  .krm-docs-actions button {
+    flex: 1; border: 1px solid var(--krm-border); background: var(--krm-surface); color: var(--krm-ink-700);
+    border-radius: 8px; padding: 6px 8px; font-size: 11px; font-weight: 600; cursor: pointer;
+  }
+  .krm-docs-actions button:hover { background: var(--krm-bg); }
+  .krm-doc-item { border: 1px solid var(--krm-border-soft); border-radius: 8px; padding: 8px 10px; margin-top: 8px; }
+  .krm-doc-name { font-size: 12px; font-weight: 700; }
+  .krm-doc-meta { font-size: 10px; color: var(--krm-ink-500); margin-top: 1px; }
+  .krm-doc-summary { font-size: 11px; color: var(--krm-ink-700); margin-top: 5px; line-height: 1.4; }
+  .krm-doc-status { font-size: 11px; color: var(--krm-ink-500); margin-top: 8px; min-height: 14px; }
+
+  .krm-note-toggle {
+    background: none; border: none; padding: 0; margin-top: 5px; font-size: 10.5px; font-weight: 600;
+    color: var(--krm-ink-500); cursor: pointer; display: flex; align-items: center; gap: 4px;
+  }
+  .krm-note-toggle:hover { color: var(--krm-green-600); }
+  .krm-note-toggle .krm-note-caret { transition: transform .12s; }
+  .krm-note-toggle.open .krm-note-caret { transform: rotate(90deg); }
+  .krm-note-body {
+    display: none; font-size: 11.5px; color: var(--krm-ink-700); white-space: pre-wrap; line-height: 1.5;
+    background: var(--krm-bg); border-radius: 8px; padding: 8px 10px; margin-top: 5px;
+  }
+  .krm-note-body.open { display: block; }
+</style>
+
+<div class="krm-overlay" id="krmOverlay" hidden>
+  <div class="krm-modal">
+    <div class="krm-header">
+      <div class="krm-title" id="krmTitle">Record</div>
+      <button type="button" class="krm-close" id="krmClose" title="Close">✕</button>
+    </div>
+    <div class="krm-body" id="krmBody"></div>
+  </div>
+</div>
+
+<script src="https://apis.google.com/js/api.js"></script>
+<script>
+(function () {
+  const GET_FN = { channel: 'getChannelRecord', campaign: 'getCampaignRecord' };
+  const SET_FN = { channel: 'setChannelField', campaign: 'setCampaignField' };
+  const TITLE = { channel: 'Channel record', campaign: 'Campaign record' };
+  let currentType = null, currentKey = null, isStandalone = false;
+
+  function escapeHtml(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+  window.openRecordModal = function (recordType, recordKey, opts) {
+    currentType = recordType; currentKey = recordKey; isStandalone = !!(opts && opts.standalone);
+    const overlay = document.getElementById('krmOverlay');
+    overlay.hidden = false;
+    overlay.classList.toggle('krm-standalone', isStandalone);
+    document.getElementById('krmTitle').textContent = TITLE[recordType] || 'Record';
+    document.getElementById('krmBody').innerHTML = '<div class="krm-loading">Loading…</div>';
+    google.script.run.withSuccessHandler(renderRecord).withFailureHandler(renderError)[GET_FN[recordType]](recordKey);
+  };
+
+  window.closeRecordModal = function () {
+    if (isStandalone) { google.script.host.close(); return; }
+    document.getElementById('krmOverlay').hidden = true;
+    if (typeof window.onRecordModalClose === 'function') window.onRecordModalClose(currentType, currentKey);
+  };
+  document.getElementById('krmClose').onclick = closeRecordModal;
+  document.getElementById('krmOverlay').addEventListener('click', function (e) {
+    if (e.target.id === 'krmOverlay' && !isStandalone) closeRecordModal();
+  });
+
+  function renderError(err) {
+    document.getElementById('krmBody').innerHTML = '<div class="krm-error">Could not load: ' + escapeHtml(err && err.message ? err.message : String(err)) + '</div>';
+  }
+
+  function renderRecord(record) {
+    const body = document.getElementById('krmBody');
+    body.innerHTML = '';
+    record.fields.forEach(function (f) { body.appendChild(renderField(f)); });
+  }
+
+  function renderField(f) {
+    const wrap = document.createElement('div');
+    wrap.className = 'krm-field';
+    const label = document.createElement('div');
+    label.className = 'krm-label';
+    label.appendChild(document.createTextNode(f.header));
+    if (!f.editable) {
+      const lock = document.createElement('span');
+      lock.className = 'krm-lock'; lock.textContent = '🔒'; lock.title = 'Computed by Koli, not editable here';
+      label.appendChild(lock);
+    }
+    wrap.appendChild(label);
+
+    const control = document.createElement('div');
+    control.className = 'krm-control';
+    const renderers = { enum: renderEnum, date: renderDate, longtext: renderLongtext, currency: renderCurrency, text: renderText, link: renderLink, documents: renderDocuments };
+    control.appendChild((renderers[f.type] || renderReadonly)(f));
+    wrap.appendChild(control);
+
+    if (f.note) wrap.appendChild(renderNoteDisclosure(f.note));
+
+    // 'documents' has its own status line inside renderDocuments; the
+    // generic autosave feedback strip below is only for fields that call
+    // saveField() directly.
+    if (f.editable && f.type !== 'documents') {
+      const feedback = document.createElement('div');
+      feedback.className = 'krm-feedback';
+      feedback.id = 'krm-feedback-' + safeId(f.header);
+      wrap.appendChild(feedback);
+    }
+    return wrap;
+  }
+
+  function safeId(header) { return header.replace(/[^a-z0-9]/gi, '_'); }
+  function feedbackEl(header) { return document.getElementById('krm-feedback-' + safeId(header)); }
+
+  function saveField(header, value, revert) {
+    const fb = feedbackEl(header);
+    if (fb) { fb.className = 'krm-feedback'; fb.textContent = 'Saving…'; }
+    google.script.run
+      .withSuccessHandler(function () {
+        if (fb) { fb.className = 'krm-feedback ok'; fb.textContent = '✓ Saved'; setTimeout(function () { if (fb) fb.textContent = ''; }, 1400); }
+      })
+      .withFailureHandler(function (err) {
+        if (fb) { fb.className = 'krm-feedback err'; fb.textContent = err && err.message ? err.message : String(err); }
+        if (revert) revert();
+      })
+      [SET_FN[currentType]](currentKey, header, value);
+  }
+
+  // A cell Note Koli's own pipeline already attached (About/socials on
+  // Contact, Grade's confidence breakdown, a video's description + links,
+  // etc.) -- collapsed by default so it doesn't compete with the field
+  // itself, but real content, not a decorative icon.
+  function renderNoteDisclosure(noteText) {
+    const wrap = document.createElement('div');
+    const toggle = document.createElement('button');
+    toggle.type = 'button'; toggle.className = 'krm-note-toggle';
+    toggle.innerHTML = '<span class="krm-note-caret">▸</span><span>Note</span>';
+    const body = document.createElement('div');
+    body.className = 'krm-note-body';
+    body.textContent = noteText;
+    toggle.onclick = function () {
+      const open = body.classList.toggle('open');
+      toggle.classList.toggle('open', open);
+    };
+    wrap.appendChild(toggle);
+    wrap.appendChild(body);
+    return wrap;
+  }
+
+  function renderReadonly(f) {
+    const el = document.createElement('div');
+    const hasValue = f.value !== '' && f.value !== null && f.value !== undefined;
+    el.className = 'krm-readonly' + (hasValue ? '' : ' krm-empty');
+    el.textContent = hasValue ? String(f.value) : '—';
+    return el;
+  }
+
+  function renderText(f) {
+    const input = document.createElement('input');
+    input.type = 'text'; input.value = f.value || '';
+    const original = input.value;
+    input.onblur = function () { if (input.value !== original) saveField(f.header, input.value, function () { input.value = original; }); };
+    return input;
+  }
+
+  function renderLongtext(f) {
+    const ta = document.createElement('textarea');
+    ta.value = f.value || '';
+    const original = ta.value;
+    ta.oninput = function () { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
+    ta.onblur = function () { if (ta.value !== original) saveField(f.header, ta.value, function () { ta.value = original; }); };
+    setTimeout(function () { ta.oninput(); }, 0);
+    return ta;
+  }
+
+  // Reads the real per-value tone the server sent (constants.gs's
+  // OUTREACH_TONES/CAMPAIGN_STAGE_TONES) instead of guessing from the text --
+  // the same map Sidebar.html's outreach pill now reads, so a status/stage
+  // never shows a different color depending on which screen you're on.
+  function enumTone(f, value) {
+    return (f.tones && f.tones[value]) || 'mid';
+  }
+
+  function renderEnum(f) {
+    const wrap = document.createElement('div');
+    wrap.className = 'krm-pill-select tone-' + enumTone(f, f.value);
+    const select = document.createElement('select');
+    (f.options || []).forEach(function (opt) {
+      const o = document.createElement('option');
+      o.value = opt; o.textContent = opt; o.selected = opt === f.value;
+      select.appendChild(o);
+    });
+    const original = f.value;
+    select.onchange = function () {
+      wrap.className = 'krm-pill-select tone-' + enumTone(f, select.value);
+      saveField(f.header, select.value, function () { select.value = original; wrap.className = 'krm-pill-select tone-' + enumTone(f, original); });
+    };
+    wrap.appendChild(select);
+    return wrap;
+  }
+
+  function renderDate(f) {
+    const input = document.createElement('input');
+    input.type = 'date'; input.value = f.value || '';
+    const original = input.value;
+    input.onchange = function () { saveField(f.header, input.value, function () { input.value = original; }); };
+    return input;
+  }
+
+  function renderCurrency(f) {
+    const wrap = document.createElement('div');
+    wrap.className = 'krm-currency-wrap';
+    const affix = document.createElement('span');
+    affix.className = 'krm-currency-affix'; affix.textContent = '$';
+    const input = document.createElement('input');
+    input.type = 'number'; input.step = '0.01'; input.value = f.value === '' ? '' : f.value;
+    const original = input.value;
+    input.onblur = function () { if (input.value !== original) saveField(f.header, input.value, function () { input.value = original; }); };
+    wrap.appendChild(affix); wrap.appendChild(input);
+    return wrap;
+  }
+
+  function renderLink(f) {
+    if (!f.url) return renderReadonly(f);
+    const a = document.createElement('a');
+    a.className = 'krm-link'; a.href = f.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    a.textContent = f.value || f.url;
+    return a;
+  }
+
+  // ---------- Documents field: upload+OCR dropzone + Connect-from-Drive + attached-file list ----------
+  const DOC_OCR_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+
+  function renderDocuments(f) {
+    const container = document.createElement('div');
+
+    const drop = document.createElement('label');
+    drop.className = 'krm-docs-drop';
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file'; fileInput.accept = DOC_OCR_TYPES.join(',');
+    const dropText = document.createElement('div');
+    dropText.textContent = 'Click to upload, or drag a PDF/image here';
+    drop.appendChild(fileInput); drop.appendChild(dropText);
+
+    const status = document.createElement('div');
+    status.className = 'krm-doc-status';
+
+    const actions = document.createElement('div');
+    actions.className = 'krm-docs-actions';
+    const driveBtn = document.createElement('button');
+    driveBtn.type = 'button'; driveBtn.textContent = 'Connect from Drive';
+    actions.appendChild(driveBtn);
+
+    const list = document.createElement('div');
+    (f.documents || []).slice().reverse().forEach(function (doc) { list.appendChild(renderDocItem(doc)); });
+
+    function handleFile(file) {
+      if (DOC_OCR_TYPES.indexOf(file.type) === -1) { status.textContent = 'Use a PDF, JPEG, PNG, or WebP.'; return; }
+      status.textContent = 'Reading file and extracting with Gemini… this can take a few seconds.';
+      const reader = new FileReader();
+      reader.onload = function () {
+        const base64 = reader.result.split(',')[1];
+        google.script.run
+          .withSuccessHandler(function (resp) {
+            if (resp.ok) { status.textContent = 'Attached.'; list.prepend(renderDocItem({ name: file.name, url: resp.url, source: 'upload', uploadedAt: new Date().toISOString(), extractedSummary: resp.summary })); }
+            else status.textContent = resp.error || 'Could not process this file.';
+          })
+          .withFailureHandler(function (err) { status.textContent = err && err.message ? err.message : String(err); })
+          .processRecordDocumentUpload(base64, file.type, file.name, currentType, currentKey);
+      };
+      reader.onerror = function () { status.textContent = 'Could not read that file in the browser.'; };
+      reader.readAsDataURL(file);
+    }
+    fileInput.addEventListener('change', function (e) { if (e.target.files[0]) handleFile(e.target.files[0]); });
+    drop.addEventListener('dragover', function (e) { e.preventDefault(); drop.classList.add('over'); });
+    drop.addEventListener('dragleave', function () { drop.classList.remove('over'); });
+    drop.addEventListener('drop', function (e) { e.preventDefault(); drop.classList.remove('over'); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+
+    driveBtn.onclick = function () {
+      google.script.run.withSuccessHandler(function (cfg) {
+        if (!cfg.ok) {
+          if (cfg.reason === 'premium') {
+            status.textContent = 'Documents is part of Koli\'s premium tier.';
+            return;
+          }
+          status.innerHTML = 'Drive uploads need one-time setup. <a href="#" id="krmOpenSettingsLink" style="color:var(--krm-green-600);font-weight:600;">Open Settings</a> to finish it.';
+          const link = status.querySelector('#krmOpenSettingsLink');
+          if (link) link.onclick = function (e) { e.preventDefault(); google.script.run.showSettingsDialog(); };
+          return;
+        }
+        status.textContent = 'Opening Google Drive…';
+        gapi.load('picker', function () {
+          const view = new google.picker.DocsView().setIncludeFolders(false).setSelectFolderEnabled(false);
+          const picker = new google.picker.PickerBuilder()
+            .addView(view)
+            .setOAuthToken(cfg.oauthToken)
+            .setDeveloperKey(cfg.apiKey)
+            .setCallback(function (data) {
+              if (data.action !== google.picker.Action.PICKED) { status.textContent = ''; return; }
+              const doc = data.docs[0];
+              status.textContent = 'Linking file…';
+              google.script.run
+                .withSuccessHandler(function (resp) {
+                  if (resp.ok) { status.textContent = 'Linked.'; list.prepend(renderDocItem({ name: doc.name, url: resp.url, source: 'drive', uploadedAt: new Date().toISOString(), extractedSummary: resp.summary })); }
+                  else status.textContent = resp.error || 'Could not link this file.';
+                })
+                .withFailureHandler(function (err) { status.textContent = err && err.message ? err.message : String(err); })
+                .attachDriveFileToRecord(currentType, currentKey, doc.id, doc.name, doc.mimeType);
+            })
+            .build();
+          picker.setVisible(true);
+        });
+      }).getPickerConfig();
+    };
+
+    container.appendChild(drop);
+    container.appendChild(actions);
+    container.appendChild(status);
+    container.appendChild(list);
+    return container;
+  }
+
+  function renderDocItem(doc) {
+    const item = document.createElement('div');
+    item.className = 'krm-doc-item';
+    const name = document.createElement('a');
+    name.className = 'krm-doc-name krm-link'; name.href = doc.url; name.target = '_blank'; name.rel = 'noopener noreferrer';
+    name.textContent = doc.name;
+    const meta = document.createElement('div');
+    meta.className = 'krm-doc-meta';
+    const when = doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : '';
+    meta.textContent = (doc.source === 'drive' ? 'Linked from Drive' : 'Uploaded') + (when ? ' · ' + when : '');
+    item.appendChild(name); item.appendChild(meta);
+    if (doc.extractedSummary) {
+      const summary = document.createElement('div');
+      summary.className = 'krm-doc-summary';
+      summary.textContent = doc.extractedSummary;
+      item.appendChild(summary);
+    }
+    return item;
+  }
+})();
+</script>

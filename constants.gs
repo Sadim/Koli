@@ -67,7 +67,8 @@ const SHEET_NAMES = {
   TRACKED_PROFILES: '_TrackedProfiles',      // hidden: control sheet for Profile tracking
   PUBLISHED_PAGES: '_PublishedPages',        // hidden: token -> Drive file lookup for publishService.gs
   EMAIL_OPENS: '_EmailOpens',                // hidden: tracking-pixel token -> open log
-  BRAND_INTEREST: 'Brand Interest'          // visible: inbound "I'm interested" clicks from published pages
+  BRAND_INTEREST: 'Brand Interest',         // visible: inbound "I'm interested" clicks from published pages
+  KOLINDAR_BOOKINGS: 'Kolindar Bookings'     // visible: every booking made through the public Kolindar page
 };
 
 const INBOX_HEADERS = ['Status', 'Type', 'Value', 'Page Title', 'Source URL', 'Captured'];
@@ -76,7 +77,14 @@ const INBOX_HEADERS = ['Status', 'Type', 'Value', 'Page Title', 'Source URL', 'C
 // Outreach: Sheets has no native Kanban view, so a staged-status column
 // is the closest fit; a real drag-and-drop board is a natural fit for
 // the extension sidebar later, not attempted here.
-const CAMPAIGN_HEADERS = ['Channel', 'Channel ID', 'Brand', 'Stage', 'Deliverables', 'Value', 'Deadline', 'Notes', 'Created', 'Updated'];
+const CAMPAIGN_HEADERS = ['Channel', 'Channel ID', 'Brand', 'Stage', 'Deliverables', 'Value', 'Deadline', 'Notes', 'Created', 'Updated',
+  // Additive, same convention as Channels' backfilled columns below: looked
+  // up by name via colOf()/ensureExtraColumns_, never by position, so this
+  // is safe to append for both brand-new and already-populated Campaigns
+  // sheets. Campaign ID is the stable per-row key the Campaigns Kanban board
+  // needs (Campaigns previously had no unique column at all -- Channel ID
+  // alone repeats across multiple deals with the same channel).
+  'Campaign ID', 'Documents'];
 const CAMPAIGN_STAGES = ['Briefed', 'In Production', 'Delivered', 'Payment Pending', 'Paid', 'Complete', 'Cancelled'];
 
 // Outreach draft generator (Batch 3): one row per generated draft, not
@@ -89,6 +97,11 @@ const OUTREACH_DRAFT_STATUSES = ['Draft', 'Reviewed', 'Sent'];
 // the same channel scored against two different brands are two different
 // answers, both worth keeping (same reasoning as Outreach Drafts).
 const BRAND_FIT_HEADERS = ['Channel', 'Channel ID', 'Brand', 'Score', 'Grade', 'Notes', 'Scored'];
+
+// One row per completed booking through the public Kolindar page (see
+// kolindarService.gs). A real Calendar event is the source of truth for the
+// meeting itself; this sheet is the human-readable log of who booked what.
+const KOLINDAR_BOOKINGS_HEADERS = ['Status', 'Name', 'Email', 'Meeting Type', 'Start', 'End', 'Notes', 'Booked At'];
 
 // Column index (1-based) of the hidden ID key column, per sheet: used by
 // findRowByKey_ and by hideColumns() calls in sheetWriter.gs.
@@ -106,7 +119,11 @@ const CHANNEL_HEADERS = [
   // sheets (created with this full list) and already-populated ones (backfilled
   // by ensureChannelsExtraColumns_ in sheetWriter.gs) without reordering
   // anything existing callers already depend on by position.
-  'Engagement %', 'Suggested Rate'
+  'Engagement %', 'Suggested Rate',
+  // Same additive convention: file attachments (contracts, media kits) via
+  // recordService.gs/documentService.gs. Never written by writeChannelRow's
+  // own analysis pipeline -- only by the record modal's Documents field.
+  'Documents'
 ];
 
 // Grade weighting: growth matters most (rewards small channels with real
@@ -182,6 +199,66 @@ const OUTREACH_STATUSES = [
 // Discover skips candidates already marked with one of these.
 const OUTREACH_EXCLUDE_FROM_DISCOVER = ['Passed', 'Do Not Contact'];
 
+// One shared status->tone vocabulary ('good'|'bad'|'mid'|'neutral'), read by
+// both Sidebar.html's outreach pill and RecordModal.html's enum pill-select
+// -- replaces what used to be two independently-maintained, drifting
+// implementations (an exact CSS-class map in one file, a regex guess in the
+// other) that a design review flagged as an inconsistency. Single source of
+// truth, delivered to clients via CHANNEL_FIELD_SCHEMA/CAMPAIGN_FIELD_SCHEMA
+// below and getSelectedChannelSummary (uiHandlers.gs).
+const OUTREACH_TONES = {
+  'Not Contacted': 'neutral', 'Contacted': 'mid', 'Replied': 'mid', 'Negotiating': 'mid',
+  'Closed - Won': 'good', 'Closed - Lost': 'bad', 'Passed': 'bad', 'Do Not Contact': 'bad'
+};
+const CAMPAIGN_STAGE_TONES = {
+  'Briefed': 'neutral', 'In Production': 'mid', 'Delivered': 'good', 'Payment Pending': 'mid',
+  'Paid': 'good', 'Complete': 'good', 'Cancelled': 'bad'
+};
+
+/**
+ * Drives the shared record modal (recordService.gs / RecordModal.html),
+ * reachable from the Sidebar's Expand button and from clicking a card on
+ * either the Outreach or Campaigns Kanban board -- one field list instead of
+ * three surfaces each declaring their own. `type` picks the renderer/
+ * validator; a field with no `editable: true` is never accepted by
+ * setChannelField/setCampaignField even if the client sent a value for it,
+ * so a stale/tampered client can't write into a computed column.
+ */
+const CHANNEL_FIELD_SCHEMA = [
+  { header: 'Channel', type: 'text', editable: true },
+  { header: 'ID', type: 'readonly' },
+  { header: 'Niche', type: 'text', editable: true },
+  { header: 'Status', type: 'readonly' },
+  { header: 'Posts/Mo', type: 'readonly' },
+  { header: 'Contact', type: 'text', editable: true },
+  { header: 'Subs', type: 'readonly' },
+  { header: 'Avg Views', type: 'readonly' },
+  { header: 'Post Times', type: 'readonly' },
+  { header: 'Grade', type: 'readonly' },
+  { header: 'Outreach', type: 'enum', editable: true, options: OUTREACH_STATUSES, tones: OUTREACH_TONES },
+  { header: 'Last Contact', type: 'date', editable: true },
+  { header: 'Notes', type: 'longtext', editable: true },
+  { header: 'Report', type: 'link' },
+  { header: 'Engagement %', type: 'readonly' },
+  { header: 'Suggested Rate', type: 'readonly' },
+  { header: 'Documents', type: 'documents', editable: true }
+];
+
+const CAMPAIGN_FIELD_SCHEMA = [
+  { header: 'Channel', type: 'link' },
+  { header: 'Channel ID', type: 'readonly' },
+  { header: 'Brand', type: 'text', editable: true },
+  { header: 'Stage', type: 'enum', editable: true, options: CAMPAIGN_STAGES, tones: CAMPAIGN_STAGE_TONES },
+  { header: 'Deliverables', type: 'longtext', editable: true },
+  { header: 'Value', type: 'currency', editable: true },
+  { header: 'Deadline', type: 'date', editable: true },
+  { header: 'Notes', type: 'longtext', editable: true },
+  { header: 'Created', type: 'readonly' },
+  { header: 'Updated', type: 'readonly' },
+  { header: 'Documents', type: 'documents', editable: true }
+  // Campaign ID deliberately excluded: internal key, never rendered.
+];
+
 const VIDEO_HEADERS = [
   'Status', 'Video', 'ID', 'Channel', 'Views', 'Likes', 'Comments', 'Auth',
   'Eng %', 'Posted', 'Day', 'New Subs', 'Location', 'Age', 'Gender', 'Updated'
@@ -232,12 +309,15 @@ const PROP_KEYS = {
   REPORTS_FOLDER_ID: 'REPORTS_FOLDER_ID', // remembered once created: avoids needing to search Drive (see reportService.gs)
   BRAND_KITS_FOLDER_ID: 'BRAND_KITS_FOLDER_ID', // same pattern, separate folder (see brandKitService.gs)
   PUBLISHED_PAGES_FOLDER_ID: 'PUBLISHED_PAGES_FOLDER_ID', // same pattern, separate folder (see publishService.gs)
+  DOCUMENTS_FOLDER_ID: 'DOCUMENTS_FOLDER_ID', // same pattern, separate folder (see documentService.gs)
+  PICKER_API_KEY: 'PICKER_API_KEY', // Google Picker API browser key -- lets the record modal's "Connect from Drive" link an existing file without a new OAuth scope (see documentService.gs)
   MISTRAL_API_KEY: 'MISTRAL_API_KEY', // optional fallback when Gemini's own retries are exhausted
   GROQ_API_KEY: 'GROQ_API_KEY', // optional fallback, tried after Mistral
   TIMEZONE: 'TIMEZONE', // e.g. 'America/New_York', 'Etc/UTC': user-set, never assumed
   ACCESS_CODE: 'ACCESS_CODE', // premium-tier unlock: see licenseService.gs
   DEFAULT_TARGET_REGIONS: 'DEFAULT_TARGET_REGIONS', // comma-joined ISO 3166-1 alpha-2 codes (e.g. "US,GB,CA,AU"): see discoverService.gs
-  WEB_APP_URL: 'WEB_APP_URL' // exec URL of the Web App deployment to use for the connection code; set explicitly because ScriptApp.getService().getUrl() is ambiguous once more than one deployment exists (see getConnectionCode_ in uiHandlers.gs)
+  WEB_APP_URL: 'WEB_APP_URL', // exec URL of the Web App deployment to use for the connection code; set explicitly because ScriptApp.getService().getUrl() is ambiguous once more than one deployment exists (see getConnectionCode_ in uiHandlers.gs)
+  KOLINDAR_CONFIG: 'KOLINDAR_CONFIG' // JSON blob: meeting types, weekly hours, buffer, lookahead -- see kolindarService.gs
 };
 
 // Bump with every shipped round: matches ROADMAP.md's "round N" numbering.

@@ -3,24 +3,24 @@
 <style>
   :root {
     color-scheme: light;
-    --bg: #F7F6F3; --surface: #FFFFFF; --border: #E4E1D8; --border-soft: #EDEBE3;
-    --ink-900: #1C1D18; --ink-700: #33352C; --ink-500: #6B6D5F; --ink-300: #9A9C8D;
-    --green-700: #14532B; --green-600: #1E7A3D; --green-500: #2E9A52; --green-bg: #E8F3EB;
-    --amber-bg: #FBF3E3; --amber-ink: #7A5C1E; --red-bg: #FBEAE8; --red-ink: #A13A2E;
-    --col-bg: #F1EFEA;
+    --bg: oklch(97.8% 0 0); --surface: oklch(99.5% 0 0); --border: oklch(13% 0 0 / .08); --border-soft: oklch(13% 0 0 / .05);
+    --ink-900: oklch(13% 0 0); --ink-700: oklch(22% 0 0); --ink-500: oklch(46% 0 0); --ink-300: oklch(66% 0 0);
+    --green-700: oklch(45% .1 190); --green-600: oklch(70% .12 188); --green-500: oklch(70% .12 188); --green-bg: oklch(77% .13 82 / .14);
+    --amber-bg: oklch(77% .13 82 / .14); --amber-ink: oklch(46% 0 0); --red-bg: oklch(52% .16 35 / .12); --red-ink: oklch(52% .16 35);
+    --col-bg: oklch(95% 0 0);
   }
   @media (prefers-color-scheme: dark) {
     :root {
       color-scheme: dark;
-      --bg: #14170F; --surface: #1A1E14; --border: #2C3024; --border-soft: #24281D;
-      --ink-900: #F0F1E8; --ink-700: #D3D5C4; --ink-500: #9A9C8B; --ink-300: #6B6D5C;
-      --green-700: #7FDA9F; --green-600: #5FC983; --green-500: #4CAE6F; --green-bg: #1B2C1F;
-      --amber-bg: #2E2716; --amber-ink: #E0BD74; --red-bg: #2E1B18; --red-ink: #E08074;
-      --col-bg: #1E2217;
+      --bg: oklch(17% 0 0); --surface: oklch(24% 0 0); --border: oklch(100% 0 0 / .12); --border-soft: oklch(100% 0 0 / .08);
+      --ink-900: oklch(93% 0 0); --ink-700: oklch(85% 0 0); --ink-500: oklch(68% 0 0); --ink-300: oklch(50% 0 0);
+      --green-700: oklch(78% .1 188); --green-600: oklch(82% .07 188); --green-500: oklch(82% .07 188); --green-bg: oklch(61% .085 78 / .22);
+      --amber-bg: oklch(61% .085 78 / .22); --amber-ink: oklch(84% .19 80.46); --red-bg: oklch(52% .16 35 / .22); --red-ink: oklch(68% .16 35);
+      --col-bg: oklch(31% 0 0);
     }
   }
   * { box-sizing: border-box; }
-  body { font-family: 'Google Sans', Roboto, Arial, sans-serif; background: var(--bg); color: var(--ink-700); margin: 0; padding: 16px 20px; font-size: 13px; }
+  body { font-family: 'Albert Sans', 'Avenir Next', 'Helvetica Neue', Arial, system-ui, sans-serif; background: var(--bg); color: var(--ink-700); margin: 0; padding: 16px 20px; font-size: 13px; }
   header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
   h1 { font-size: 17px; font-weight: 700; color: var(--ink-900); margin: 0; }
   .sub { font-size: 12px; color: var(--ink-500); }
@@ -31,9 +31,16 @@
   .column-count { font-size: 10.5px; color: var(--ink-300); background: var(--surface); border-radius: 10px; padding: 1px 7px; }
   .cards { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; min-height: 40px; }
   .column.dragover .cards { background: var(--green-bg); border-radius: 8px; }
-  .card { background: var(--surface); border: 1px solid var(--border-soft); border-radius: 10px; padding: 10px 11px; cursor: grab; box-shadow: 0 1px 2px rgba(20,20,20,.04); }
+  .card { position: relative; background: var(--surface); border: 1px solid var(--border-soft); border-radius: 10px; padding: 10px 11px; cursor: grab; box-shadow: 0 1px 2px rgba(20,20,20,.04); }
   .card:active { cursor: grabbing; }
   .card.dragging { opacity: .4; }
+  .card-expand {
+    position: absolute; top: 6px; right: 6px; width: 20px; height: 20px; border-radius: 6px; border: none;
+    background: var(--surface); color: var(--ink-500); display: flex; align-items: center; justify-content: center;
+    font-size: 11px; cursor: pointer; opacity: 0; transition: opacity .12s; box-shadow: 0 1px 3px rgba(0,0,0,.12);
+  }
+  .card:hover .card-expand { opacity: 1; }
+  .card-expand:hover { background: var(--green-bg); color: var(--green-600); }
   .card-name { font-weight: 700; font-size: 12.5px; color: var(--ink-900); margin-bottom: 2px; }
   .card-niche { font-size: 10.5px; color: var(--ink-500); margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .card-meta { display: flex; align-items: center; gap: 6px; }
@@ -108,6 +115,7 @@
     el.dataset.id = c.id;
     const gradeTier = GRADE_TIER[c.grade] || '';
     el.innerHTML =
+      '<button type="button" class="card-expand" title="Open record">⤢</button>' +
       '<div class="card-name">' + escapeHtml(c.name || c.id) + '</div>' +
       '<div class="card-niche">' + escapeHtml(c.niche || '') + '</div>' +
       '<div class="card-meta">' +
@@ -119,8 +127,22 @@
       setTimeout(() => el.classList.add('dragging'), 0);
     });
     el.addEventListener('dragend', () => el.classList.remove('dragging'));
+    // A native HTML5 drag doesn't fire a 'click' on the source element
+    // afterward, so a plain click here is unambiguously "open the record,"
+    // never a drag that just ended -- the expand icon (shown on hover) is a
+    // second, more discoverable way in, not a workaround for a conflict.
+    el.addEventListener('click', () => openRecordModal('channel', c.id));
+    el.querySelector('.card-expand').addEventListener('click', (e) => { e.stopPropagation(); openRecordModal('channel', c.id); });
     return el;
   }
+
+  // Reloads the whole board after the record modal closes: simplest way to
+  // keep a card's visible Grade/Name/Subs in sync with anything just edited
+  // (e.g. Grade could change on a future re-analysis) without threading a
+  // partial-update path through every field renderer.
+  window.onRecordModalClose = function () {
+    google.script.run.withSuccessHandler((data) => { boardData = data; render(); }).getKanbanData();
+  };
 
   function moveCard(channelId, newStatus) {
     const card = boardData.cards.find((c) => c.id === channelId);
@@ -150,4 +172,6 @@
 
   google.script.run.withSuccessHandler((data) => { boardData = data; render(); }).getKanbanData();
 </script>
+
+<?!= include_('RecordModal'); ?>
 </body></html>

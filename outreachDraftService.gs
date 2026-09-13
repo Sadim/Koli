@@ -176,31 +176,43 @@ function commitOutreachDraft(row, subject, body, hookVideoId, hookVideoTitle, bo
   const channelsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.CHANNELS);
   const rowData = getChannelRowData_(channelsSheet, row);
   if (!rowData.channelId) throw new Error('This row has no Channel ID: run Channel Analysis on it first.');
+  const result = appendOutreachDraftRow_(rowData.channelId, rowData.name, subject, bodyRuns, body, hookVideoId, hookVideoTitle);
+  return { ok: true, link: result.link };
+}
 
+/**
+ * Shared row-append for Outreach Drafts: both the single AI-drafted path
+ * above (commitOutreachDraft) and the bulk template/mail-merge path
+ * (generateBulkTemplateDrafts, below) write through this one function
+ * instead of two copies of the same sheet-append logic. hookVideoId/
+ * hookVideoTitle are optional -- a bulk template draft has no specific
+ * hook video to link.
+ */
+function appendOutreachDraftRow_(channelId, channelName, subject, bodyRuns, plainBody, hookVideoId, hookVideoTitle) {
   const sheet = getOrCreateSheet_(SHEET_NAMES.OUTREACH_DRAFTS, OUTREACH_DRAFT_HEADERS);
   ensureOutreachDraftStatusColumn_(sheet);
 
   const newRow = sheet.getLastRow() + 1;
   const values = [
-    '', rowData.channelId, '', sanitizeCellText_(subject), '',
+    '', channelId, '', sanitizeCellText_(subject), '',
     '', 'Draft', new Date()
   ];
   sheet.getRange(newRow, 1, 1, values.length).setValues([values]);
-  sheet.getRange(newRow, 1).setFormula(hyperlinkFormula_(channelUrl_(rowData.channelId), rowData.name));
-  sheet.getRange(newRow, 3).setFormula(hyperlinkFormula_(videoUrl_(hookVideoId), hookVideoTitle));
+  sheet.getRange(newRow, 1).setFormula(hyperlinkFormula_(channelUrl_(channelId), channelName));
+  if (hookVideoId) sheet.getRange(newRow, 3).setFormula(hyperlinkFormula_(videoUrl_(hookVideoId), hookVideoTitle || ''));
 
   const bodyCell = sheet.getRange(newRow, 5);
   if (bodyRuns && bodyRuns.length) {
-    applyRichTextToCell_(bodyCell, bodyRuns, body);
+    applyRichTextToCell_(bodyCell, bodyRuns, plainBody);
   } else {
-    bodyCell.setValue(sanitizeCellText_(body));
+    bodyCell.setValue(sanitizeCellText_(plainBody));
   }
   bodyCell.setWrap(true);
   sheet.getRange(newRow, 6).setFormula('=LEN(E' + newRow + ')'); // live count: keeps tracking the limit as you hand-edit the draft
   sheet.getRange(newRow, 8).setNumberFormat('yyyy-mm-dd hh:mm');
 
   const link = SpreadsheetApp.getActiveSpreadsheet().getUrl() + '#gid=' + sheet.getSheetId() + '&range=A' + newRow;
-  return { ok: true, link: link };
+  return { row: newRow, link: link };
 }
 
 /**
@@ -226,15 +238,53 @@ function applyRichTextToCell_(cell, runs, fallbackPlainText) {
     let offset = 0;
     effectiveRuns.forEach(function (r) {
       const len = r.text.length;
-      if (len > 0 && (r.bold || r.italic || r.underline)) {
-        const style = SpreadsheetApp.newTextStyle().setBold(!!r.bold).setItalic(!!r.italic).setUnderline(!!r.underline).build();
+      if (len > 0 && (r.bold || r.italic || r.underline || r.strikethrough)) {
+        const style = SpreadsheetApp.newTextStyle().setBold(!!r.bold).setItalic(!!r.italic).setUnderline(!!r.underline).setStrikethrough(!!r.strikethrough).build();
         builder.setTextStyle(offset, offset + len, style);
       }
+      if (len > 0 && r.linkUrl) builder.setLinkUrl(offset, offset + len, r.linkUrl);
       offset += len;
     });
     cell.setRichTextValue(builder.build());
   } catch (e) {
     cell.setValue(sanitizeCellText_(fallbackPlainText));
+  }
+}
+
+/**
+ * Inverse of applyRichTextToCell_: converts a cell's real RichTextValue
+ * runs into actual HTML for a sent email body. Without this, formatting
+ * chosen in any of the rich-text dialogs (Draft Outreach Email, Reply
+ * Assistant, Bulk Template) looked right in the Sheet cell but was
+ * silently flattened back to plain text at send time -- sendApprovedOutreachDrafts
+ * used to build its htmlBody from the plain string only. Falls back to
+ * escaped plain text (still HTML-safe, still `<br>`-joined) for a cell
+ * with no rich-text runs at all.
+ */
+function cellRichTextToHtml_(cell) {
+  const escapeHtml = function (s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  const plainFallback = function () {
+    return String(cell.getValue() || '').split('\n').map(function (line) { return escapeHtml(line) || '&nbsp;'; }).join('<br>');
+  };
+  try {
+    const richText = cell.getRichTextValue();
+    const runs = richText ? richText.getRuns() : [];
+    if (!runs.length) return plainFallback();
+    return runs.map(function (run) {
+      const text = escapeHtml(run.getText());
+      if (!text) return '';
+      let out = text.split('\n').join('<br>');
+      const style = run.getTextStyle();
+      if (style.isBold()) out = '<b>' + out + '</b>';
+      if (style.isItalic()) out = '<i>' + out + '</i>';
+      if (style.isUnderline()) out = '<u>' + out + '</u>';
+      if (style.isStrikethrough()) out = '<s>' + out + '</s>';
+      const linkUrl = run.getLinkUrl();
+      if (linkUrl) out = '<a href="' + linkUrl + '">' + out + '</a>';
+      return out;
+    }).join('');
+  } catch (e) {
+    return plainFallback();
   }
 }
 
@@ -631,15 +681,19 @@ function sendApprovedOutreachDrafts() {
   let sentCount = 0, failCount = 0;
   sendable.forEach(function (r) {
     try {
+      // Always build the HTML alternative from the cell's real RichTextValue
+      // runs (bold/italic/underline/strikethrough/links), not just the flat
+      // plain-text `r.body` -- previously this branch only existed when
+      // tracking was configured, and even then just wrapped the plain string,
+      // so formatting chosen in any draft dialog never survived into the
+      // actually-delivered email. `r.body` is still passed as the plain-text
+      // MailApp fallback for clients that can't render HTML.
+      let htmlBody = cellRichTextToHtml_(sheet.getRange(r.row, colOf('Email Body')));
       if (webAppUrl) {
-        const channelId = r.channelId;
-        const token = registerEmailTracking_(r.row, channelId);
-        const htmlBody = String(r.body).split('\n').map(function (line) { return line || '&nbsp;'; }).join('<br>') +
-          buildTrackingPixelTag_(webAppUrl, token);
-        MailApp.sendEmail(r.contact, r.subject, r.body, { htmlBody: htmlBody });
-      } else {
-        MailApp.sendEmail(r.contact, r.subject, r.body);
+        const token = registerEmailTracking_(r.row, r.channelId);
+        htmlBody += buildTrackingPixelTag_(webAppUrl, token);
       }
+      MailApp.sendEmail(r.contact, r.subject, r.body, { htmlBody: htmlBody });
       if (statusCol) sheet.getRange(r.row, statusCol).setValue('Sent');
       if (sentDateCol) { sheet.getRange(r.row, sentDateCol).setValue(new Date()); sheet.getRange(r.row, sentDateCol).setNumberFormat('yyyy-mm-dd hh:mm'); }
       sentCount++;
@@ -649,4 +703,149 @@ function sendApprovedOutreachDrafts() {
   });
 
   ui.alert('Sent ' + sentCount + ' email(s)' + (failCount ? ', ' + failCount + ' failed' : '') + (noContact.length ? ', ' + noContact.length + ' skipped (no contact email)' : '') + '.');
+}
+
+// ---------------------------------------------------------------
+// Bulk Template / Mail Merge -- one rich-text template (with {{Field}}
+// merge tokens matched against the Channels sheet's own header row) turned
+// into one personalized Outreach Drafts row per selected creator. Distinct
+// from Draft Outreach Email above (which has Gemini author a whole new
+// email per channel from scratch, no template/fields at all): this is a
+// human-authored template applied at scale, closer to what "contract" or
+// "campaign announcement" bulk sends actually need. Lands in the same
+// Outreach Drafts sheet, through the same appendOutreachDraftRow_ and the
+// same Send Approved Drafts review-before-send flow -- no separate send
+// pipeline, no new trust surface.
+// ---------------------------------------------------------------
+
+/** Menu entry point: requires 2+ selected Channels rows (the mail-merge recipients). Passes those Channel IDs plus the Channels sheet's real, current header list (for the dialog's "Insert field" dropdown) into the template. */
+function showBulkTemplateDialog() {
+  if (!hasPremiumAccess_()) { showUpgradeAlert_('Bulk Template / Mail Merge'); return; }
+  const ui = SpreadsheetApp.getUi();
+  const sheet = SpreadsheetApp.getActiveSheet();
+  if (sheet.getName() !== SHEET_NAMES.CHANNELS) {
+    ui.alert('Select two or more rows on the Channels sheet first, then run this again.');
+    return;
+  }
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const idCol = headers.indexOf('ID');
+  if (idCol === -1) { ui.alert('This Channels sheet has no ID column.'); return; }
+
+  const rowsSelected = {};
+  getActiveRangesSafe_().forEach(function (range) {
+    for (let r = range.getRow(); r < range.getRow() + range.getNumRows(); r++) {
+      if (r >= 2) rowsSelected[r] = true;
+    }
+  });
+  const channelIds = Object.keys(rowsSelected).map(Number).map(function (r) {
+    return sheet.getRange(r, idCol + 1).getValue();
+  }).filter(Boolean);
+  if (channelIds.length < 2) {
+    ui.alert('Select at least two Channels rows with a Channel ID (run Channel Analysis first if needed), then run this again.');
+    return;
+  }
+
+  const t = HtmlService.createTemplateFromFile('BulkTemplateDialog');
+  t.channelIds = channelIds;
+  t.fieldNames = headers.filter(Boolean);
+  SpreadsheetApp.getUi().showModalDialog(t.evaluate().setWidth(560).setHeight(660), 'Bulk Template / Mail Merge');
+}
+
+/**
+ * Pure, SpreadsheetApp-free on purpose (unit-testable, see
+ * tests/run-logic-tests.js): replaces every {{HeaderName}} token
+ * (case/whitespace-insensitive) with fieldMap's matching value. An
+ * unrecognized token is left LITERAL and reported, never silently blanked
+ * -- a misspelled field name should be visibly wrong and fixable, not
+ * disappear into an empty gap the sender might not notice before sending.
+ */
+function substituteMergeFields_(text, fieldMap) {
+  const normalizedMap = {};
+  Object.keys(fieldMap || {}).forEach(function (k) { normalizedMap[k.trim().toLowerCase()] = fieldMap[k]; });
+  const unknownFields = [];
+  const result = String(text || '').replace(/\{\{\s*([^{}]+?)\s*\}\}/g, function (match, name) {
+    const key = name.trim().toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(normalizedMap, key)) {
+      const value = normalizedMap[key];
+      return value === null || value === undefined ? '' : String(value);
+    }
+    unknownFields.push(name.trim());
+    return match;
+  });
+  return { result: result, unknownFields: unknownFields };
+}
+
+/**
+ * The mail-merge core: applies one template (subject string + rich-text
+ * body runs) once per selected channel, substituting {{Field}} tokens
+ * against that row's OWN current values -- read by the sheet's actual
+ * header row, never a hardcoded list, same convention as writeChannelRow's
+ * colOf(). Each result becomes its own Outreach Drafts row via
+ * appendOutreachDraftRow_. Never sends anything itself.
+ */
+function generateBulkTemplateDrafts(channelIds, subjectTemplate, bodyRuns) {
+  if (!hasPremiumAccess_()) return { ok: false, error: 'Bulk Template is part of Koli\'s premium tier.' };
+  if (!channelIds || !channelIds.length) return { ok: false, error: 'No channels selected.' };
+
+  const channelsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.CHANNELS);
+  if (!channelsSheet) return { ok: false, error: 'Channels sheet not found.' };
+  const actualHeaders = channelsSheet.getRange(1, 1, 1, channelsSheet.getLastColumn()).getValues()[0];
+  const idCol = actualHeaders.indexOf('ID') + 1;
+  if (!idCol) return { ok: false, error: 'Channels sheet has no ID column.' };
+
+  let created = 0;
+  const warnings = [];
+  channelIds.forEach(function (channelId) {
+    const row = findRowByKey_(channelsSheet, idCol, channelId);
+    if (row === -1) { warnings.push({ channel: channelId, unknownFields: ['(row not found -- may have been deleted since this dialog opened)'] }); return; }
+
+    const values = channelsSheet.getRange(row, 1, 1, channelsSheet.getLastColumn()).getValues()[0];
+    const fieldMap = {};
+    actualHeaders.forEach(function (header, i) { if (header) fieldMap[header] = values[i]; });
+    const channelName = fieldMap['Channel'] || channelId;
+
+    const subjectResult = substituteMergeFields_(subjectTemplate, fieldMap);
+    let unknownFields = subjectResult.unknownFields.slice();
+    const filledRuns = (bodyRuns || []).map(function (r) {
+      const sub = substituteMergeFields_(r.text, fieldMap);
+      unknownFields = unknownFields.concat(sub.unknownFields);
+      return Object.assign({}, r, { text: sub.result });
+    });
+    const plainBody = filledRuns.map(function (r) { return r.text; }).join('');
+
+    const uniqueUnknown = unknownFields.filter(function (f, i) { return unknownFields.indexOf(f) === i; });
+    if (uniqueUnknown.length) warnings.push({ channel: channelName, unknownFields: uniqueUnknown });
+
+    appendOutreachDraftRow_(channelId, channelName, subjectResult.result, filledRuns, plainBody, '', '');
+    created++;
+  });
+
+  return { ok: true, created: created, warnings: warnings };
+}
+
+/**
+ * One Gemini call, same pattern draftOutreachEmailCopy_ already uses: drafts
+ * or rewrites template prose per a short instruction, explicitly told any
+ * {{Field}} token in the current text is a placeholder to copy through
+ * verbatim -- it drafts the surrounding email, it never fills in the
+ * personalization itself (that only ever happens in substituteMergeFields_,
+ * per-recipient, at Generate Drafts time).
+ */
+function assistBulkTemplateText(instruction, currentPlainText) {
+  if (!hasPremiumAccess_()) return { ok: false, error: 'Bulk Template is part of Koli\'s premium tier.' };
+  try {
+    const prompt =
+      'You are helping write an email/contract template for an influencer-marketing agency to bulk-send to ' +
+      'multiple creators, personalized per recipient via merge fields shaped like {{FieldName}} (e.g. ' +
+      '{{Channel}}, {{Niche}}, {{Suggested Rate}}). Any {{...}} token in the current draft below is a ' +
+      'placeholder substituted per-recipient later -- copy it into your output EXACTLY as written, character ' +
+      'for character. Never translate, fill in, or guess a value for one.\n\n' +
+      'Current draft:\n"' + String(currentPlainText || '').replace(/"/g, '\'') + '"\n\n' +
+      'Instruction: ' + String(instruction || '').replace(/"/g, '\'') + '\n\n' +
+      'Respond as JSON: {"text": "the rewritten/drafted plain text"}';
+    const result = geminiCallJson_(prompt);
+    return { ok: true, text: String(result.text || '').trim() };
+  } catch (e) {
+    return { ok: false, error: errMsg_(e) };
+  }
 }

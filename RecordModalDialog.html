@@ -1,0 +1,7 @@
+<style>html, body { margin: 0; padding: 0; background: var(--krm-bg, #F7F6F3); }</style>
+<?!= include_('RecordModal'); ?>
+<script>
+  window.addEventListener('DOMContentLoaded', function () {
+    openRecordModal(<?!= JSON.stringify(recordType) ?>, <?!= JSON.stringify(recordKey) ?>, { standalone: true });
+  });
+</script>
