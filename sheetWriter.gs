@@ -613,6 +613,7 @@ function writeVideoRow(video) {
   sheet.getRange(row, 16).setNumberFormat('yyyy-mm-dd hh:mm');
 
   sheet.getRange(row, 8).setNote('Comment authenticity justification:\n' + (video.authenticity.justification || 'n/a'));
+  appendDislikeEstimateNote_(sheet.getRange(row, 6), video.videoId);
   sheet.getRange(row, 13).setNote('Estimate only: inferred from title, description, niche, and comment sample. Not YouTube Studio data.');
   if (video.channelAboutSummary) {
     sheet.getRange(row, 4).setNote('About ' + video.channelTitle + ':\n' + video.channelAboutSummary);
@@ -870,6 +871,7 @@ function writeProfileRow(entry) {
   if (entry.channelAboutSummary) {
     sheet.getRange(row, 2).setNote('About ' + entry.channelName + ':\n' + entry.channelAboutSummary);
   }
+  appendDislikeEstimateNote_(sheet.getRange(row, 8), entry.videoId);
   sheet.getRange(row, 11).setNumberFormat('0.0"%"');
   sheet.getRange(row, 19).setNumberFormat('yyyy-mm-dd hh:mm');
   return row;

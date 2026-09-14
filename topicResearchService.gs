@@ -140,10 +140,10 @@ function buildTopicCoverageNote_(enrichedCount, searchResultCount) {
 
 function showTopicResearchLinkDialog() {
   const url = getProp_(PROP_KEYS.WEB_APP_URL, '');
-  const secret = getProp_(PROP_KEYS.INBOX_SHARED_SECRET, '');
+  const secret = firstConnectionSecret_();
   const ui = SpreadsheetApp.getUi();
   if (!url || !secret) {
-    ui.alert('Topic Research', 'Set both the Web App URL and a shared secret in Settings first (Koli menu > Settings) -- both are reused here, same as the extension\'s connection code.', ui.ButtonSet.OK);
+    ui.alert('Topic Research', 'Set the Web App URL and add a connection in Settings first (Koli menu > Settings > Connections) -- both are reused here, same as the extension\'s connection code.', ui.ButtonSet.OK);
     return;
   }
   const link = url + '?research=1&k=' + encodeURIComponent(secret);

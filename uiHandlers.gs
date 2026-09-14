@@ -29,6 +29,7 @@ function onOpen() {
     .addItem('• Dashboard', 'showDashboard')
     .addItem('• Kolindar (free scheduling page)', 'showKolindarSetupDialog')
     .addItem('• Topic Research (search YouTube by topic)', 'showTopicResearchLinkDialog')
+    .addItem('• Find (search influencers by keyword/tier/location)', 'showFindLinkDialog')
     .addItem('• Outreach Pipeline (Kanban) (Premium)', 'showOutreachKanban')
     .addItem('• Campaigns (Premium)', 'showCampaigns')
     .addItem('• Campaigns (Kanban) (Premium)', 'showCampaignsKanban')
@@ -224,7 +225,12 @@ const GENERIC_PREVIEW_FIELD_CONFIG = {
       // cell's own value (a channel name / a view count) and shows only
       // the note text.
       { header: 'Channel', label: 'About Channel', appendNoteFrom: 'Channel', noteOnly: true, block: true },
-      { header: 'Views', label: 'Description & Links', appendNoteFrom: 'Views', noteOnly: true, block: true }
+      { header: 'Views', label: 'Description & Links', appendNoteFrom: 'Views', noteOnly: true, block: true },
+      // Dislike estimate, revived 2026-09-14 (dislikeService.gs) -- stored
+      // as a note on Likes, not a column/stat tile of its own, per the
+      // founder's explicit ask. noteOnly again: the Likes stat tile above
+      // already shows the real like count.
+      { header: 'Likes', label: 'Estimated Dislikes', appendNoteFrom: 'Likes', noteOnly: true, block: true }
     ]
   }
 };
@@ -378,6 +384,15 @@ function getGenericRowPreview() {
       if (value === '' || value === null || typeof value === 'undefined') continue;
       value = formatGenericPreviewValue_(value, tz);
       if (value.length > MAX_VALUE_LEN) value = value.slice(0, MAX_VALUE_LEN) + '…';
+      // Dislike estimate (dislikeService.gs), revived 2026-09-14 as a note
+      // on Likes rather than a column: this untrimmed fallback (any sheet
+      // with no curated config, e.g. Profile) never read cell Notes at all
+      // before -- surfacing it here for every such sheet, not just the
+      // ones that happen to get a curated config, is the general fix.
+      if (header === 'Likes') {
+        const dislikeNote = sheet.getRange(row, i + 1).getNote();
+        if (dislikeNote) value = value + '\n\n' + dislikeNote;
+      }
       fields.push({ label: String(header), value: value });
     }
   }

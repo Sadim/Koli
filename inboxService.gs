@@ -102,6 +102,26 @@ function touchConnectionLastUsed_(id) {
   saveConnections_(list);
 }
 
+/**
+ * Real bug caught while wiring up Find's own `k=` gate (2026-09-14):
+ * Topic Research's doGet check and its link-dialog both still compared
+ * against the raw INBOX_SHARED_SECRET property directly, which the named-
+ * connections work (this same session, earlier) stopped keeping in sync --
+ * saveSettings no longer writes to it at all. A newly-added connection
+ * would satisfy doPost's real auth check but NOT this one. Fixed both
+ * call sites (Topic Research's gate, below) to go through the same
+ * connections list instead, and Find uses this from the start.
+ */
+function secretMatchesAnyConnection_(providedSecret) {
+  return getConnections_().some(function (c) { return constantTimeEquals_(String(providedSecret || ''), c.secret); });
+}
+
+/** For link-dialogs that embed a secret in a bookmarkable URL (Topic Research, Find): uses whichever connection was added first. Picking a SPECIFIC connection per link is a real nicety not built yet -- this at least uses a real, currently-valid one instead of the stale property. */
+function firstConnectionSecret_() {
+  const connections = getConnections_();
+  return connections.length ? connections[0].secret : '';
+}
+
 function routeWebAppAction_(action, body) {
   switch (action) {
     case 'capture': {
@@ -357,14 +377,29 @@ function doGet(e) {
   // the extension's own webhook auth uses it.
   if (params.research) {
     if (params.action === 'search') {
-      const configuredSecret = getProp_(PROP_KEYS.INBOX_SHARED_SECRET, '');
-      if (!configuredSecret || !constantTimeEquals_(String(params.k || ''), configuredSecret)) {
+      if (!secretMatchesAnyConnection_(params.k)) {
         return jsonResponse_({ ok: false, error: 'Missing or invalid access key.' });
       }
       try { return jsonResponse_(runTopicResearch_(params.q, params.max)); }
       catch (err) { return jsonResponse_({ ok: false, error: errMsg_(err) }); }
     }
     return HtmlService.createHtmlOutput(renderTopicResearchPage_());
+  }
+
+  // Find: same convention as Topic Research immediately above -- the page
+  // is open, the search action costs real quota so it's gated the same way.
+  if (params.find) {
+    if (params.action === 'search') {
+      if (!secretMatchesAnyConnection_(params.k)) {
+        return jsonResponse_({ ok: false, error: 'Missing or invalid access key.' });
+      }
+      try {
+        const tiers = params.tiers ? params.tiers.split(',').map(function (s) { return s.trim(); }).filter(Boolean) : [];
+        const countries = params.countries ? params.countries.split(',').map(function (s) { return s.trim(); }).filter(Boolean) : [];
+        return jsonResponse_(runFindInfluencers_(params.q, tiers, countries, params.max));
+      } catch (err) { return jsonResponse_({ ok: false, error: errMsg_(err) }); }
+    }
+    return HtmlService.createHtmlOutput(renderFindPage_());
   }
 
   if (params.p && params.express) {
