@@ -860,7 +860,10 @@ function renderColumnsTab() {
   renderColumnGrid(document.getElementById('youtubeColGrid'), columns, { editable: true, indicatorId: 'youtubeAutosave' });
   updateLockPill(document.getElementById('youtubeLockPill'), state.locks.youtube, sheetLabelFor_(activeColType));
   document.getElementById('youtubeSheetLabel').textContent = sheetLabelFor_(activeColType);
-  document.getElementById('youtubeApplyBtn').textContent = 'Apply to ' + sheetLabelFor_(activeColType) + ' sheet';
+  // Renamed from "Apply to <sheet> sheet" (2026-09-14, direct request) --
+  // #youtubeSheetLabel right above already shows which sheet this is for,
+  // so the bare verb loses no context, just repetition.
+  document.getElementById('youtubeApplyBtn').textContent = 'Create';
 }
 document.querySelectorAll('#youtubeTypeToggle .profile-chip').forEach((btn) => {
   btn.onclick = () => { activeColType = btn.dataset.coltype; renderColumnsTab(); };
