@@ -65,6 +65,123 @@ this is the "what was I doing right before the clear" layer.*
   actions. See the plan file for the full recommended page scope
   (Opportunities/People/Campaign Tasks/Activity).
 
+## 2026-09-14 addendum #23: redeploy to v20 confirmed the paste-decode fix; Find + dislike revival shipped and redeployed to v21
+
+- **v20 confirmed working, live, by the founder**: the paste-decode fix
+  from addendum #22 was tested for real ("Works beautifully") -- pasting
+  a connection code now fills in the URL/secret fields automatically, no
+  separate click needed. First fully-confirmed end-to-end test of the
+  named-connections model.
+- **Founder question, answered plainly**: "can the Web App URL be
+  obtained the first time without ever opening Apps Script" -- no, that's
+  a real Google Apps Script platform limit, not a Koli design choice:
+  deployment creation only exists in the Apps Script editor's own UI, no
+  Sheets-side equivalent, and nothing running inside the script can
+  discover a URL before any deployment exists. The practical mitigation
+  on record: I (Claude, via Claude in Chrome) can do this step directly
+  for the founder, as already proven twice this session -- they never
+  personally have to open Apps Script for it.
+- **Repo/tool research, all checked for real before trusting**:
+  `7fffffff/linkgrabber` (MIT, 85 stars, 12+ years old) -- confirmed a
+  real "extract links from the page you're viewing" extension, NOT a
+  server-side scraper, matching the founder's explicit hope.
+  `twentyhq/twenty` (56.7k stars, actively shipping) -- a real, major
+  open-source CRM; AGPL, so concepts-only, same rule as Teable/checkitout-
+  backend earlier. `cactus-compute/needle` -- real (11k stars, Apache-2.0)
+  but NOT a "local-first webapp companion" as the founder's framing
+  suggested: it's a 14MB TEXT model for tool-calling/structured
+  extraction, not speech-to-text -- doesn't touch the call-transcription
+  want at all. Filed instead under a different, real idea: cheap local
+  structured extraction from captured/scraped text, without a Gemini
+  call. Corrected this mismatch directly rather than let a plan get built
+  on the wrong premise. `inbasic/ignotifier` (409 stars, real, "multi-
+  account Gmail notifier without storing passwords") -- confirmed its
+  actual mechanism (parses Gmail's own unread Atom feed, authenticated by
+  the browser's existing session, no OAuth/password storage) -- but Koli
+  doesn't need to reimplement that specific mechanism at all: Apps
+  Script's native `GmailApp` already gives the operator's own script
+  full read/search access to their own Gmail, which is simpler and richer
+  than re-deriving ignotifier's feed-parsing technique from scratch.
+  **Not yet built** -- the founder's actual ask ("for the CRM only, not
+  all Gmail") needs a real design decision (cross-reference unread
+  senders against known CRM contact emails) before writing any code;
+  flagged as still open, not silently dropped.
+- **Copper CRM screenshots (founder's own)**: no fetch needed, they show
+  Copper's real shipped pattern directly -- a browser side-panel that
+  recognizes LinkedIn/Gmail/Calendar/Meet and lets you capture contacts,
+  log activity, prep for meetings, and take call notes without leaving
+  the page. Validates the CRM-extension vision already scoped (Person/
+  Opportunity/Activity Log, addendum #18) rather than adding new scope.
+
+**Shipped this pass:**
+
+- **Find** (new `findService.gs`) -- a third search shape, keyword + real
+  Nano/Micro/Macro/Mega tier filters + country filter, no seed channel/
+  video needed (unlike `runDiscover`) and no per-candidate engagement
+  fetch (unlike Discover, deliberately lighter/faster). Reuses
+  `searchByKeywords_` and `writeDiscoverResults` -- results land in the
+  existing Discover Results sheet, not a fourth table. Tiers use the
+  standard industry ranges (Nano 1K-10K, Micro 10K-100K, Macro 100K-1M,
+  Mega 1M+), NOT the exact numbers in the founder's reference screenshot
+  (which oddly labeled every tier as an open-ended "+" minimum) -- real
+  `[min,max)` ranges instead, so a channel lands in exactly one tier.
+  Location filtering is country-only, stated honestly in the page itself:
+  YouTube's public API has no city-level creator location at all, unlike
+  the reference screenshot's "New York" example. Served via `?find=1`,
+  same convention as Kolindar/Topic Research; new Koli-menu item "Find
+  (search influencers by keyword/tier/location)".
+- **Real bug caught while wiring Find's auth gate**: Topic Research's own
+  `doGet` check and its link-dialog (`showTopicResearchLinkDialog`) were
+  still comparing against the single legacy `INBOX_SHARED_SECRET`
+  property directly -- which the named-connections work (addendum #21)
+  stopped keeping in sync entirely. A newly-added connection would satisfy
+  `doPost`'s real auth check but NOT this one. Fixed both to go through
+  the actual connections list via two new helpers
+  (`secretMatchesAnyConnection_`, `firstConnectionSecret_`,
+  inboxService.gs) -- Find uses the same helpers from the start, so this
+  class of drift can't repeat for the next Web-App route either.
+- **Dislike estimates revived** (new `dislikeService.gs`) -- after being
+  fully removed earlier this project's life, this time stored as a NOTE
+  on the Likes column (per explicit instruction), on every sheet that
+  actually has one: Videos (`writeVideoRow`) and Profile (`writeProfileRow`).
+  Uses the free Return YouTube Dislike API, fails soft (silent no-op) like
+  every other external-lookup signal in Koli. Paired with real surfacing
+  so it doesn't repeat THIS SESSION's own social-handle bug: Videos'
+  curated Sidebar config gets a dedicated `noteOnly` field for it, and --
+  more importantly -- the untrimmed generic-preview fallback that every
+  sheet WITHOUT a curated config uses (Profile has none) now checks for a
+  Likes note generically, so this and any future sheet with a Likes column
+  gets it automatically, not just the ones that happen to get hand-curated.
+- Syntax-checked every touched/new `.gs` file individually, plus
+  `renderFindPage_`'s embedded client-side `<script>` extracted from the
+  actual returned string and checked separately (same verification
+  discipline as Kolindar/Topic Research) -- clean. Tests 72/3 (same
+  pre-existing baseline). `clasp push` succeeded twice this pass (Find/
+  dislike commit, confirmed in push output both times).
+- **Redeployed to version 21** (same deployment ID/URL as always) --
+  needed since this pass added a genuinely new `doGet` route (`?find=1`).
+  Verified three ways, not just "clasp push succeeded": (1) the base
+  reachability check returns real JSON over a plain anonymous curl
+  request (not a sign-in wall) -- confirms "Who has access: Anyone"
+  survived this deploy without needing to be manually reset this time;
+  (2) `?find=1` served the same Apps-Script HtmlService wrapper shell as
+  the already-confirmed-working `?research=1` route, byte-for-byte
+  comparable -- confirms the page route is wired the same way, not
+  broken; (3) `?find=1&action=search` with a deliberately wrong key
+  returned the expected `{"ok":false,"error":"Missing or invalid access
+  key."}` -- confirms the fixed `secretMatchesAnyConnection_` helper
+  actually runs on this route, not just doPost.
+- Browser automation hit real instability during this redeploy attempt
+  (repeated screenshot timeouts, then a genuine 0x0 viewport meaning the
+  Chrome window was minimized) -- surfaced honestly to the founder rather
+  than guessed past; resolved once they confirmed the window was visible
+  and a fresh tab was created.
+- **Not yet live-tested by a human**: Find's actual search results (needs
+  a real keyword search run against a live channel), and the dislike
+  notes actually appearing on a fresh Channel/Video/Profile analysis run
+  (the API call only fires on NEW writes going forward, not retroactively
+  on already-written rows).
+
 ## 2026-09-14 addendum #21: named per-device connections replace the single shared secret; guided setup improvements
 
 Founder paused the requested "guided setup wizard" build to flag a real
