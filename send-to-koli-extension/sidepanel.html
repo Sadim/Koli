@@ -684,6 +684,23 @@
       <div class="status-note dim"><span class="status-dot dim"></span>Anything captured under Other Platforms is sent as-is: auto-detection is YouTube-specific for now.</div>
     </div>
     <div class="settings-section">
+      <h2>Auto-Pull (beta)</h2>
+      <div class="chk-row"><input type="checkbox" id="apEnabledToggle" /><label for="apEnabledToggle">Pull stats automatically after lingering on a channel/video page</label></div>
+      <div class="lock-summary-row" id="apDurationRow" style="align-items:center;" hidden>
+        <div class="name">Dwell time</div>
+        <select id="apDwellSelect" style="font-size:12px;padding:6px 8px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface-raised);color:var(--ink-900);">
+          <option value="2">2 seconds</option>
+          <option value="5">5 seconds</option>
+          <option value="10">10 seconds</option>
+          <option value="30">30 seconds</option>
+        </select>
+      </div>
+      <div class="status-note dim" style="line-height:1.6;align-items:flex-start;">
+        <span class="status-dot dim" style="margin-top:5px;"></span>
+        <span>Uses real YouTube + Gemini quota for every channel/video page you stay on past the dwell time -- not just ones you click Pull Stats for. That quota is shared across everything in the Sheet (Channel/Video Analysis, Discover, Brand Discovery), so heavier browsing leaves less headroom for deliberate analysis the same day. Off by default for that reason. <span id="apCounterLine"></span></span>
+      </div>
+    </div>
+    <div class="settings-section">
       <h2>Appearance</h2>
       <div class="lock-summary-row" style="align-items:center;">
         <div class="name">Theme</div>

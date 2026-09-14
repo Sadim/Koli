@@ -69,6 +69,15 @@ let logPage = 0;
 const LOG_PAGE_SIZE = 5;
 let currentTab = null; // { url, title, id } of the active tab, refreshed on Home focus
 
+// Auto-Pull (beta): off by default, real quota consequence -- see the
+// Settings-screen wiring near initAutoPull_ below and the dwell-timer
+// scheduling in refreshCurrentPageCard.
+let autoPullSettings = { enabled: false, dwellSeconds: 5 };
+let autoPullTimer = null;
+function clearAutoPullTimer_() {
+  if (autoPullTimer) { clearTimeout(autoPullTimer); autoPullTimer = null; }
+}
+
 const ICONS = {
   lockOpen: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 7.3-2.3"/></svg>',
   lockClosed: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
@@ -187,6 +196,7 @@ async function refreshCurrentPageCard() {
   } catch (e) { /* no active tab (rare) */ }
   currentTab = tab ? { url: tab.url || '', title: tab.title || '', id: tab.id } : { url: '', title: '', id: null };
   hidePreviewCard_(); // a different page is now current: the last card's numbers no longer apply to it
+  clearAutoPullTimer_(); // a real navigation happened -- any dwell timer scheduled for the PREVIOUS page is stale, cancel it unconditionally rather than let it fire against a page the user already left
 
   titleEl.textContent = resolveDisplayName_(currentTab.title, currentTab.url) || 'No page detected';
   const kind = classifyUrl(currentTab.url);
@@ -219,6 +229,7 @@ async function refreshCurrentPageCard() {
     pullBtn.onclick = () => pullStats_(pullBtn);
     actionsEl.appendChild(pullBtn);
     actionsEl.appendChild(makeBtn('Send as Note', 'btn-outline', 'note'));
+    scheduleAutoPull_(currentTab, () => pullStats_(pullBtn));
   } else if (kind === 'video') {
     const pullBtn = document.createElement('button');
     pullBtn.className = 'btn-fill';
@@ -226,9 +237,31 @@ async function refreshCurrentPageCard() {
     pullBtn.onclick = () => pullVideoStats_(pullBtn);
     actionsEl.appendChild(pullBtn);
     actionsEl.appendChild(makeBtn('Send as Note', 'btn-outline', 'note'));
+    scheduleAutoPull_(currentTab, () => pullVideoStats_(pullBtn));
   } else {
     actionsEl.appendChild(makeBtn('Send as Note', 'btn-fill', 'note'));
   }
+}
+
+/**
+ * Auto-Pull (beta): schedules `fire` to run after autoPullSettings.dwellSeconds
+ * of the SAME tab/url still being current -- a real dwell check, not just a
+ * blind timeout, so navigating away (or the panel re-rendering for any other
+ * reason) before the timer fires never pulls stats for a page you already
+ * left. Off entirely unless the operator turned the Settings toggle on
+ * (autoPullSettings.enabled) -- no dwell timer is ever scheduled otherwise,
+ * so this function is a no-op call on every page view when the feature is off.
+ */
+function scheduleAutoPull_(tab, fire) {
+  if (!autoPullSettings.enabled || !tab || !tab.id) return;
+  const scheduledTabId = tab.id, scheduledUrl = tab.url;
+  autoPullTimer = setTimeout(function () {
+    autoPullTimer = null;
+    if (currentTab && currentTab.id === scheduledTabId && currentTab.url === scheduledUrl) {
+      bumpAutoPullCounter_();
+      fire();
+    }
+  }, Math.max(2, autoPullSettings.dwellSeconds || 5) * 1000);
 }
 
 // Used for 'note' and 'video' — immediate send, no preview-first step.
@@ -1074,6 +1107,11 @@ function renderSettingsScreen() {
     row.appendChild(btn);
     wrap.appendChild(row);
   });
+
+  document.getElementById('apEnabledToggle').checked = autoPullSettings.enabled;
+  document.getElementById('apDwellSelect').value = String(autoPullSettings.dwellSeconds);
+  document.getElementById('apDurationRow').hidden = !autoPullSettings.enabled;
+  renderAutoPullCounter_();
 }
 
 // ==================================================================
@@ -1219,9 +1257,72 @@ async function initTheme_() {
   });
 }
 
+// ---------- Auto-Pull (beta) settings ----------
+// chrome.storage.sync for the setting itself (small, syncs across the
+// operator's Chrome profiles, same reasoning as THEME_KEY above);
+// chrome.storage.local for the daily counter (derived/ephemeral, resets
+// itself by date rather than needing an explicit reset action).
+const AUTO_PULL_KEY = 'koliAutoPull'; // { enabled: boolean, dwellSeconds: number }
+const AUTO_PULL_COUNT_KEY = 'koliAutoPullCount'; // { date: 'YYYY-MM-DD', count: number }
+
+async function initAutoPull_() {
+  const stored = await chrome.storage.sync.get(AUTO_PULL_KEY);
+  autoPullSettings = Object.assign({ enabled: false, dwellSeconds: 5 }, stored[AUTO_PULL_KEY] || {});
+
+  const enabledEl = document.getElementById('apEnabledToggle');
+  const dwellEl = document.getElementById('apDwellSelect');
+  enabledEl.checked = autoPullSettings.enabled;
+  dwellEl.value = String(autoPullSettings.dwellSeconds);
+  document.getElementById('apDurationRow').hidden = !autoPullSettings.enabled;
+
+  enabledEl.onchange = async () => {
+    const enabling = enabledEl.checked;
+    // The whole point of this being opt-in: a real, concrete consequence
+    // shown at the moment of turning it on, not buried in a help doc --
+    // same native confirm() pattern already used for deleting a lock above.
+    if (enabling && !confirm(
+      'This will use real YouTube + Gemini quota for every channel/video page you stay on past the dwell time below -- not just ones you click Pull Stats for.\n\n' +
+      'That quota is shared across everything in the Sheet (Channel/Video Analysis, Discover, Brand Discovery). Heavier browsing means less headroom left for deliberate analysis the same day.\n\n' +
+      'Turn on Auto-Pull?'
+    )) {
+      enabledEl.checked = false;
+      return;
+    }
+    autoPullSettings.enabled = enabling;
+    document.getElementById('apDurationRow').hidden = !enabling;
+    if (!enabling) clearAutoPullTimer_();
+    await chrome.storage.sync.set({ [AUTO_PULL_KEY]: autoPullSettings });
+  };
+  dwellEl.onchange = async () => {
+    autoPullSettings.dwellSeconds = Number(dwellEl.value) || 5;
+    await chrome.storage.sync.set({ [AUTO_PULL_KEY]: autoPullSettings });
+  };
+
+  await renderAutoPullCounter_();
+}
+
+async function renderAutoPullCounter_() {
+  const today = new Date().toISOString().slice(0, 10);
+  const stored = await chrome.storage.local.get(AUTO_PULL_COUNT_KEY);
+  const entry = stored[AUTO_PULL_COUNT_KEY];
+  const count = (entry && entry.date === today) ? entry.count : 0;
+  const el = document.getElementById('apCounterLine');
+  if (el) el.textContent = count > 0 ? (count + ' automatic pull' + (count === 1 ? '' : 's') + ' today.') : 'No automatic pulls yet today.';
+}
+
+async function bumpAutoPullCounter_() {
+  const today = new Date().toISOString().slice(0, 10);
+  const stored = await chrome.storage.local.get(AUTO_PULL_COUNT_KEY);
+  const entry = stored[AUTO_PULL_COUNT_KEY];
+  const count = (entry && entry.date === today) ? entry.count + 1 : 1;
+  await chrome.storage.local.set({ [AUTO_PULL_COUNT_KEY]: { date: today, count } });
+  renderAutoPullCounter_();
+}
+
 // ---------- Init ----------
 (async () => {
   await loadState();
   await initTheme_();
+  await initAutoPull_();
   refreshAllPanels();
 })();
