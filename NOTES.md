@@ -4,6 +4,50 @@
 nothing in STATUS.md/ROADMAP.md, which are the durable project docs —
 this is the "what was I doing right before the clear" layer.*
 
+## 2026-09-14 addendum #20: real bug found -- social handles were extracted fine, never surfaced
+
+Founder reported "we still don't get the social handles on YouTube from
+video description and about page." Read the actual code before guessing --
+found a real, confirmed surfacing bug, not (necessarily) an extraction
+failure:
+
+- `findContact` (contactService.gs) and `extractAllUrls_` (sheetWriter.gs)
+  both write their results as cell **Notes** (Contact for channels;
+  Channel/Views for videos, per addendum #13) -- confirmed by reading
+  `writeChannelRow`/`writeVideoRow` directly, both call `appendNote_`/
+  `setNote` with the About summary + socials/links text.
+- `getSelectedChannelSummary` (uiHandlers.gs), the Sidebar's own default
+  Channel card, never read any cell Note at all -- only `getChannelRowData_`'s
+  field VALUES (Contact = the email string). The only place this detail was
+  ever visible was Expand's record modal (`getRecordGeneric_`,
+  recordService.gs, surfaces notes generically) -- most day-to-day usage
+  never clicks Expand.
+- Videos' `GENERIC_PREVIEW_FIELD_CONFIG` (the sheet's ONLY sidebar card
+  since addendum #10 retired the bespoke one) never declared
+  `appendNoteFrom` for either note-bearing column (Channel/Views) -- so
+  even the generic note-surfacing mechanism built in addendum #7 for Brand
+  Fit Scores was never extended to Videos.
+- **Fixed both**: `getSelectedChannelSummary` now returns the Contact
+  note (`contactNote`), rendered as a new block in Sidebar.html's channel
+  card. Videos' config gained two block entries; a new `noteOnly` field-spec
+  flag (`getGenericRowPreview`) lets a field show ONLY its note, discarding
+  the cell's own value -- needed because appending a note to "1234" (a view
+  count) or a channel name would have looked wrong.
+- **Honest caveat, not swept under the rug**: this fix addresses a
+  confirmed surfacing gap, proven from source alone. It does NOT rule out
+  the extraction ITSELF also failing independently on some channels (a
+  YouTube page-structure change since `fetchAboutPageLinksDiagnostic_` was
+  last verified, etc.) -- told the founder to run **Koli > Brand
+  Intelligence > Test About-Page Fetch** on a real channel to separate the
+  two possible causes, since that diagnostic exists precisely for this
+  ambiguity and I can't run it myself from here.
+- Syntax-checked (`uiHandlers.gs` + Sidebar.html's inline `<script>`
+  extracted and checked separately), tests 72/3 (same pre-existing
+  baseline), `clasp push` succeeded, committed and pushed.
+- **Not yet live-tested** -- needs a real Channels row and a real Videos
+  row (ideally ones already known to have social links/description links)
+  selected in the Sidebar to confirm the new blocks actually render.
+
 ## 2026-09-14 addendum #19: Auto-Pull (beta) shipped; multi-platform expansion scoped (not yet built)
 
 - **Auto-Pull shipped** (`send-to-koli-extension/sidepanel.html`/`.js`):
