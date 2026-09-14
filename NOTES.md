@@ -4,66 +4,95 @@
 nothing in STATUS.md/ROADMAP.md, which are the durable project docs —
 this is the "what was I doing right before the clear" layer.*
 
-## 2026-09-14 addendum #22: real bug found via live screenshot; Appsmith CRM-UI scoped and its server-side prep shipped
+## 2026-09-14 addendum #26: two direct UI redesign requests shipped; the Google-login architecture question answered, not built
 
-- **Real bug, found from a live screenshot of the founder actually
-  testing**: pasting a connection code then clicking the big "Test & Lock"
-  button directly (skipping the small separate "Fill in URL & secret from
-  this code" link) left the URL/secret fields genuinely empty --
-  Test & Lock correctly but unhelpfully said "URL and secret are both
-  required." A paste-then-remember-a-different-click flow is exactly the
-  trap a guided setup should prevent. Fixed: decode now fires on `input`
-  (the instant a paste lands, no separate click needed), and Test & Lock
-  itself falls back to decoding first if the fields are still empty but a
-  code is sitting in the textarea. `send-to-koli-extension/sidepanel.js`
-  only -- needs a reload of the unpacked extension.
-- **Appsmith as the CRM UI, scoped via a real plan** (superseded the
-  earlier CRM data-model plan file at `.claude/plans/groovy-wandering-koala.md`,
-  since that one's fully implemented): founder wants Appsmith (open-source
-  no-code builder) as the UI for the Person/Opportunity/Campaign-Tasks/
-  Activity-Log entities that shipped with no UI in addendum #18, with
-  Koli's Sheet staying the only backend, no hosting, no paying. Checked
-  Appsmith's actual current docs before answering rather than going from
-  memory: Cloud Free tier is real (unlimited apps, 5 users, 5 workspaces,
-  no hosting required -- self-hosting is a separate opt-in), and their
-  native Google Sheets connector is real (OAuth to the founder's OWN
-  Google account, not a service account Appsmith holds). One genuinely
-  unverified thing: no documented API-call-volume cap on the free tier --
-  founder needs to sign up and check in practice (account creation isn't
-  something I can do on their behalf).
-- **The real architectural decision, resolved with a recommendation**:
-  Appsmith's own Sheets connector (pointed straight at the spreadsheet) vs.
-  its REST API datasource (pointed at Koli's own Web App). Recommended and
-  the founder approved: **REST-via-Web-App**, because the direct-Sheets
-  path would silently skip real service-layer side effects that only exist
-  in `.gs` code, not in cells -- Brand resolution (`resolveBrandId_`), the
-  Activity Log entry on an Opportunity's creation/stage-change, Campaign
-  Tasks auto-seeding on a new Campaign. A record created the wrong way
-  would look fine in a table and quietly be missing data other parts of
-  Koli depend on.
-- **Server-side prep shipped** (recordService.gs, inboxService.gs): this
-  session's `get_record`/`set_record` (addendum #18) only cover one row by
-  key -- a table/board UI needs more. Added `list_records` (every row for
-  an entity, generalized via the same `RECORD_ENTITY_MAP`, a lighter
-  projection than `get_record` -- no link/Documents/Notes, those stay on
-  the single-record fetch). Added `create_person`/`create_opportunity` as
-  their OWN doPost cases rather than folding into a generic `create_record`
-  -- each has real side effects (Brand resolution, an Activity Log entry)
-  a blank-row insert would skip. Added `update_opportunity_stage` as its
-  own case rather than routing through `set_record`, specifically because
-  `set_record` would skip the Activity Log entry (the exact gap already
-  named in addendum #18). Added `list_campaign_tasks`/`toggle_campaign_task`/
-  `get_entity_timeline` to expose the remaining CRM functions that had no
-  Web App action at all yet.
-- Syntax-checked both files, tests 72/3 (same pre-existing baseline),
-  `clasp push` succeeded, committed and pushed.
-- **Not yet live-tested, and the actual Appsmith app isn't built yet** --
-  this pass was the API surface + scoping only. Next real step is the
-  founder's own: sign up for Appsmith Cloud, verify the free tier's actual
-  limits, then wire up the REST datasource using a new named connection
-  (Settings > Connections > Add, name it "Appsmith") against these new
-  actions. See the plan file for the full recommended page scope
-  (Opportunities/People/Campaign Tasks/Activity).
+Two screenshots, three concrete asks, plus one bigger architecture
+question -- verified/triple-checked before writing this entry, not just
+transcribed from memory.
+
+**Video preview card (send-to-koli-extension)**:
+- "+ Add to Sheet" -> "Send to Koli". Fixed in TWO places, not one --
+  same class of bug as the columns-tab button rename earlier this
+  session: `renderVideoPreviewCard_` (sidepanel.js) resets this button's
+  text on every render (`addBtn.textContent = ...`), so editing only the
+  static HTML would have had zero visible effect.
+- New "Save as CSV" button. Needs no new login/auth of any kind: the
+  preview data (`p`, the same object `renderVideoPreviewCard_` already
+  receives) is stashed in a new module-level `currentVideoPreviewData_`
+  var, and the button builds a CSV string from it client-side, then
+  triggers a real file save via a plain `<a download>` + `blob:` URL --
+  this works normally in a real Chrome extension context (unlike a
+  sandboxed page/artifact viewer, nothing here blocks a script-driven
+  download). Filename is the video title, sanitized for filesystem-unsafe
+  characters and capped at 80 chars.
+
+**Header chip (send-to-koli-extension, Home tab)**:
+- Removed the "K" mark + "Send to Koli · locked/not locked" text.
+- New: a padlock icon (`ICONS.lockClosed` when locked, `ICONS.lockOpen`
+  when not -- both already existed, reused directly) inside the same
+  circle badge, plus a single status label: "Locked-In" / "Locked-Out".
+- New file-icon button on the right, visible only when locked AND a
+  sheet URL is known. Click opens the real Google Sheet in a new tab --
+  Google's own sign-in wall handles "must be logged into that account,"
+  nothing built for that on Koli's side. The sheet's real edit URL comes
+  free from `checkLockUrlReachable_`'s own JSON response (the `doGet`
+  reachability fallback already returns `{ok,name,url}`, used since
+  addendum #21's guided-setup work) -- stashed as `lock.sheetUrl` at
+  Test & Lock time, not a second network call added just for this.
+- `.brand-chip` changed from `inline-flex`/`width:fit-content` to a real
+  full-width `flex` row so the file button has actual space to sit at
+  the far right (`margin-left:auto`) instead of butting up against the
+  status text -- removing the "Send to Koli" text alone would have
+  shrunk the whole chip to a tight capsule with the file icon jammed
+  right next to it, not spaced apart as asked. Caught and fixed a typo
+  of my own before it shipped (`var(--green-606)` instead of `--green-600`
+  in the mark's gradient, which would have silently broken the second
+  gradient stop) -- caught by re-reading the diff immediately, not by an
+  external report.
+- Syntax-checked, tests 72/3 (same baseline). No `.gs` touched, extension-
+  only -- needs a reload of the unpacked extension, same as every other
+  extension-only change this session.
+- **Honest limit on verification this time**: unlike the webapp pages
+  (Kolindar/Topic Research/Find), the extension isn't something I can
+  open in a sandboxed browser myself -- it only runs as an unpacked
+  extension loaded in the founder's own real Chrome. Both changes are
+  syntax-clean and logically straightforward, but **neither has been
+  visually confirmed by anyone yet** -- flagged plainly rather than
+  implied-verified the way the webapp pages now are.
+
+**The bigger question, answered, not built**: "I want the WebApp to be
+able to export csv without people logging in... with google login,
+onboarding and connecting should be much simpler (No secret, or app
+script url, let me know)." Answered directly rather than agreeing
+reflexively:
+- CSV export needs no new login at all (see above) -- already true today.
+- **The Web App URL cannot be eliminated** under Koli's current
+  architecture regardless of auth method: each install is self-hosted
+  per operator (own Sheet, own bound Apps Script project, own unique
+  deployment URL) -- there's no central Koli-run server for the extension
+  to just "know how to reach." Removing the URL entirely would require
+  becoming a centrally-hosted multi-tenant service -- exactly the
+  InsightSocial-style architecture explicitly discussed and moved away
+  from earlier this session (addendum #19) over third-party-trust
+  concerns, not a small trade-off to wave through.
+- **The secret COULD be replaced by real Google OAuth** -- technically
+  real, but the one-time setup (an OAuth Client ID in Google Cloud
+  Console, tied to the Apps Script project) is genuinely a HARDER
+  first-time step for a non-technical operator than "click Add in
+  Settings, paste a code." The part of the instinct that's right:
+  pairing a SECOND device would feel simpler ("sign in with Google" vs.
+  "paste a connection code") once OAuth is already set up once. Net
+  recommendation: don't build this -- the setup-cost increase outweighs
+  the repeat-pairing win for this project's specific shape (one non-
+  technical operator, zero-cost by construction). Not built. If a
+  different, more specific pain point prompted the question, that's
+  still open to hear.
+
+**New standing habit adopted this pass, per direct instruction**: always
+name what hasn't been looked at/verified yet, every response, not just
+in NOTES.md -- saved as a memory
+(`feedback_remind_unreviewed_work.md`) so it persists across sessions,
+not just this one.
 
 ## 2026-09-14 addendum #25: real process gap named and closed -- webapp pages never got a design pass; verified live in a browser, redeployed to v22
 
@@ -262,6 +291,67 @@ not just this session's own curl-level verification.
   notes actually appearing on a fresh Channel/Video/Profile analysis run
   (the API call only fires on NEW writes going forward, not retroactively
   on already-written rows).
+
+## 2026-09-14 addendum #22: real bug found via live screenshot; Appsmith CRM-UI scoped and its server-side prep shipped
+
+- **Real bug, found from a live screenshot of the founder actually
+  testing**: pasting a connection code then clicking the big "Test & Lock"
+  button directly (skipping the small separate "Fill in URL & secret from
+  this code" link) left the URL/secret fields genuinely empty --
+  Test & Lock correctly but unhelpfully said "URL and secret are both
+  required." A paste-then-remember-a-different-click flow is exactly the
+  trap a guided setup should prevent. Fixed: decode now fires on `input`
+  (the instant a paste lands, no separate click needed), and Test & Lock
+  itself falls back to decoding first if the fields are still empty but a
+  code is sitting in the textarea. `send-to-koli-extension/sidepanel.js`
+  only -- needs a reload of the unpacked extension.
+- **Appsmith as the CRM UI, scoped via a real plan** (superseded the
+  earlier CRM data-model plan file at `.claude/plans/groovy-wandering-koala.md`,
+  since that one's fully implemented): founder wants Appsmith (open-source
+  no-code builder) as the UI for the Person/Opportunity/Campaign-Tasks/
+  Activity-Log entities that shipped with no UI in addendum #18, with
+  Koli's Sheet staying the only backend, no hosting, no paying. Checked
+  Appsmith's actual current docs before answering rather than going from
+  memory: Cloud Free tier is real (unlimited apps, 5 users, 5 workspaces,
+  no hosting required -- self-hosting is a separate opt-in), and their
+  native Google Sheets connector is real (OAuth to the founder's OWN
+  Google account, not a service account Appsmith holds). One genuinely
+  unverified thing: no documented API-call-volume cap on the free tier --
+  founder needs to sign up and check in practice (account creation isn't
+  something I can do on their behalf).
+- **The real architectural decision, resolved with a recommendation**:
+  Appsmith's own Sheets connector (pointed straight at the spreadsheet) vs.
+  its REST API datasource (pointed at Koli's own Web App). Recommended and
+  the founder approved: **REST-via-Web-App**, because the direct-Sheets
+  path would silently skip real service-layer side effects that only exist
+  in `.gs` code, not in cells -- Brand resolution (`resolveBrandId_`), the
+  Activity Log entry on an Opportunity's creation/stage-change, Campaign
+  Tasks auto-seeding on a new Campaign. A record created the wrong way
+  would look fine in a table and quietly be missing data other parts of
+  Koli depend on.
+- **Server-side prep shipped** (recordService.gs, inboxService.gs): this
+  session's `get_record`/`set_record` (addendum #18) only cover one row by
+  key -- a table/board UI needs more. Added `list_records` (every row for
+  an entity, generalized via the same `RECORD_ENTITY_MAP`, a lighter
+  projection than `get_record` -- no link/Documents/Notes, those stay on
+  the single-record fetch). Added `create_person`/`create_opportunity` as
+  their OWN doPost cases rather than folding into a generic `create_record`
+  -- each has real side effects (Brand resolution, an Activity Log entry)
+  a blank-row insert would skip. Added `update_opportunity_stage` as its
+  own case rather than routing through `set_record`, specifically because
+  `set_record` would skip the Activity Log entry (the exact gap already
+  named in addendum #18). Added `list_campaign_tasks`/`toggle_campaign_task`/
+  `get_entity_timeline` to expose the remaining CRM functions that had no
+  Web App action at all yet.
+- Syntax-checked both files, tests 72/3 (same pre-existing baseline),
+  `clasp push` succeeded, committed and pushed.
+- **Not yet live-tested, and the actual Appsmith app isn't built yet** --
+  this pass was the API surface + scoping only. Next real step is the
+  founder's own: sign up for Appsmith Cloud, verify the free tier's actual
+  limits, then wire up the REST datasource using a new named connection
+  (Settings > Connections > Add, name it "Appsmith") against these new
+  actions. See the plan file for the full recommended page scope
+  (Opportunities/People/Campaign Tasks/Activity).
 
 ## 2026-09-14 addendum #21: named per-device connections replace the single shared secret; guided setup improvements
 
