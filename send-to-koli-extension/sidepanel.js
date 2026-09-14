@@ -990,8 +990,39 @@ function openLockModal(target) {
   document.getElementById('lockModalStatus').className = 'status';
   document.getElementById('lockModalConfirm').textContent = lock.locked ? 'Unlock' : 'Test & Lock';
   document.getElementById('lockModal').classList.add('open');
+  // Re-opening an already-locked connection has a real URL sitting in the
+  // field already -- show its reachability right away instead of only on
+  // the next blur (which may never happen if nothing gets edited).
+  if (lock.url) checkLockUrlReachable_(); else document.getElementById('lockUrlStatus').className = 'status';
 }
 document.getElementById('lockModalCancel').onclick = () => document.getElementById('lockModal').classList.remove('open');
+
+/**
+ * Checks the URL alone, no secret needed -- inboxService.gs's doGet has a
+ * fallback reachability branch (no params matched) that returns
+ * {ok, name, url} for ANY caller, by design. Separating "is this URL even
+ * a real Koli Web App" from "is this secret right for it" (tested together
+ * on Test & Lock, below) means a wrong-URL and a wrong-secret show two
+ * different, specific messages instead of one combined "failed."
+ */
+async function checkLockUrlReachable_() {
+  const url = document.getElementById('lockUrl').value.trim();
+  const urlStatus = document.getElementById('lockUrlStatus');
+  if (!url) { urlStatus.className = 'status'; urlStatus.textContent = ''; return; }
+  urlStatus.className = 'status'; urlStatus.textContent = 'Checking…'; urlStatus.style.display = 'block'; urlStatus.style.color = 'var(--ink-500)';
+  try {
+    const resp = await fetch(url, { method: 'GET' });
+    const data = await resp.json();
+    if (data && data.ok && data.name) {
+      urlStatus.className = 'status ok'; urlStatus.textContent = '✓ Reachable — this is "' + data.name + '".';
+    } else {
+      urlStatus.className = 'status err'; urlStatus.textContent = 'Reached a server, but it doesn\'t look like a Koli Web App.';
+    }
+  } catch (e) {
+    urlStatus.className = 'status err'; urlStatus.textContent = 'Could not reach this URL: ' + e.message;
+  }
+}
+document.getElementById('lockUrl').addEventListener('blur', checkLockUrlReachable_);
 
 // Connection-code paste: decodes Koli Settings' single generated string
 // (base64 JSON {u,s}) into the URL + secret fields, so most people never
@@ -1006,6 +1037,7 @@ document.getElementById('lockCodeDecode').onclick = () => {
     document.getElementById('lockUrl').value = decoded.u;
     document.getElementById('lockSecret').value = decoded.s;
     status.className = 'status ok'; status.textContent = 'Filled in: review below, then Test & Lock.';
+    checkLockUrlReachable_(); // decoding doesn't fire a real blur event -- run the same check right away instead of waiting for the user to click into and back out of the URL field
   } catch (e) {
     status.className = 'status err'; status.textContent = 'That doesn\'t look like a valid connection code.';
   }

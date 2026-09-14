@@ -741,14 +741,21 @@
   <div class="modal">
     <h2 id="lockModalTitle">Choose worksheet</h2>
     <div class="hint">This connects one Koli spreadsheet: sends from this profile always go here until you unlock it.</div>
+
+    <div class="hint" id="lockNoCodeHelp" style="background:var(--surface-sunken);border:1px solid var(--border-soft);border-radius:var(--radius-md);padding:10px 12px;margin:6px 0 12px;line-height:1.6;">
+      <b>Step 1 — get a code (in the Sheet, not here):</b> Koli menu → Settings (or the sidebar's gear icon) → Connections → Add, give it a name, copy the code it hands back.<br>
+      <b>Step 2 — paste it below.</b> This modal checks it's actually reachable and actually Koli before locking — you'll see exactly what went wrong here if it isn't, not just "failed."
+    </div>
+
     <label>Connection code</label>
-    <textarea id="lockCode" rows="2" placeholder="Paste the code from Koli > Settings > Connection code"></textarea>
+    <textarea id="lockCode" rows="2" placeholder="Paste the code from Koli > Settings > Connections > Add"></textarea>
     <button type="button" class="link-btn-inline" id="lockCodeDecode">Fill in URL &amp; secret from this code</button>
     <div class="divider-or">or enter manually</div>
     <label>Web App URL</label>
     <input type="text" id="lockUrl" placeholder="https://script.google.com/macros/s/.../exec" />
-    <label>Shared secret</label>
-    <input type="password" id="lockSecret" placeholder="Same value set in Koli's Settings" />
+    <div class="status" id="lockUrlStatus"></div>
+    <label>Connection secret</label>
+    <input type="password" id="lockSecret" placeholder="From the same connection code, or Koli's Settings" />
     <label>Destination tab</label>
     <select id="lockTabSelect"><option value="">Prospects (default)</option></select>
     <div class="hint" id="lockTabHint" style="margin-top:4px;"></div>
