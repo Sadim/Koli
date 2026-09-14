@@ -4,6 +4,64 @@
 nothing in STATUS.md/ROADMAP.md, which are the durable project docs —
 this is the "what was I doing right before the clear" layer.*
 
+## 2026-09-14 addendum #21: named per-device connections replace the single shared secret; guided setup improvements
+
+Founder paused the requested "guided setup wizard" build to flag a real
+prerequisite first: "the url and secret is also an issue don't you think?"
+Agreed, and fixed both the underlying mechanism and the extension-side
+onboarding on top of it.
+
+- **Named connections** (constants.gs, inboxService.gs, uiHandlers.gs,
+  SettingsDialog.html, Sidebar.html drawer): the single global
+  `INBOX_SHARED_SECRET` -- one credential, shared forever by every device
+  that ever paired, no revocation without breaking everyone -- is replaced
+  by a JSON list of `{id, name, secret, createdAt, lastUsed}` (new
+  `PROP_KEYS.CONNECTIONS`). Each connection mints its own real random
+  secret (two concatenated UUIDs) instead of a hand-typed one. `doPost`
+  checks the provided secret against every connection instead of one
+  string, stamping `lastUsed` on a match. Named because the stakes are
+  higher now than when the old mechanism shipped: `get_record`/`set_record`
+  (this session's CRM work) read/write real Person/Opportunity/Campaign/
+  Channel data through this same secret, not just capture actions.
+- **Non-breaking migration**: `getConnections_` folds whatever
+  `INBOX_SHARED_SECRET` was already set into a single "Legacy connection"
+  entry the first time it's needed -- an already-paired extension (this
+  session's own, mid-build) keeps working with zero action required.
+- **Settings UI** (both the standalone dialog and the sidebar drawer, since
+  the founder flagged wanting it in both): the "Shared secret" field and
+  single Generate button are gone; a real Connections list (name, added
+  date, last used, per-row Revoke) plus an Add flow (name it, get a
+  one-time code) replaces them in both places.
+- **Extension-side guided setup** (send-to-koli-extension, no `.gs` changes
+  needed -- the connection-code format itself didn't change): the lock
+  modal already did a real live test before locking (`Test & Lock` posts
+  `list_tabs`, shows the actual server response on failure, not a generic
+  "failed") -- found this was more mature than expected going in, built on
+  top rather than replacing it. Added `checkLockUrlReachable_`: checks the
+  URL ALONE (`doGet`'s no-params fallback route needs no secret at all) the
+  moment it's filled in, so a wrong URL and a wrong secret now produce two
+  different, specific messages instead of one combined failure. Also added
+  an explicit "Step 1 (in the Sheet) / Step 2 (back here)" block above the
+  paste field -- nothing previously told a first-time user WHERE a code
+  even comes from.
+- Syntax-checked every touched `.gs` file individually plus both HTML
+  files' inline `<script>` extracted and checked separately, tests 72/3
+  (same pre-existing baseline), `clasp push` succeeded for the `.gs`/
+  Settings-HTML commit (the extension-only guided-setup commit needed none).
+  Two separate commits, both pushed.
+- **Not yet live-tested** -- needs: (a) confirming the Legacy-connection
+  migration actually preserves this session's own already-paired
+  extension without re-pairing, (b) adding a real second named connection
+  end-to-end from both Settings surfaces, (c) revoking one and confirming
+  the other still works, (d) pasting a deliberately-wrong URL and a
+  deliberately-wrong secret separately in the lock modal to confirm the
+  two failure messages are now actually distinct.
+- **Still open, not started**: the founder's original ask (a fuller guided
+  wizard) may want more than what shipped here -- this pass added the two
+  most concrete, well-scoped gaps (reachability-vs-secret ambiguity,
+  no "where do I get a code" guidance) rather than a full redesign of the
+  pairing flow. Revisit if the founder wants more once this is live-tested.
+
 ## 2026-09-14 addendum #20: real bug found -- social handles were extracted fine, never surfaced
 
 Founder reported "we still don't get the social handles on YouTube from
