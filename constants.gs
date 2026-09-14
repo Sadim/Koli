@@ -416,7 +416,8 @@ const PROP_KEYS = {
   // Posted/Timestamp/Evidence are now core Sponsors columns, always on,
   // nothing left to toggle.
   ATTEMPT_SPONSOR_TIMESTAMP: 'ATTEMPT_SPONSOR_TIMESTAMP', // checkbox, default off: gates the caption-fuzzy-match fallback only; SponsorBlock-verified timestamps are free and always attempted
-  INBOX_SHARED_SECRET: 'INBOX_SHARED_SECRET', // checked against the browser extension's POSTs
+  INBOX_SHARED_SECRET: 'INBOX_SHARED_SECRET', // legacy single global secret -- superseded by CONNECTIONS below (2026-09-14), kept only so getConnections_'s one-time migration can still find it; nothing writes to this key anymore
+  CONNECTIONS: 'CONNECTIONS', // JSON array of {id, name, secret, createdAt, lastUsed} -- one real credential per device/install instead of one shared-forever secret, so a leaked or no-longer-used device can be revoked without breaking every other connected device (see inboxService.gs's getConnections_/authenticateConnection_)
   REPORTS_FOLDER_ID: 'REPORTS_FOLDER_ID', // remembered once created: avoids needing to search Drive (see reportService.gs)
   BRAND_KITS_FOLDER_ID: 'BRAND_KITS_FOLDER_ID', // same pattern, separate folder (see brandKitService.gs)
   PUBLISHED_PAGES_FOLDER_ID: 'PUBLISHED_PAGES_FOLDER_ID', // same pattern, separate folder (see publishService.gs)
@@ -427,7 +428,7 @@ const PROP_KEYS = {
   TIMEZONE: 'TIMEZONE', // e.g. 'America/New_York', 'Etc/UTC': user-set, never assumed
   ACCESS_CODE: 'ACCESS_CODE', // premium-tier unlock: see licenseService.gs
   DEFAULT_TARGET_REGIONS: 'DEFAULT_TARGET_REGIONS', // comma-joined ISO 3166-1 alpha-2 codes (e.g. "US,GB,CA,AU"): see discoverService.gs
-  WEB_APP_URL: 'WEB_APP_URL', // exec URL of the Web App deployment to use for the connection code; set explicitly because ScriptApp.getService().getUrl() is ambiguous once more than one deployment exists (see getConnectionCode_ in uiHandlers.gs)
+  WEB_APP_URL: 'WEB_APP_URL', // exec URL of the Web App deployment to use for a connection code; set explicitly because ScriptApp.getService().getUrl() is ambiguous once more than one deployment exists (see createConnection in uiHandlers.gs)
   KOLINDAR_CONFIG: 'KOLINDAR_CONFIG' // JSON blob: meeting types, weekly hours, buffer, lookahead -- see kolindarService.gs
 };
 

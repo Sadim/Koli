@@ -580,14 +580,18 @@
     </div>
 
     <div class="drawer-section">
-      <div class="drawer-section-title">Browser extension connection code</div>
-      <div class="hint">Generates from the Web App URL and shared secret already set (Koli menu → Settings). One string decodes to both for the extension's "Connection code" field.</div>
-      <textarea id="qsConnectionCode" class="connection-code-box" readonly rows="2" placeholder="Click Generate below"></textarea>
-      <div class="drawer-save-status" id="qsConnectionCodeStatus" style="min-height:0;"></div>
+      <div class="drawer-section-title">Browser extension connections</div>
+      <div class="hint">Each device/browser gets its own connection instead of one secret shared forever -- revoke one without breaking the others. Uses the Web App URL already set (Koli menu → Settings).</div>
+      <div id="qsConnectionsList" style="margin-top:6px;"></div>
       <div class="drawer-btn-row">
-        <button type="button" class="drawer-btn-secondary" id="qsGenerateCodeBtn">Generate</button>
+        <input type="text" id="qsNewConnectionName" placeholder='Name (e.g. "Chrome - laptop")' style="flex:1;" />
+        <button type="button" class="drawer-btn-secondary" id="qsAddConnectionBtn">Add</button>
+      </div>
+      <textarea id="qsConnectionCode" class="connection-code-box" readonly rows="2" hidden></textarea>
+      <div class="drawer-btn-row" id="qsConnectionCodeActions" hidden>
         <button type="button" class="drawer-btn-secondary" id="qsCopyCodeBtn">Copy</button>
       </div>
+      <div class="drawer-save-status" id="qsConnectionCodeStatus" style="min-height:0;"></div>
     </div>
 
     <button type="button" class="drawer-save-btn" id="qsSaveBtn">Save settings</button>
@@ -1431,6 +1435,7 @@
         document.getElementById('qsScanSponsors').checked = !!s.scanChannelSponsors;
         document.getElementById('qsAttemptTimestamp').checked = !!s.attemptSponsorTimestamp;
         document.getElementById('qsAccessCodeStatus').textContent = s.premiumUnlocked ? '✓ Premium unlocked.' : (s.accessCodeSet ? 'Code set, but not valid.' : 'Not set: free tier.');
+        qsRenderConnectionsList_(s.connections || []);
         qsSelectedRegions.clear();
         (s.defaultTargetRegions || '').split(',').map((r) => r.trim().toUpperCase()).filter(Boolean).forEach((r) => qsSelectedRegions.add(r));
         qsRenderRegionPills_();
@@ -1456,20 +1461,52 @@
     });
     document.getElementById('qsRegionSearch').addEventListener('input', qsRenderRegionSelect_);
 
-    document.getElementById('qsGenerateCodeBtn').onclick = () => {
+    function qsEscapeHtml_(s) { return String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
+
+    function qsRenderConnectionsList_(connections) {
+      const wrap = document.getElementById('qsConnectionsList');
+      wrap.innerHTML = '';
+      if (!connections.length) {
+        wrap.innerHTML = '<div class="hint" style="margin:0 0 6px;">No connections yet.</div>';
+        return;
+      }
+      connections.forEach((c) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:7px 9px;border:1px solid var(--border);border-radius:8px;margin-bottom:5px;';
+        const added = c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '?';
+        const lastUsed = c.lastUsed ? new Date(c.lastUsed).toLocaleDateString() : 'never';
+        row.innerHTML = '<div><b style="font-size:11.5px;">' + qsEscapeHtml_(c.name) +
+          '</b><br><span style="color:var(--ink-300);font-size:10px;">Added ' + added + ' · Last used ' + lastUsed + '</span></div>';
+        const revokeBtn = document.createElement('button');
+        revokeBtn.type = 'button'; revokeBtn.className = 'drawer-btn-secondary'; revokeBtn.textContent = 'Revoke';
+        revokeBtn.onclick = () => {
+          if (!confirm('Revoke "' + c.name + '"? Any device using this connection stops working immediately.')) return;
+          google.script.run.withSuccessHandler(loadQuickSettings).withFailureHandler((err) => alert(err.message || String(err))).revokeConnection(c.id);
+        };
+        row.appendChild(revokeBtn);
+        wrap.appendChild(row);
+      });
+    }
+
+    document.getElementById('qsAddConnectionBtn').onclick = () => {
+      const nameInput = document.getElementById('qsNewConnectionName');
       const box = document.getElementById('qsConnectionCode');
+      const actions = document.getElementById('qsConnectionCodeActions');
       const status = document.getElementById('qsConnectionCodeStatus');
       status.className = 'drawer-save-status'; status.textContent = '';
+      box.hidden = false; actions.hidden = false;
       box.value = 'Generating…';
       google.script.run
         .withSuccessHandler((resp) => {
-          if (!resp.ok) { box.value = ''; status.className = 'drawer-save-status err'; status.textContent = resp.message; return; }
           box.value = resp.code;
+          nameInput.value = '';
+          loadQuickSettings();
         })
         .withFailureHandler((err) => {
-          box.value = ''; status.className = 'drawer-save-status err'; status.textContent = err.message || String(err);
+          box.value = ''; box.hidden = true; actions.hidden = true;
+          status.className = 'drawer-save-status err'; status.textContent = err.message || String(err);
         })
-        .generateConnectionCode();
+        .createConnection(nameInput.value.trim());
     };
     document.getElementById('qsCopyCodeBtn').onclick = () => {
       const box = document.getElementById('qsConnectionCode');

@@ -40,21 +40,66 @@ function doPost(e) {
     }
 
     const body = JSON.parse(e.postData.contents);
-    const expectedSecret = getProp_(PROP_KEYS.INBOX_SHARED_SECRET, '');
-
-    if (!expectedSecret) {
-      return jsonResponse_({ ok: false, error: 'No shared secret set in Koli yet: set one in Settings first.' });
+    const connections = getConnections_();
+    if (!connections.length) {
+      return jsonResponse_({ ok: false, error: 'No connection set up in Koli yet: add one in Settings first.' });
     }
-    if (!constantTimeEquals_(String(body.secret || ''), expectedSecret)) {
+    // Checked against every connection, not one global secret (2026-09-14):
+    // each device/install gets its own credential now, so a leaked or
+    // stale one can be revoked without breaking every other connected
+    // device. Still a real per-comparison constant-time check for each --
+    // this doesn't reintroduce a timing side-channel, it just runs the same
+    // safe comparison N times instead of once.
+    const matched = connections.filter(function (c) { return constantTimeEquals_(String(body.secret || ''), c.secret); })[0];
+    if (!matched) {
       recordFailedAttempt_();
       return jsonResponse_({ ok: false, error: 'Invalid secret.' });
     }
+    touchConnectionLastUsed_(matched.id);
 
     return jsonResponse_(routeWebAppAction_(body.action || 'capture', body));
   } catch (err) {
     console.error('[Koli] doPost failed: ' + errMsg_(err));
     return jsonResponse_({ ok: false, error: errMsg_(err) });
   }
+}
+
+/**
+ * Named per-device connections (2026-09-14), replacing one global shared
+ * secret used by every paired extension forever. Real problems that fixed:
+ * (1) no way to revoke ONE device without rotating for everyone, which
+ * meant a leaked secret -- now gating real read/write actions
+ * (get_record/set_record touch Person/Opportunity/Campaign/Channel data,
+ * not just capture) -- had no clean recovery; (2) no visibility into which
+ * device is even still using it. getConnections_ auto-migrates whatever
+ * INBOX_SHARED_SECRET was already set into a single "Legacy connection"
+ * entry the first time it's needed, so an already-paired extension keeps
+ * working across this change without re-pairing.
+ */
+function getConnections_() {
+  const raw = getProp_(PROP_KEYS.CONNECTIONS, '');
+  let list = [];
+  try { list = raw ? JSON.parse(raw) : []; } catch (e) { list = []; }
+  if (!list.length) {
+    const legacy = getProp_(PROP_KEYS.INBOX_SHARED_SECRET, '');
+    if (legacy) {
+      list = [{ id: Utilities.getUuid(), name: 'Legacy connection', secret: legacy, createdAt: new Date().toISOString(), lastUsed: null }];
+      saveConnections_(list);
+    }
+  }
+  return list;
+}
+
+function saveConnections_(list) {
+  PropertiesService.getDocumentProperties().setProperty(PROP_KEYS.CONNECTIONS, JSON.stringify(list));
+}
+
+function touchConnectionLastUsed_(id) {
+  const list = getConnections_();
+  const entry = list.filter(function (c) { return c.id === id; })[0];
+  if (!entry) return;
+  entry.lastUsed = new Date().toISOString();
+  saveConnections_(list);
 }
 
 function routeWebAppAction_(action, body) {

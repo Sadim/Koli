@@ -136,23 +136,23 @@
 
 <div class="section">
   <div class="section-title">Browser extension ("Send to Koli")</div>
-  <label for="inboxSecret">Shared secret</label>
-  <input type="password" id="inboxSecret" placeholder="Set a secret, then generate a connection code below" />
-  <div class="masked" id="inboxSecretStatus"></div>
-  <div class="hint">Prevents anyone who finds your Web App URL from posting into your sheet.</div>
-
-  <label for="webAppUrl" style="margin-top:16px;">Web App URL</label>
+  <label for="webAppUrl">Web App URL</label>
   <input type="text" id="webAppUrl" placeholder="Paste the /exec URL from Deploy > Manage deployments" style="font-family:monospace;font-size:11px;" />
   <div class="hint">Deploy &gt; Manage deployments &gt; copy the URL next to the "Web app" deployment (ends in <code>/exec</code>). Pasting it here — instead of letting the code auto-detect it — avoids it picking the wrong deployment when more than one exists.</div>
 
-  <label for="connectionCode" style="margin-top:16px;">Connection code</label>
-  <textarea id="connectionCode" readonly rows="2" style="width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:10px;font-size:11px;font-family:monospace;resize:none;background:oklch(99.5% 0 0);" placeholder="Save your secret above (and deploy this as a Web App, if you haven't), then click Generate"></textarea>
-  <div class="status" id="connectionCodeStatus" style="margin-top:6px;"></div>
-  <div style="display:flex;gap:8px;margin-top:8px;">
-    <button type="button" class="btn-secondary" id="generateCodeBtn" style="flex:1;">Generate</button>
+  <label style="margin-top:16px;">Connections</label>
+  <div class="hint">Each device/browser gets its own connection instead of one secret shared by everyone forever -- revoke one without breaking the others.</div>
+  <div id="connectionsList" style="margin-top:8px;"></div>
+  <div style="display:flex;gap:8px;margin-top:10px;">
+    <input type="text" id="newConnectionName" placeholder='Name this connection (e.g. "Chrome - laptop")' style="flex:1;" />
+    <button type="button" class="btn-secondary" id="addConnectionBtn">Add</button>
+  </div>
+  <textarea id="connectionCode" readonly rows="2" hidden style="width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:10px;font-size:11px;font-family:monospace;resize:none;background:oklch(99.5% 0 0);margin-top:8px;"></textarea>
+  <div style="display:flex;gap:8px;margin-top:8px;" id="connectionCodeActions" hidden>
     <button type="button" class="btn-secondary" id="copyCodeBtn" style="flex:1;">Copy</button>
   </div>
-  <div class="hint">Paste this one string into the extension's "Connection code" field instead of the URL and secret separately: it decodes to both. Requires the Web App to already be deployed (Deploy &gt; New deployment &gt; Web app) and a secret saved above.</div>
+  <div class="status" id="connectionCodeStatus" style="margin-top:6px;"></div>
+  <div class="hint">Paste the code into the extension's "Connection code" field: one string decodes to the URL and that connection's own secret. Requires the Web App to already be deployed (Deploy &gt; New deployment &gt; Web app) and the URL saved above.</div>
 </div>
 
 <div class="status" id="status"></div>
@@ -264,7 +264,7 @@
       (s.defaultTargetRegions || '').split(',').map((r) => r.trim().toUpperCase()).filter(Boolean).forEach((r) => selectedRegions.add(r));
       renderRegionPills_();
       renderRegionSelect_();
-      document.getElementById('inboxSecretStatus').textContent = s.inboxSecretSet ? 'Currently set.' : 'Not set.';
+      renderConnectionsList_(s.connections || []);
       document.getElementById('webAppUrl').value = s.webAppUrl || '';
       document.getElementById('timezone').value = s.timezone;
       document.getElementById('accessCodeStatus').textContent = s.premiumUnlocked ? '✓ Premium unlocked.' : (s.accessCodeSet ? 'Code set, but not valid.' : 'Not set: free tier.');
@@ -273,25 +273,52 @@
   }
   load();
 
-  document.getElementById('generateCodeBtn').onclick = () => {
+  function escapeHtmlLocal_(s) { return String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
+
+  function renderConnectionsList_(connections) {
+    const wrap = document.getElementById('connectionsList');
+    wrap.innerHTML = '';
+    if (!connections.length) {
+      wrap.innerHTML = '<div class="hint" style="margin:0;">No connections yet -- add one below, then paste the code into the extension.</div>';
+      return;
+    }
+    connections.forEach((c) => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;';
+      const added = c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '?';
+      const lastUsed = c.lastUsed ? new Date(c.lastUsed).toLocaleDateString() : 'never';
+      row.innerHTML = '<div><b style="font-size:12.5px;">' + escapeHtmlLocal_(c.name) +
+        '</b><br><span style="color:var(--text-muted);font-size:11px;">Added ' + added + ' · Last used ' + lastUsed + '</span></div>';
+      const revokeBtn = document.createElement('button');
+      revokeBtn.type = 'button'; revokeBtn.className = 'btn-secondary'; revokeBtn.textContent = 'Revoke';
+      revokeBtn.onclick = () => {
+        if (!confirm('Revoke "' + c.name + '"? Any device using this connection stops working immediately.')) return;
+        google.script.run.withSuccessHandler(load).withFailureHandler((err) => alert(err.message || String(err))).revokeConnection(c.id);
+      };
+      row.appendChild(revokeBtn);
+      wrap.appendChild(row);
+    });
+  }
+
+  document.getElementById('addConnectionBtn').onclick = () => {
+    const nameInput = document.getElementById('newConnectionName');
     const box = document.getElementById('connectionCode');
+    const actions = document.getElementById('connectionCodeActions');
     const status = document.getElementById('connectionCodeStatus');
     status.className = 'status'; status.style.display = 'none';
+    box.hidden = false; actions.hidden = false;
     box.value = 'Generating…';
     google.script.run
       .withSuccessHandler((resp) => {
-        if (!resp.ok) {
-          box.value = '';
-          status.className = 'status err'; status.textContent = resp.message; status.style.display = 'block';
-          return;
-        }
         box.value = resp.code;
+        nameInput.value = '';
+        load();
       })
       .withFailureHandler((err) => {
-        box.value = '';
+        box.value = ''; box.hidden = true; actions.hidden = true;
         status.className = 'status err'; status.textContent = err.message || String(err); status.style.display = 'block';
       })
-      .generateConnectionCode();
+      .createConnection(nameInput.value.trim());
   };
   document.getElementById('copyCodeBtn').onclick = () => {
     const box = document.getElementById('connectionCode');
@@ -316,7 +343,6 @@
         document.getElementById('mistralKey').value = '';
         document.getElementById('groqKey').value = '';
         document.getElementById('pickerKey').value = '';
-        document.getElementById('inboxSecret').value = '';
         document.getElementById('accessCode').value = '';
         load();
         setTimeout(() => google.script.host.close(), 900);
@@ -333,7 +359,6 @@
         pickerApiKey: document.getElementById('pickerKey').value.trim(),
         lookbackDays: Number(document.getElementById('lookback').value),
         commentSampleSize: Number(document.getElementById('sampleSize').value),
-        inboxSecret: document.getElementById('inboxSecret').value.trim(),
         webAppUrl: document.getElementById('webAppUrl').value.trim(),
         accessCode: document.getElementById('accessCode').value.trim(),
         timezone: document.getElementById('timezone').value.trim(),

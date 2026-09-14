@@ -639,7 +639,7 @@ function getSettings() {
     commentSampleSize: Number(getProp_(PROP_KEYS.COMMENT_SAMPLE_SIZE, DEFAULTS.COMMENT_SAMPLE_SIZE)),
     scanChannelSponsors: getBoolProp_(PROP_KEYS.SCAN_CHANNEL_SPONSORS, true),
     attemptSponsorTimestamp: getBoolProp_(PROP_KEYS.ATTEMPT_SPONSOR_TIMESTAMP, false),
-    inboxSecretSet: !!props.getProperty(PROP_KEYS.INBOX_SHARED_SECRET),
+    connections: listConnectionsForSettings(),
     webAppUrl: getProp_(PROP_KEYS.WEB_APP_URL, ''),
     accessCodeSet: !!props.getProperty(PROP_KEYS.ACCESS_CODE),
     premiumUnlocked: hasPremiumAccess_(),
@@ -649,29 +649,37 @@ function getSettings() {
 }
 
 /**
- * One paste instead of two: bundles the deployed Web App URL and the
- * shared secret into a single opaque string the extension can decode
- * client-side (plain base64, not encryption: the secret inside is
- * still the real security boundary, this just saves a second copy-paste
- * round trip and a chance to mismatch the wrong URL with the wrong
- * secret). The URL comes from the WEB_APP_URL property, set explicitly
- * in Settings, rather than ScriptApp.getService().getUrl() — that call
- * is ambiguous the moment a second Web App deployment exists for this
- * script (e.g. the auto-created @HEAD one from `clasp create`), and can
- * silently resolve to a stale, unconfigured deployment instead of the
- * one actually meant to serve the extension.
+ * Named per-device connections (2026-09-14) -- see inboxService.gs's
+ * getConnections_ for the storage/migration side. These are the
+ * Settings-facing CRUD functions: list (never returns real secrets to the
+ * client, only metadata), create (mints a real random secret, no more
+ * hand-typed one), revoke (removes just that one device).
  */
-function getConnectionCode_() {
-  const secret = getProp_(PROP_KEYS.INBOX_SHARED_SECRET, '');
-  if (!secret) throw new Error('Set a shared secret above first, then generate a connection code.');
-  const url = getProp_(PROP_KEYS.WEB_APP_URL, '');
-  if (!url) throw new Error('Set the Web App URL above first (paste it from Deploy > Manage deployments > the "Web app" one, ending in /exec), then generate a connection code.');
-  return Utilities.base64Encode(JSON.stringify({ u: url, s: secret }));
+function listConnectionsForSettings() {
+  return getConnections_().map(function (c) {
+    return { id: c.id, name: c.name, createdAt: c.createdAt, lastUsed: c.lastUsed };
+  });
 }
 
-function generateConnectionCode() {
-  try { return { ok: true, code: getConnectionCode_() }; }
-  catch (e) { return { ok: false, message: e.message }; }
+function createConnection(name) {
+  const url = getProp_(PROP_KEYS.WEB_APP_URL, '');
+  if (!url) throw new Error('Set the Web App URL above first (paste it from Deploy > Manage deployments > the "Web app" one, ending in /exec), then add a connection.');
+  const list = getConnections_();
+  // Two UUIDs concatenated (64 hex chars): real entropy, not a human-typed
+  // password someone might reuse or pick something guessable for.
+  const secret = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
+  const entry = {
+    id: Utilities.getUuid(), name: (name || '').trim() || 'Unnamed connection',
+    secret: secret, createdAt: new Date().toISOString(), lastUsed: null
+  };
+  list.push(entry);
+  saveConnections_(list);
+  return { ok: true, id: entry.id, name: entry.name, code: Utilities.base64Encode(JSON.stringify({ u: url, s: secret })) };
+}
+
+function revokeConnection(id) {
+  saveConnections_(getConnections_().filter(function (c) { return c.id !== id; }));
+  return { ok: true };
 }
 
 function saveSettings(settings) {
@@ -683,7 +691,6 @@ function saveSettings(settings) {
   if (settings.pickerApiKey) props.setProperty(PROP_KEYS.PICKER_API_KEY, settings.pickerApiKey.trim());
   if (settings.lookbackDays) props.setProperty(PROP_KEYS.LOOKBACK_DAYS, String(settings.lookbackDays));
   if (settings.commentSampleSize) props.setProperty(PROP_KEYS.COMMENT_SAMPLE_SIZE, String(settings.commentSampleSize));
-  if (settings.inboxSecret) props.setProperty(PROP_KEYS.INBOX_SHARED_SECRET, settings.inboxSecret.trim());
   if (settings.webAppUrl) props.setProperty(PROP_KEYS.WEB_APP_URL, settings.webAppUrl.trim());
   if (settings.accessCode) props.setProperty(PROP_KEYS.ACCESS_CODE, settings.accessCode.trim());
   if (settings.timezone) props.setProperty(PROP_KEYS.TIMEZONE, settings.timezone.trim());
