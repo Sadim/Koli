@@ -65,6 +65,45 @@ this is the "what was I doing right before the clear" layer.*
   actions. See the plan file for the full recommended page scope
   (Opportunities/People/Campaign Tasks/Activity).
 
+## 2026-09-14 addendum #24: columns-tab button renamed; session ending, /clear requested next
+
+- Renamed the extension's columns-tab apply button from "Apply to
+  &lt;sheet&gt; sheet" to bare "Create" (direct request). Real fix needed
+  in the JS, not just the static HTML: `renderColumnsTab()`
+  (sidepanel.js:863) overwrites this button's text on every render based
+  on the active column type -- editing only the static markup would have
+  had zero visible effect once the page's own JS ran. Deliberately left
+  the confirmation modal's copy (`#applyColumnsModal`, sidepanel.html:773-774)
+  fully accurate and unchanged -- it still explains plainly that this
+  reorders/hides columns on the real, already-existing sheet (not a
+  creation) and that other viewers see the change too -- since that's
+  the actual safety disclosure that matters, not the trigger button's
+  short label. `#youtubeSheetLabel` right above the button already names
+  which sheet it's for, so the bare verb loses no real context.
+- Syntax-checked, tests 72/3 (same baseline), no `.gs` touched so no
+  `clasp push`/redeploy needed -- extension-only, needs a reload of the
+  unpacked extension to show up.
+- **Session ending here on the founder's own instruction** -- next
+  message is `/clear`. Everything through addendum #23 (named
+  connections, CRM data model, Find, dislike revival, the v21 redeploy)
+  is confirmed live and pushed; this addendum's rename is the very last
+  thing that landed. If resuming fresh: read this file in full per its
+  own "If resuming into a fresh context" section near the bottom, and
+  note the still-open items list right below is the real to-do list, not
+  anything in this addendum specifically.
+
+**Still open, carried forward, not started this session unless noted
+otherwise elsewhere in this document**: the CRM-scoped Gmail notifier
+(ignotifier-inspired, addendum #23 -- needs a design decision on matching
+unread senders against known CRM contacts before any code); the actual
+Appsmith app itself (server-side API surface shipped, addendum #22, but
+nobody has signed up for Appsmith or built a single page yet); local
+call transcription (still needs its own capture-architecture pass, local-
+first direction only recorded, addendum #21); Respondability email
+scoring and the extension-side CRM UI itself (both only scoped/inspired,
+not built); Find/dislike revival need a real live test by the founder,
+not just this session's own curl-level verification.
+
 ## 2026-09-14 addendum #23: redeploy to v20 confirmed the paste-decode fix; Find + dislike revival shipped and redeployed to v21
 
 - **v20 confirmed working, live, by the founder**: the paste-decode fix
