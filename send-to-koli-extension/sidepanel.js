@@ -1024,24 +1024,39 @@ async function checkLockUrlReachable_() {
 }
 document.getElementById('lockUrl').addEventListener('blur', checkLockUrlReachable_);
 
-// Connection-code paste: decodes Koli Settings' single generated string
-// (base64 JSON {u,s}) into the URL + secret fields, so most people never
-// type either one by hand.
-document.getElementById('lockCodeDecode').onclick = () => {
+/**
+ * Real bug found via a live screenshot (2026-09-14): pasting a code then
+ * clicking the big, obvious "Test & Lock" button -- instead of the small
+ * separate "Fill in URL & secret from this code" link first -- left the
+ * URL/secret fields genuinely empty, so Test & Lock correctly (but
+ * unhelpfully) said "URL and secret are both required." A two-step
+ * paste-then-remember-to-click-decode flow is exactly the trap a guided
+ * setup is supposed to prevent. Fixed by making decode automatic (fires
+ * on `input`, so it runs the instant a paste lands, no separate click
+ * needed) AND by having Test & Lock itself fall back to decoding first
+ * if the fields are still empty but a code is sitting in the textarea --
+ * belt and suspenders, in case some paste method doesn't fire `input`.
+ * Returns true/false so both call sites can react to whether it worked.
+ */
+function decodeLockCode_(showOkStatus) {
   const status = document.getElementById('lockModalStatus');
   const raw = document.getElementById('lockCode').value.trim();
-  if (!raw) { status.className = 'status err'; status.textContent = 'Paste a connection code first.'; return; }
+  if (!raw) return false;
   try {
     const decoded = JSON.parse(atob(raw));
     if (!decoded.u || !decoded.s) throw new Error('missing fields');
     document.getElementById('lockUrl').value = decoded.u;
     document.getElementById('lockSecret').value = decoded.s;
-    status.className = 'status ok'; status.textContent = 'Filled in: review below, then Test & Lock.';
+    if (showOkStatus) { status.className = 'status ok'; status.textContent = 'Filled in: review below, then Test & Lock.'; }
     checkLockUrlReachable_(); // decoding doesn't fire a real blur event -- run the same check right away instead of waiting for the user to click into and back out of the URL field
+    return true;
   } catch (e) {
-    status.className = 'status err'; status.textContent = 'That doesn\'t look like a valid connection code.';
+    if (showOkStatus) { status.className = 'status err'; status.textContent = 'That doesn\'t look like a valid connection code.'; }
+    return false;
   }
-};
+}
+document.getElementById('lockCodeDecode').onclick = () => decodeLockCode_(true);
+document.getElementById('lockCode').addEventListener('input', () => decodeLockCode_(false));
 
 document.getElementById('lockModalConfirm').onclick = async () => {
   const lock = getLockObject(lockModalTarget);
@@ -1055,6 +1070,9 @@ document.getElementById('lockModalConfirm').onclick = async () => {
     return;
   }
 
+  if (!document.getElementById('lockUrl').value.trim() || !document.getElementById('lockSecret').value.trim()) {
+    decodeLockCode_(false); // fields are empty but a pasted code might still be sitting there un-decoded -- try that before giving up
+  }
   const url = document.getElementById('lockUrl').value.trim();
   const secret = document.getElementById('lockSecret').value.trim();
   const tab = document.getElementById('lockTabSelect').value;
