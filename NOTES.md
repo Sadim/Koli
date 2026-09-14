@@ -65,6 +65,48 @@ this is the "what was I doing right before the clear" layer.*
   actions. See the plan file for the full recommended page scope
   (Opportunities/People/Campaign Tasks/Activity).
 
+## 2026-09-14 addendum #25: real process gap named and closed -- webapp pages never got a design pass; verified live in a browser, redeployed to v22
+
+Founder's direct question: "No new design on webapp? you only focused on
+Koli Sheet?" Correct, and worth naming precisely why, not just fixing the
+symptom: the impeccable design-quality hook that kept catching real issues
+on Sidebar.html/SettingsDialog.html/sidepanel.html this whole session only
+scans `.html` files. Kolindar, Topic Research, and Find are all HTML
+template strings embedded inside `.gs` files -- that hook never saw any
+of them, so nothing forced a design pass, and Find's CSS was written by
+copying Topic Research's tokens forward without ever actually rendering
+either page. **Process gap, not a deliberate skip** -- flagged honestly
+rather than deflected.
+
+- **Actually opened the live Find page in a browser and looked at it**
+  (Browser pane, real deployed URL) rather than just describing a fix.
+  Cross-origin iframe (Apps Script's own HtmlService sandbox) meant
+  `find`/`get_page_text`/`read_page` couldn't see inside it at all
+  (DOM-level tools blocked by browser security across that boundary) --
+  screenshots + coordinate clicks were the only way through, and even
+  wheel-scroll didn't reach the iframe reliably; the scrollbar's own
+  up/down arrow buttons did. Confirmed genuinely good news on inspection:
+  the tier-selection interaction actually works (clicked "Micro", got a
+  real active state), spacing/typography read clean, the "country only"
+  caveat renders exactly where intended -- this was NOT a facade that
+  falls apart under a real look, just unreviewed.
+- **One real, specific gap found and fixed**: "selected" tier signaled
+  only via color/border (clearly visible, but a smaller state-indicator
+  than the reference screenshot's own checkmark icon). Added a real
+  checkmark badge (`.tier-box.active::after`, findService.gs) -- verified
+  live in the browser afterward (selected Micro, checkmark rendered
+  exactly like the reference), not just claimed from reading the CSS.
+- Syntax-checked (findService.gs + its embedded `<script>` extracted and
+  checked separately), tests 72/3 (same baseline), `clasp push` succeeded,
+  **redeployed to version 22** (same deployment ID/URL) since this
+  changed served page content.
+- **Not done this pass, worth doing before calling the webapp surface
+  "designed," not "written"**: the same live-look-and-verify treatment
+  for Kolindar and Topic Research -- neither has been opened in a browser
+  and actually inspected either, same unreviewed-since-inception status
+  Find was in before this addendum. Flagged as the next honest step if
+  the founder wants full parity, not assumed fine by association.
+
 ## 2026-09-14 addendum #24: columns-tab button renamed; session ending, /clear requested next
 
 - Renamed the extension's columns-tab apply button from "Apply to
