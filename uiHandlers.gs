@@ -213,7 +213,18 @@ const GENERIC_PREVIEW_FIELD_CONFIG = {
       { header: 'Eng %', label: 'Engagement', row: 2 },
       { header: 'Auth', label: 'Authenticity', fixDateLikeScore: true, row: 2 },
       { header: 'Age', row: 3 }, { header: 'Gender', row: 3 },
-      { header: 'Location', label: 'Est Audience Location', row: 4 }
+      { header: 'Location', label: 'Est Audience Location', row: 4 },
+      // Real surfacing bug found 2026-09-14: writeVideoRow puts the
+      // channel's About summary on the Channel cell's note and the video
+      // description's own links on the Views cell's note (extractAllUrls_,
+      // sheetWriter.gs) -- neither was ever wired into this config, so the
+      // generic preview (this sheet's ONLY sidebar card since addendum #10
+      // retired the bespoke one) never showed either, even when the
+      // underlying extraction found real links. noteOnly discards the
+      // cell's own value (a channel name / a view count) and shows only
+      // the note text.
+      { header: 'Channel', label: 'About Channel', appendNoteFrom: 'Channel', noteOnly: true, block: true },
+      { header: 'Views', label: 'Description & Links', appendNoteFrom: 'Views', noteOnly: true, block: true }
     ]
   }
 };
@@ -340,7 +351,13 @@ function getGenericRowPreview() {
         const noteIdx = colOf(spec.appendNoteFrom);
         let note = noteIdx === -1 ? '' : String(sheet.getRange(row, noteIdx + 1).getNote() || '').trim();
         if (note && spec.noteSanitize) note = sanitizeGenericPreviewValue_(note, spec.noteSanitize);
-        if (note) value = value ? value + '\n\n' + note : note;
+        // noteOnly (2026-09-14): the field exists purely to show a note --
+        // e.g. Videos' description-links note lives on the Views cell, but
+        // showing "1234\n\n<the note>" under a "Description & Links" label
+        // would misleadingly lead with the view count. Discards the cell's
+        // own value entirely rather than appending to it.
+        if (spec.noteOnly) value = note;
+        else if (note) value = value ? value + '\n\n' + note : note;
       }
       if (!value) return;
 
@@ -397,7 +414,23 @@ function getSelectedChannelSummary() {
   // past analysis run, not a daily-polled series -- recalibrates every
   // time this card loads, off whatever history actually exists so far.
   const history = getChannelSnapshotHistory_(data.channelId);
-  return { ok: true, row: row, data: data, history: history, outreachStatuses: OUTREACH_STATUSES, outreachTones: OUTREACH_TONES };
+
+  // Real surfacing bug found 2026-09-14: writeChannelRow puts the About
+  // summary + social handles (findContact's socials, contactService.gs) on
+  // the Contact cell's NOTE, not its value -- getChannelRowData_ (used by
+  // this same function, above) only ever reads the VALUE (the email
+  // string). Before this, the only place that note was ever visible was
+  // Expand's record modal (recordService.gs's getRecordGeneric_ surfaces
+  // any schema field's note generically) -- the Sidebar's own default
+  // channel card, what almost everyone actually looks at day to day, never
+  // read it at all. This is very likely why "we still don't get the social
+  // handles" even when the underlying extraction (contactService.gs) is
+  // working correctly.
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const contactCol = headers.indexOf('Contact') + 1;
+  const contactNote = contactCol ? String(sheet.getRange(row, contactCol).getNote() || '').trim() : '';
+
+  return { ok: true, row: row, data: data, history: history, contactNote: contactNote, outreachStatuses: OUTREACH_STATUSES, outreachTones: OUTREACH_TONES };
 }
 
 

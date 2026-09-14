@@ -626,6 +626,10 @@
         <div class="cc-stat"><b id="ccPosts">N/A</b><span>Posts/mo</span></div>
       </div>
       <div class="channel-card-rate" id="ccRate"></div>
+      <div class="gp-block" id="ccContactBlock" hidden style="margin-top:10px;">
+        <div class="gp-block-label">Contact details</div>
+        <div class="gp-block-value" id="ccContactNote"></div>
+      </div>
     </div>
     <div class="cc-tabpanel" id="cc-tabpanel-views"><div class="cc-chart-wrap" id="cc-chart-views"></div></div>
     <div class="cc-tabpanel" id="cc-tabpanel-likes"><div class="cc-chart-wrap" id="cc-chart-likes"></div></div>
@@ -1090,6 +1094,20 @@
       renderSparkline('cc-chart-views', history.map((h) => ({ date: h.date, value: h.avgViews })), compactNumber);
       renderSparkline('cc-chart-likes', history.map((h) => ({ date: h.date, value: h.avgLikes })), compactNumber);
       renderSparkline('cc-chart-comments', history.map((h) => ({ date: h.date, value: h.avgComments })), compactNumber);
+
+      // Real bug fix (2026-09-14): the Contact cell's note (About summary +
+      // social handles, written by writeChannelRow/findContact) was never
+      // read by this card at all -- getSelectedChannelSummary now returns
+      // it as resp.contactNote. Empty/missing means genuinely nothing was
+      // found (or the channel hasn't been (re-)analyzed since this fix
+      // shipped), not that the block failed to load.
+      const contactBlock = document.getElementById('ccContactBlock');
+      if (resp.contactNote) {
+        document.getElementById('ccContactNote').textContent = resp.contactNote;
+        contactBlock.hidden = false;
+      } else {
+        contactBlock.hidden = true;
+      }
     }
 
     // A silently-swallowed failure here looks EXACTLY like "nothing is
