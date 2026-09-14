@@ -76,6 +76,44 @@ function setRecordFieldForWebApp_(entity, keyValue, header, value) {
   return setRecordFieldGeneric_(spec.sheetName, spec.schema, spec.keyHeader, keyValue, header, value);
 }
 
+/**
+ * Every row for an entity, not just one by key -- added for the Appsmith
+ * CRM-UI scoping pass (2026-09-14): a table/board view needs a list before
+ * it can ever know which key to ask getRecordGeneric_ for. Deliberately a
+ * lighter projection than getRecordGeneric_: no link-formula parsing, no
+ * Documents, no cell Notes -- those stay on the single-record fetch
+ * (get_record), which is what a detail view is for. Skips rows with no
+ * value in the key column (not a real record yet, e.g. mid-creation).
+ */
+function listRecordsGeneric_(sheetName, schema, keyHeader) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  if (!sheet || sheet.getLastRow() < 2) return [];
+  const lastCol = sheet.getLastColumn();
+  const actualHeaders = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const keyCol = actualHeaders.indexOf(keyHeader);
+  if (keyCol === -1) return [];
+  const tz = getTimezone_();
+  const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, lastCol).getValues();
+
+  return data
+    .filter(function (row) { return row[keyCol]; })
+    .map(function (row) {
+      const fields = schema.map(function (f) {
+        const idx = actualHeaders.indexOf(f.header);
+        let value = idx === -1 ? '' : row[idx];
+        if (value instanceof Date) value = Utilities.formatDate(value, tz, 'yyyy-MM-dd');
+        return { header: f.header, type: f.type, value: value };
+      });
+      return { key: row[keyCol], fields: fields };
+    });
+}
+
+function listRecordsForWebApp_(entity) {
+  const spec = RECORD_ENTITY_MAP[entity];
+  if (!spec) throw new Error('Unknown record type: ' + entity);
+  return listRecordsGeneric_(spec.sheetName, spec.schema, spec.keyHeader);
+}
+
 /** Focused single-record dialog for the Sidebar's Expand button (the Kanban boards render this same field set inline instead, via RecordModal.html included directly into their own dialog). */
 function showChannelRecordDialog(channelId) {
   if (!hasPremiumAccess_()) { showUpgradeAlert_('Expanded channel record'); return; }

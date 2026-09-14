@@ -249,6 +249,61 @@ function routeWebAppAction_(action, body) {
       catch (e) { return { ok: false, error: e.message }; }
     }
 
+    // ---------- Added for the Appsmith CRM-UI scoping pass (2026-09-14) ----------
+
+    case 'list_records': {
+      // Every row for an entity -- a table/board view needs this before it
+      // can know which key to ask get_record for. Generalized the same
+      // way get_record/set_record already are.
+      if (!body.entity) return { ok: false, error: 'Missing entity.' };
+      try { return { ok: true, records: listRecordsForWebApp_(body.entity) }; }
+      catch (e) { return { ok: false, error: e.message }; }
+    }
+
+    case 'create_person': {
+      // Kept bespoke, not folded into a generic "create_record": createPerson
+      // resolves the Brand name against the canonical Brands directory
+      // (resolveBrandId_, brandService.gs) -- a real side effect a generic
+      // blank-row insert would skip.
+      try { return createPerson(body.name, body.role, body.email, body.phone, body.linkedChannelId, body.brand, body.source, body.notes); }
+      catch (e) { return { ok: false, error: e.message }; }
+    }
+
+    case 'create_opportunity': {
+      // Same reasoning: createOpportunity resolves Brand AND logs the
+      // creation to the Activity Log (recordActivity_) -- real side effects,
+      // not just a row insert.
+      try { return createOpportunity(body.brand, body.primaryContactId, body.estValue, body.compensationType, body.source, body.notes); }
+      catch (e) { return { ok: false, error: e.message }; }
+    }
+
+    case 'update_opportunity_stage': {
+      // Deliberately NOT routed through set_record: writing 'Stage' via the
+      // generic field setter would skip updateOpportunityStage's Activity
+      // Log entry (the exact gap named in NOTES.md addendum #18) -- this
+      // calls the real function so a stage change made from Appsmith gets
+      // the same history entry a change made anywhere else would.
+      if (!body.opportunityId || !body.stage) return { ok: false, error: 'Missing opportunityId or stage.' };
+      return updateOpportunityStage(body.opportunityId, body.stage);
+    }
+
+    case 'list_campaign_tasks': {
+      if (!body.campaignId) return { ok: false, error: 'Missing campaignId.' };
+      try { return { ok: true, tasks: getCampaignTasks_(body.campaignId) }; }
+      catch (e) { return { ok: false, error: e.message }; }
+    }
+
+    case 'toggle_campaign_task': {
+      if (!body.taskId) return { ok: false, error: 'Missing taskId.' };
+      return toggleCampaignTask(body.taskId, !!body.done);
+    }
+
+    case 'get_entity_timeline': {
+      if (!body.entityType || !body.entityId) return { ok: false, error: 'Missing entityType or entityId.' };
+      try { return { ok: true, timeline: getEntityTimeline_(body.entityType, body.entityId) }; }
+      catch (e) { return { ok: false, error: e.message }; }
+    }
+
     default:
       return { ok: false, error: 'Unknown action: ' + action };
   }
