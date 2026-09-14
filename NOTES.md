@@ -4,6 +4,149 @@
 nothing in STATUS.md/ROADMAP.md, which are the durable project docs —
 this is the "what was I doing right before the clear" layer.*
 
+## 2026-09-14 addendum #18: CRM data model implemented (schema + service layer, no UI) -- founder answered all 7 open questions from addendum #17's plan
+
+Full plan (context, entity rationale, all 7 open questions) lives at
+`.claude/plans/groovy-wandering-koala.md` -- this entry is the "what actually
+got built" record, not a duplicate of the reasoning already there.
+
+**Founder's answers, and what each one produced**:
+1/2. **Opportunity stages + Campaign Tasks checklist: "use discretion, best
+   practices + what's peculiar to Koli."** Researched a real reference first
+   -- github.com/Check-It-Out-Dev/checkitout-backend (MIT, same problem
+   domain: an influencer-marketing marketplace), checked via GitHub's API
+   before trusting it (0 stars, but on-topic and MIT, and its actual entity
+   code -- `PartnershipOpportunity`/`AppliedOpportunity`/`OpportunityStatus`/
+   `AppliedOpportunityStatusHistory`/`CompensationType` -- was read directly,
+   not just the README). Did NOT import their 12-state content-approval state
+   machine (wrong product shape: checkitout is a self-serve two-sided app
+   with in-app content approval; Koli is one operator manually running
+   outreach) -- but did adopt two real ideas from it: `OPPORTUNITY_STAGES =
+   ['New','Contacted','Qualified','Proposal Sent','Negotiating','Won','Lost']`
+   (standard CRM vocabulary, "Qualified" specifically because Brand Targets'
+   existing Priority flag deserves a real pipeline position once a brand is
+   actually being pursued), and a new `Compensation Type` field (Cash/Barter/
+   Mixed) on Opportunity -- a real gap Campaigns.Value never covered (implicit
+   cash-only). `DEFAULT_CAMPAIGN_CHECKLIST = ['Contract Signed','Assets
+   Received','Content Posted','Invoiced','Paid']` -- kept the founder's own
+   4-word shape but split "invoiced"/"paid" into two checkable steps,
+   mirroring how `CAMPAIGN_STAGES` already treats those as different states
+   (and checkitout's `TO_BE_PAID`/`DONE` split, same reasoning independently
+   confirmed). Both are plain array constants, one-line to edit later --
+   not presented as final.
+3. **Brand ID: "Fix."** New hidden `_Brands` directory sheet
+   (`brandService.gs`'s `resolveBrandId_`, find-or-create by case/whitespace-
+   insensitive name match) -- Person and Opportunity both resolve their Brand
+   name through it now. Deliberately scoped: does NOT migrate Campaigns/
+   Brand Targets/Sponsors/Brand Discovery (all still bare-text Brand columns)
+   -- that's a bigger, separate backfill touching 4 more sheets' existing
+   data, flagged rather than silently expanded into.
+4. **Kanban generalization: "use recommended."** Recorded as the direction
+   for whenever Opportunity's board actually gets built (no Kanban UI exists
+   for Opportunity yet -- this pass is schema+service only) -- generalize the
+   mechanism instead of hand-copying a third OutreachKanban.html-shaped file.
+   No code changed for this one; there's nothing to generalize until a third
+   board is actually being built.
+5. **Campaign must come from a Won Opportunity: "Won opportunity is better,
+   however prompts to create is a good idea."** Implemented as: `Opportunity
+   ID` added to `CAMPAIGN_HEADERS` (additive/nullable, same convention as
+   Campaign ID's own backfill) -- `createCampaign` still works standalone
+   with no Opportunity at all (unchanged default path), and a new
+   `convertOpportunityToCampaign_` (opportunityService.gs) is the recommended
+   path, but only succeeds when the Opportunity's Stage is literally 'Won'
+   (throws a clear message otherwise, pointing at calling `createCampaign`
+   directly for an override) -- the "prompts to create" half (a dialog
+   offering to link/create an Opportunity when making a Campaign) is real UI,
+   not built this pass.
+6. **Transcription: "sort it out, local first for me, capture AND
+   processing."** Not implemented (still genuinely separate scope, per the
+   original open question) -- but the technical direction is now recorded
+   rather than left blank: prefer a fully on-device speech-to-text path (a
+   WASM-compiled Whisper model -- transformers.js's `whisper-tiny.en`/
+   `whisper-base`, or whisper.cpp's own WASM build -- run inside the
+   extension's side panel) over the browser's built-in Web Speech API, which
+   is free but actually round-trips audio to Google's own servers rather
+   than staying on-device, and over any paid cloud STT vendor. Honest
+   trade-off flagged, not hidden: a real local model means a real one-time
+   download bundled with the extension and slower-than-realtime transcription
+   on CPU-only hardware -- acceptable for a "summary lands in Sheets after
+   the call ends" workflow (not live captioning), which is exactly the shape
+   asked for. Needs its own build/scoping pass (MV3 extension audio-capture
+   architecture) before anything runs -- not started.
+7. **The 4 checkitout URLs**: fetched via GitHub's API + a few raw source
+   files before using them (see #1/2 above) -- genuinely useful for Opportunity/
+   status-history/compensation-type shape, confirmed MIT and on-topic despite
+   0 stars (very new, June-Sept 2026). `checkitout-frontend` (Angular) and
+   `graph-theory-system-modeling` (Python knowledge-graph tooling) were
+   checked too but aren't relevant to an Apps Script build -- noted, not used.
+   **The 32-section "Koli_100_Percent_Thread_Faithful_Master_Handoff" PDF is
+   still an open loop** -- founder said "need help with this," which reads as
+   not having it readily at hand rather than a location I could look up
+   myself; asked directly where/how to get it (see the live conversation, not
+   repeated here) -- still unresolved as of this addendum. Worth a
+   reconciliation pass against everything below once it surfaces, per the
+   original plan's open question #7.
+
+**What actually got built** (schema + service layer only, no UI, no menu
+items, no dialogs -- exactly the boundary the original plan drew):
+- `constants.gs`: `BRAND_HEADERS`, `PERSON_HEADERS`/`PERSON_FIELD_SCHEMA`,
+  `OPPORTUNITY_HEADERS`/`OPPORTUNITY_FIELD_SCHEMA`/`OPPORTUNITY_STAGES`/
+  `OPPORTUNITY_STAGE_TONES`/`COMPENSATION_TYPES`/`COMPENSATION_TYPE_TONES`,
+  `ACTIVITY_LOG_HEADERS`/`ACTIVITY_TYPES`/`ACTIVITY_ENTITY_TYPES`,
+  `CAMPAIGN_TASK_HEADERS`/`DEFAULT_CAMPAIGN_CHECKLIST`, plus `Opportunity ID`
+  appended to `CAMPAIGN_HEADERS`/`CAMPAIGN_FIELD_SCHEMA`. Five new
+  `SHEET_NAMES` entries (`PEOPLE`, `OPPORTUNITIES`, `CAMPAIGN_TASKS` visible;
+  `BRANDS`/`ACTIVITY_LOG` hidden, underscore-prefixed like the existing
+  control sheets).
+- New `brandService.gs` (`resolveBrandId_`/`getBrandName_`), `personService.gs`
+  (`createPerson`), `opportunityService.gs` (`createOpportunity`/
+  `updateOpportunityStage`/`convertOpportunityToCampaign_`),
+  `activityLogService.gs` (`recordActivity_`/`getEntityTimeline_`/
+  `logActivityForEntity` -- the generalized Snapshots-pattern timeline, one
+  shared sheet across all 4 entity types, a call transcript is just a row
+  with `Type: 'Transcript Summary'`, no schema variant needed).
+- `recordService.gs` extended with `getPersonRecord`/`setPersonField`/
+  `getPersonFieldSchema` and the Opportunity equivalents (same 3-line-wrapper
+  convention as Channel/Campaign), plus `RECORD_ENTITY_MAP` +
+  `getRecordForWebApp_`/`setRecordFieldForWebApp_` -- a fixed server-side
+  entity->{sheet,schema,keyHeader} map so the client can only ever pick an
+  entity NAME, never supply its own sheet/schema.
+- `inboxService.gs` gained 2 new doPost actions, `get_record`/`set_record`,
+  generalized across all 4 entity types via the map above -- one action pair
+  added instead of one get_x/set_x pair per new entity, the "cleanest fit"
+  the original plan called for.
+- `campaignService.gs`: `createCampaign` takes an optional trailing
+  `opportunityId` (backward compatible -- existing callers passing 6 args
+  still work unchanged), seeds a fresh Campaign Tasks checklist on every new
+  Campaign (`seedCampaignTasks_`), plus `getCampaignTasks_`/
+  `toggleCampaignTask`.
+- People/Opportunities/Campaign Tasks need **zero new Sidebar code** to show
+  up there: none of the 3 new sheet names are Dashboard or `_`-prefixed, so
+  `getSelectedRowMarker`'s existing deny-list already lets them through, and
+  the untrimmed generic-preview fallback (`GENERIC_PREVIEW_ALWAYS_HIDDEN`)
+  already shows every non-empty column except ID-shaped ones -- selecting a
+  row on any of the 3 new sheets should already render a card, with no
+  `GENERIC_PREVIEW_FIELD_CONFIG` entry added for any of them (deliberately
+  left un-curated for now; a curated trim is optional follow-up, not
+  required for this to work at all).
+- Real, known gap left in place, not silently papered over: editing an
+  Opportunity's Stage through the generic `setOpportunityField`/`set_record`
+  path (rather than `updateOpportunityStage`) skips the Activity Log entry.
+  Harmless today (nothing wires Opportunity into the record modal or any
+  UI yet), but whoever builds that UI next needs to route Stage changes
+  through `updateOpportunityStage`, not the raw generic setter.
+- Every `.gs` file syntax-checked clean (`node -e "new Function(src)"`),
+  `node tests/run-logic-tests.js` still 72/3 (same pre-existing
+  licenseService.gs baseline, untouched by any of this), `clasp push`
+  succeeded (all 4 new files confirmed in the push output). Committed and
+  pushed to `origin/master`.
+- **Not live-tested at all** -- nothing calls any of this yet (no menu item,
+  no dialog, no extension screen), so there's nothing to click-test against
+  a real Sheet. The actual next step, per the plan's own closing section, is
+  its own pass: the three UI surfaces (extension CRM screen, webapp CRM page,
+  Sidebar Expand-button record modals for Person/Opportunity) -- still not
+  started.
+
 ## 2026-09-14 addendum #17: git caught up, sparkline port shipped; redeploy still blocked
 
 User said "do all 3" in response to a 3-way choice (redeploy+live-test /
