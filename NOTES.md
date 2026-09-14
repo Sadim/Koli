@@ -4,6 +4,67 @@
 nothing in STATUS.md/ROADMAP.md, which are the durable project docs —
 this is the "what was I doing right before the clear" layer.*
 
+## 2026-09-14 addendum #22: real bug found via live screenshot; Appsmith CRM-UI scoped and its server-side prep shipped
+
+- **Real bug, found from a live screenshot of the founder actually
+  testing**: pasting a connection code then clicking the big "Test & Lock"
+  button directly (skipping the small separate "Fill in URL & secret from
+  this code" link) left the URL/secret fields genuinely empty --
+  Test & Lock correctly but unhelpfully said "URL and secret are both
+  required." A paste-then-remember-a-different-click flow is exactly the
+  trap a guided setup should prevent. Fixed: decode now fires on `input`
+  (the instant a paste lands, no separate click needed), and Test & Lock
+  itself falls back to decoding first if the fields are still empty but a
+  code is sitting in the textarea. `send-to-koli-extension/sidepanel.js`
+  only -- needs a reload of the unpacked extension.
+- **Appsmith as the CRM UI, scoped via a real plan** (superseded the
+  earlier CRM data-model plan file at `.claude/plans/groovy-wandering-koala.md`,
+  since that one's fully implemented): founder wants Appsmith (open-source
+  no-code builder) as the UI for the Person/Opportunity/Campaign-Tasks/
+  Activity-Log entities that shipped with no UI in addendum #18, with
+  Koli's Sheet staying the only backend, no hosting, no paying. Checked
+  Appsmith's actual current docs before answering rather than going from
+  memory: Cloud Free tier is real (unlimited apps, 5 users, 5 workspaces,
+  no hosting required -- self-hosting is a separate opt-in), and their
+  native Google Sheets connector is real (OAuth to the founder's OWN
+  Google account, not a service account Appsmith holds). One genuinely
+  unverified thing: no documented API-call-volume cap on the free tier --
+  founder needs to sign up and check in practice (account creation isn't
+  something I can do on their behalf).
+- **The real architectural decision, resolved with a recommendation**:
+  Appsmith's own Sheets connector (pointed straight at the spreadsheet) vs.
+  its REST API datasource (pointed at Koli's own Web App). Recommended and
+  the founder approved: **REST-via-Web-App**, because the direct-Sheets
+  path would silently skip real service-layer side effects that only exist
+  in `.gs` code, not in cells -- Brand resolution (`resolveBrandId_`), the
+  Activity Log entry on an Opportunity's creation/stage-change, Campaign
+  Tasks auto-seeding on a new Campaign. A record created the wrong way
+  would look fine in a table and quietly be missing data other parts of
+  Koli depend on.
+- **Server-side prep shipped** (recordService.gs, inboxService.gs): this
+  session's `get_record`/`set_record` (addendum #18) only cover one row by
+  key -- a table/board UI needs more. Added `list_records` (every row for
+  an entity, generalized via the same `RECORD_ENTITY_MAP`, a lighter
+  projection than `get_record` -- no link/Documents/Notes, those stay on
+  the single-record fetch). Added `create_person`/`create_opportunity` as
+  their OWN doPost cases rather than folding into a generic `create_record`
+  -- each has real side effects (Brand resolution, an Activity Log entry)
+  a blank-row insert would skip. Added `update_opportunity_stage` as its
+  own case rather than routing through `set_record`, specifically because
+  `set_record` would skip the Activity Log entry (the exact gap already
+  named in addendum #18). Added `list_campaign_tasks`/`toggle_campaign_task`/
+  `get_entity_timeline` to expose the remaining CRM functions that had no
+  Web App action at all yet.
+- Syntax-checked both files, tests 72/3 (same pre-existing baseline),
+  `clasp push` succeeded, committed and pushed.
+- **Not yet live-tested, and the actual Appsmith app isn't built yet** --
+  this pass was the API surface + scoping only. Next real step is the
+  founder's own: sign up for Appsmith Cloud, verify the free tier's actual
+  limits, then wire up the REST datasource using a new named connection
+  (Settings > Connections > Add, name it "Appsmith") against these new
+  actions. See the plan file for the full recommended page scope
+  (Opportunities/People/Campaign Tasks/Activity).
+
 ## 2026-09-14 addendum #21: named per-device connections replace the single shared secret; guided setup improvements
 
 Founder paused the requested "guided setup wizard" build to flag a real
