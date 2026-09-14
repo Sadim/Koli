@@ -186,6 +186,24 @@ function routeWebAppAction_(action, body) {
       return applyColumnLayout_(SHEET_NAMES.VIDEOS, body.columns);
     }
 
+    case 'get_record': {
+      // Generalized across every record type (recordService.gs's
+      // RECORD_ENTITY_MAP) instead of a bespoke get_x action per entity --
+      // added with the CRM data model (Person/Opportunity) so a new record
+      // type doesn't need a new doPost case here every time. `entity` is
+      // matched against a fixed server-side list; the client only ever
+      // picks a name, never a sheet/schema.
+      if (!body.entity || !body.keyValue) return { ok: false, error: 'Missing entity or keyValue.' };
+      try { return Object.assign({ ok: true }, getRecordForWebApp_(body.entity, body.keyValue)); }
+      catch (e) { return { ok: false, error: e.message }; }
+    }
+
+    case 'set_record': {
+      if (!body.entity || !body.keyValue || !body.header) return { ok: false, error: 'Missing entity, keyValue, or header.' };
+      try { return setRecordFieldForWebApp_(body.entity, body.keyValue, body.header, body.value); }
+      catch (e) { return { ok: false, error: e.message }; }
+    }
+
     default:
       return { ok: false, error: 'Unknown action: ' + action };
   }

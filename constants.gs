@@ -68,7 +68,16 @@ const SHEET_NAMES = {
   PUBLISHED_PAGES: '_PublishedPages',        // hidden: token -> Drive file lookup for publishService.gs
   EMAIL_OPENS: '_EmailOpens',                // hidden: tracking-pixel token -> open log
   BRAND_INTEREST: 'Brand Interest',         // visible: inbound "I'm interested" clicks from published pages
-  KOLINDAR_BOOKINGS: 'Kolindar Bookings'     // visible: every booking made through the public Kolindar page
+  KOLINDAR_BOOKINGS: 'Kolindar Bookings',    // visible: every booking made through the public Kolindar page
+  // CRM data model (scoped 2026-09-14, see NOTES.md): People/Opportunities/
+  // Campaign Tasks are real content the operator looks at, so visible;
+  // Brands and the Activity Log are lookup/control plumbing, hidden like
+  // the other underscore-prefixed sheets above.
+  PEOPLE: 'People',
+  OPPORTUNITIES: 'Opportunities',
+  CAMPAIGN_TASKS: 'Campaign Tasks',
+  BRANDS: '_Brands',
+  ACTIVITY_LOG: '_ActivityLog'
 };
 
 const INBOX_HEADERS = ['Status', 'Type', 'Value', 'Page Title', 'Source URL', 'Captured'];
@@ -84,7 +93,13 @@ const CAMPAIGN_HEADERS = ['Channel', 'Channel ID', 'Brand', 'Stage', 'Deliverabl
   // sheets. Campaign ID is the stable per-row key the Campaigns Kanban board
   // needs (Campaigns previously had no unique column at all -- Channel ID
   // alone repeats across multiple deals with the same channel).
-  'Campaign ID', 'Documents'];
+  'Campaign ID', 'Documents',
+  // Additive, added with the CRM data model (2026-09-14): set only when a
+  // Campaign was actually converted from a Won Opportunity
+  // (opportunityService.gs's convertOpportunityToCampaign_) -- blank for
+  // every Campaign created directly, which is still the default path and
+  // stays fully supported.
+  'Opportunity ID'];
 const CAMPAIGN_STAGES = ['Briefed', 'In Production', 'Delivered', 'Payment Pending', 'Paid', 'Complete', 'Cancelled'];
 
 // Outreach draft generator (Batch 3): one row per generated draft, not
@@ -255,7 +270,8 @@ const CAMPAIGN_FIELD_SCHEMA = [
   { header: 'Notes', type: 'longtext', editable: true },
   { header: 'Created', type: 'readonly' },
   { header: 'Updated', type: 'readonly' },
-  { header: 'Documents', type: 'documents', editable: true }
+  { header: 'Documents', type: 'documents', editable: true },
+  { header: 'Opportunity ID', type: 'readonly' }
   // Campaign ID deliberately excluded: internal key, never rendered.
 ];
 
@@ -292,6 +308,101 @@ const DISCOVER_HEADERS = [
 const SNAPSHOT_HEADERS = ['Channel ID', 'Date', 'Sub Count', 'Avg Views', 'Avg Likes', 'Avg Comments'];
 
 const TRACKED_PROFILE_HEADERS = ['Channel ID', 'Channel Name', 'Tracked', 'Start Date', 'Last Run'];
+
+// ---------- CRM data model (scoped 2026-09-14, see NOTES.md for the full
+// reasoning) -- Person/Opportunity/Activity Log/Campaign Tasks, plus a
+// canonical Brand directory. Schema/service layer only: no menu item or
+// dialog wires any of this to a UI yet, on purpose -- that's the next,
+// separate pass. ----------
+
+// Canonical Brand directory: Campaigns/Brand Targets/Sponsors have always
+// stored Brand as a bare text column, so a typo silently creates a
+// phantom brand with no way to notice. This doesn't migrate those older
+// sheets (a bigger, separate backfill) -- every NEW entity below resolves
+// its Brand name against this directory instead (brandService.gs's
+// resolveBrandId_), case/whitespace-insensitively.
+const BRAND_HEADERS = ['Brand ID', 'Name', 'Created'];
+
+// Person: the normalized human contact Channels' own Contact field never
+// was (that field is an auto-scraped About-page note, not a curated
+// record) and Brand Targets/Sponsors never had at all (brand name only,
+// no named decision-maker). Additive, not a replacement for Contact.
+const PERSON_HEADERS = ['Person ID', 'Name', 'Role', 'Email', 'Phone', 'Linked Channel ID', 'Brand', 'Brand ID', 'Source', 'Notes', 'Added'];
+const PERSON_FIELD_SCHEMA = [
+  { header: 'Name', type: 'text', editable: true },
+  { header: 'Role', type: 'text', editable: true },
+  { header: 'Email', type: 'text', editable: true },
+  { header: 'Phone', type: 'text', editable: true },
+  { header: 'Linked Channel ID', type: 'text', editable: true },
+  { header: 'Brand', type: 'text', editable: true },
+  { header: 'Source', type: 'text', editable: true },
+  { header: 'Notes', type: 'longtext', editable: true },
+  { header: 'Added', type: 'readonly' }
+  // Person ID/Brand ID deliberately excluded: internal keys, never rendered
+  // (same convention as Campaign ID on CAMPAIGN_FIELD_SCHEMA above).
+];
+
+// Opportunity: the brand-side sales pipeline that had nothing before this
+// (Channels' Outreach column is already the creator-side pipeline;
+// Campaigns' Stage is already post-close execution -- this doesn't
+// duplicate either, it fills the one gap: pitching a brand, independent
+// of any one creator, from first contact through won/lost). "Qualified"
+// gives Brand Targets' existing Priority flag a real pipeline position
+// instead of staying invisible once a brand is actually being pursued.
+const OPPORTUNITY_STAGES = ['New', 'Contacted', 'Qualified', 'Proposal Sent', 'Negotiating', 'Won', 'Lost'];
+const OPPORTUNITY_STAGE_TONES = {
+  'New': 'neutral', 'Contacted': 'mid', 'Qualified': 'mid', 'Proposal Sent': 'mid',
+  'Negotiating': 'mid', 'Won': 'good', 'Lost': 'bad'
+};
+// A real gap Koli's own Campaigns.Value never covered: it implicitly
+// assumes cash, but plenty of creator/brand deals are barter or mixed.
+// Checked against checkitout-backend's CompensationType enum (same
+// problem domain, MIT) during scoping -- Cash/Barter is genuinely the
+// same real-world split, "Mixed" added since a single deal splitting cash
+// + product is common enough to not force into either bucket.
+const COMPENSATION_TYPES = ['Cash', 'Barter', 'Mixed'];
+const COMPENSATION_TYPE_TONES = { 'Cash': 'good', 'Barter': 'mid', 'Mixed': 'neutral' };
+
+const OPPORTUNITY_HEADERS = ['Opportunity ID', 'Brand', 'Brand ID', 'Stage', 'Primary Contact', 'Est. Value', 'Compensation Type', 'Source', 'Notes', 'Created', 'Updated'];
+const OPPORTUNITY_FIELD_SCHEMA = [
+  { header: 'Brand', type: 'text', editable: true },
+  { header: 'Stage', type: 'enum', editable: true, options: OPPORTUNITY_STAGES, tones: OPPORTUNITY_STAGE_TONES },
+  { header: 'Primary Contact', type: 'text', editable: true },
+  { header: 'Est. Value', type: 'currency', editable: true },
+  { header: 'Compensation Type', type: 'enum', editable: true, options: COMPENSATION_TYPES, tones: COMPENSATION_TYPE_TONES },
+  { header: 'Source', type: 'text', editable: true },
+  { header: 'Notes', type: 'longtext', editable: true },
+  { header: 'Created', type: 'readonly' },
+  { header: 'Updated', type: 'readonly' }
+  // Opportunity ID/Brand ID deliberately excluded, same reasoning as Person.
+  // Editing Stage through this generic field (setOpportunityField) instead
+  // of updateOpportunityStage (opportunityService.gs) skips the Activity
+  // Log entry -- fine today since nothing wires Opportunity into the record
+  // modal yet, but worth remembering before that UI gets built.
+];
+
+// Activity Log: one shared, append-only timeline across every CRM entity
+// (Channel/Opportunity/Campaign/Person) instead of a fourth bespoke
+// per-entity log -- generalizes the existing Snapshots pattern
+// (recordSubscriberSnapshot_/getChannelSnapshotHistory_, sheetWriter.gs).
+// A call transcript summary is just a row with Type 'Transcript Summary';
+// same shape as a plain Email/Note/Meeting entry, no schema variant needed.
+const ACTIVITY_ENTITY_TYPES = ['Channel', 'Opportunity', 'Campaign', 'Person'];
+const ACTIVITY_TYPES = ['Email', 'Call', 'Note', 'Transcript Summary', 'Status Change', 'Meeting'];
+const ACTIVITY_LOG_HEADERS = ['Entity Type', 'Entity ID', 'Type', 'Timestamp', 'Summary', 'Detail', 'Related Link'];
+
+// Campaign Tasks: the per-brand checklist (contract -> assets -> posted ->
+// invoiced was the founder's own working idea) -- keyed on Campaign, not
+// Brand, since it's clearly per-deliverable tracking. "Invoiced" and
+// "Paid" kept as two separate checkable steps rather than collapsed into
+// one, mirroring how CAMPAIGN_STAGES right next to it already separates
+// "Payment Pending" from "Paid" (and how checkitout-backend's
+// OpportunityStatus, checked during scoping, treats TO_BE_PAID and DONE
+// as two distinct states too). A plain array, same "one-line-constant to
+// change" convention as CAMPAIGN_STAGES/OUTREACH_STATUSES -- not meant to
+// be final.
+const DEFAULT_CAMPAIGN_CHECKLIST = ['Contract Signed', 'Assets Received', 'Content Posted', 'Invoiced', 'Paid'];
+const CAMPAIGN_TASK_HEADERS = ['Task ID', 'Campaign ID', 'Label', 'Order', 'Done', 'Done Date', 'Notes'];
 
 const PROP_KEYS = {
   YOUTUBE_API_KEY: 'YOUTUBE_API_KEY',

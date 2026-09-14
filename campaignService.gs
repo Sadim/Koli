@@ -18,7 +18,8 @@ function showCreateCampaignDialog() {
   SpreadsheetApp.getUi().showModalDialog(t.evaluate().setWidth(420).setHeight(440), 'New Campaign');
 }
 
-function createCampaign(row, brand, deliverables, value, deadline, notes) {
+/** `opportunityId` is optional (CRM data model, 2026-09-14): blank for a Campaign created directly, as every Campaign has always been created -- set only when this call came from convertOpportunityToCampaign_ (opportunityService.gs). Either way, a fresh Campaign Tasks checklist gets seeded (seedCampaignTasks_). */
+function createCampaign(row, brand, deliverables, value, deadline, notes, opportunityId) {
   const channelsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.CHANNELS);
   const rowData = getChannelRowData_(channelsSheet, row);
   if (!rowData.channelId) throw new Error('This row has no Channel ID: analyze it with Channel Analysis first.');
@@ -36,7 +37,7 @@ function createCampaign(row, brand, deliverables, value, deadline, notes) {
     'Channel ID': rowData.channelId, 'Brand': sanitizeCellText_(brand), 'Stage': 'Briefed',
     'Deliverables': sanitizeCellText_(deliverables || ''), 'Value': value || '', 'Deadline': deadline || '',
     'Notes': sanitizeCellText_(notes || ''), 'Created': new Date(), 'Updated': new Date(),
-    'Campaign ID': campaignId
+    'Campaign ID': campaignId, 'Opportunity ID': opportunityId || ''
   };
   Object.keys(fieldValues).forEach(function (name) {
     const col = colOf(name);
@@ -47,7 +48,47 @@ function createCampaign(row, brand, deliverables, value, deadline, notes) {
   if (colOf('Created')) sheet.getRange(newRow, colOf('Created')).setNumberFormat('yyyy-mm-dd hh:mm');
   if (colOf('Updated')) sheet.getRange(newRow, colOf('Updated')).setNumberFormat('yyyy-mm-dd hh:mm');
 
-  return { ok: true, channelName: rowData.name, brand: brand };
+  seedCampaignTasks_(campaignId);
+
+  return { ok: true, channelName: rowData.name, brand: brand, campaignId: campaignId };
+}
+
+// ---------- Campaign Tasks (CRM data model, 2026-09-14) -- the per-brand
+// checklist, keyed on Campaign ID; see DEFAULT_CAMPAIGN_CHECKLIST/
+// CAMPAIGN_TASK_HEADERS in constants.gs for the shape and reasoning. ----------
+
+/** Seeds a fresh checklist for a new Campaign from DEFAULT_CAMPAIGN_CHECKLIST. Called once, from createCampaign -- not idempotent by design (re-running it would duplicate the list), same as Snapshots' appendRow-only convention. */
+function seedCampaignTasks_(campaignId) {
+  const sheet = getOrCreateSheet_(SHEET_NAMES.CAMPAIGN_TASKS, CAMPAIGN_TASK_HEADERS);
+  DEFAULT_CAMPAIGN_CHECKLIST.forEach(function (label, i) {
+    sheet.appendRow([Utilities.getUuid(), campaignId, label, i + 1, false, '', '']);
+  });
+}
+
+function getCampaignTasks_(campaignId) {
+  const sheet = getOrCreateSheet_(SHEET_NAMES.CAMPAIGN_TASKS, CAMPAIGN_TASK_HEADERS);
+  const data = sheet.getDataRange().getValues().slice(1);
+  return data
+    .filter(function (r) { return r[1] === campaignId; })
+    .map(function (r) {
+      return {
+        taskId: r[0], campaignId: r[1], label: r[2], order: r[3], done: !!r[4],
+        doneDate: r[5] instanceof Date ? Utilities.formatDate(r[5], getTimezone_(), 'yyyy-MM-dd') : r[5], notes: r[6]
+      };
+    })
+    .sort(function (a, b) { return a.order - b.order; });
+}
+
+function toggleCampaignTask(taskId, done) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.CAMPAIGN_TASKS);
+  if (!sheet) return { ok: false, error: 'Campaign Tasks sheet not found.' };
+  const row = findRowByKey_(sheet, 1, taskId); // Task ID is col 1
+  if (row === -1) return { ok: false, error: 'Task not found.' };
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const doneCol = headers.indexOf('Done') + 1, doneDateCol = headers.indexOf('Done Date') + 1;
+  sheet.getRange(row, doneCol).setValue(!!done);
+  if (doneDateCol) sheet.getRange(row, doneDateCol).setValue(done ? new Date() : '');
+  return { ok: true };
 }
 
 /** Native dropdown for Stage, same UX as Outreach's: applied once per sheet, not per row. */
@@ -67,7 +108,7 @@ function ensureCampaignStageColumn_(sheet) {
  * same "only touch blanks" shape as ensureOutreachColumn_'s status backfill.
  */
 function ensureCampaignIdColumn_(sheet) {
-  ensureExtraColumns_(sheet, ['Campaign ID', 'Documents']);
+  ensureExtraColumns_(sheet, ['Campaign ID', 'Documents', 'Opportunity ID']);
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   const idCol = headers.indexOf('Campaign ID') + 1;
   if (!idCol) return;

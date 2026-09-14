@@ -29,6 +29,53 @@ function setCampaignField(campaignId, header, value) {
 }
 function getCampaignFieldSchema() { return CAMPAIGN_FIELD_SCHEMA; }
 
+// ---------- CRM data model additions (2026-09-14) -- same generic
+// mechanism, two more thin wrapper triads. ----------
+
+function getPersonRecord(personId) {
+  return getRecordGeneric_(SHEET_NAMES.PEOPLE, PERSON_FIELD_SCHEMA, 'Person ID', personId);
+}
+function setPersonField(personId, header, value) {
+  return setRecordFieldGeneric_(SHEET_NAMES.PEOPLE, PERSON_FIELD_SCHEMA, 'Person ID', personId, header, value);
+}
+function getPersonFieldSchema() { return PERSON_FIELD_SCHEMA; }
+
+function getOpportunityRecord(opportunityId) {
+  return getRecordGeneric_(SHEET_NAMES.OPPORTUNITIES, OPPORTUNITY_FIELD_SCHEMA, 'Opportunity ID', opportunityId);
+}
+function setOpportunityField(opportunityId, header, value) {
+  return setRecordFieldGeneric_(SHEET_NAMES.OPPORTUNITIES, OPPORTUNITY_FIELD_SCHEMA, 'Opportunity ID', opportunityId, header, value);
+}
+function getOpportunityFieldSchema() { return OPPORTUNITY_FIELD_SCHEMA; }
+
+/**
+ * Fixed, server-side entity->{sheetName,schema,keyHeader} map -- lets the
+ * Web App expose ONE get_record/set_record action pair (inboxService.gs)
+ * instead of a new get_x/set_x case every time a record type is added.
+ * The client only ever picks an `entity` NAME from this list; it can never
+ * supply its own sheet name or schema, which is the whole point -- same
+ * "vetted, fixed set of Koli's own functions, never arbitrary code" rule
+ * inboxService.gs's own header comment already states for every other
+ * action here.
+ */
+const RECORD_ENTITY_MAP = {
+  channel: { sheetName: SHEET_NAMES.CHANNELS, schema: CHANNEL_FIELD_SCHEMA, keyHeader: 'ID' },
+  campaign: { sheetName: SHEET_NAMES.CAMPAIGNS, schema: CAMPAIGN_FIELD_SCHEMA, keyHeader: 'Campaign ID' },
+  person: { sheetName: SHEET_NAMES.PEOPLE, schema: PERSON_FIELD_SCHEMA, keyHeader: 'Person ID' },
+  opportunity: { sheetName: SHEET_NAMES.OPPORTUNITIES, schema: OPPORTUNITY_FIELD_SCHEMA, keyHeader: 'Opportunity ID' }
+};
+
+function getRecordForWebApp_(entity, keyValue) {
+  const spec = RECORD_ENTITY_MAP[entity];
+  if (!spec) throw new Error('Unknown record type: ' + entity);
+  return getRecordGeneric_(spec.sheetName, spec.schema, spec.keyHeader, keyValue);
+}
+function setRecordFieldForWebApp_(entity, keyValue, header, value) {
+  const spec = RECORD_ENTITY_MAP[entity];
+  if (!spec) throw new Error('Unknown record type: ' + entity);
+  return setRecordFieldGeneric_(spec.sheetName, spec.schema, spec.keyHeader, keyValue, header, value);
+}
+
 /** Focused single-record dialog for the Sidebar's Expand button (the Kanban boards render this same field set inline instead, via RecordModal.html included directly into their own dialog). */
 function showChannelRecordDialog(channelId) {
   if (!hasPremiumAccess_()) { showUpgradeAlert_('Expanded channel record'); return; }

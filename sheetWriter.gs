@@ -56,7 +56,7 @@ function getOrCreateSheet_(name, headers) {
     sheet.appendRow(headers);
     formatHeaderRow_(sheet, headers.length);
     applyKoliDefaultFormat_(sheet, headers.length);
-    if (name === SHEET_NAMES.SNAPSHOTS || name === SHEET_NAMES.TRACKED_PROFILES || name === SHEET_NAMES.PUBLISHED_PAGES || name === SHEET_NAMES.EMAIL_OPENS) sheet.hideSheet();
+    if (name === SHEET_NAMES.SNAPSHOTS || name === SHEET_NAMES.TRACKED_PROFILES || name === SHEET_NAMES.PUBLISHED_PAGES || name === SHEET_NAMES.EMAIL_OPENS || name === SHEET_NAMES.BRANDS || name === SHEET_NAMES.ACTIVITY_LOG) sheet.hideSheet();
     (HIDDEN_COLS[name] || []).forEach(function (col) { sheet.hideColumns(col); });
   } else if (sheet.getLastRow() === 0) {
     sheet.appendRow(headers);
