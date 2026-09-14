@@ -143,8 +143,13 @@ function renderFindPage_() {
     'label{display:block;font-weight:700;font-size:12px;margin-bottom:7px;}' +
     '#q{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;background:var(--surface);margin-bottom:16px;}' +
     '.tier-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;}' +
-    '.tier-box{border:1px solid var(--border);border-radius:10px;padding:10px;cursor:pointer;text-align:center;user-select:none;}' +
+    '.tier-box{position:relative;border:1px solid var(--border);border-radius:10px;padding:10px;cursor:pointer;text-align:center;user-select:none;}' +
     '.tier-box.active{border-color:var(--patina-deep);background:var(--green-bg);}' +
+    // Real gap caught by actually looking at the rendered page (2026-09-14):
+    // "selected" was color/border only -- clearly visible, but a smaller
+    // state-indicator than the reference screenshot's own checkmark icon.
+    // A real checkmark badge, not just a color shift.
+    '.tier-box.active::after{content:"\\2713";position:absolute;top:4px;right:6px;width:14px;height:14px;line-height:14px;font-size:9px;font-weight:700;border-radius:50%;background:var(--patina-deep);color:#fff;}' +
     '.tier-box b{display:block;font-size:13px;}.tier-box span{font-size:10px;color:var(--mut);}' +
     '#countries{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;background:var(--surface);margin-bottom:6px;}' +
     '.hint{font-size:10.5px;color:var(--mut);margin-bottom:16px;}' +
