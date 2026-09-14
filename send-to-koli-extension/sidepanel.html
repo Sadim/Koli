@@ -131,28 +131,31 @@
      as an at-a-glance lock status so the person doesn't have to scan the
      page card's smaller print to know if a send will actually go anywhere. */
   .brand-chip {
-    display: inline-flex; align-items: center; gap: 7px; margin: 15px 16px 0; padding: 5px 12px 5px 5px;
+    display: flex; align-items: center; gap: 7px; margin: 15px 16px 0; padding: 5px 8px 5px 5px;
     /* Fixed brand navy, not the adaptive --navy token: this chip is a
        constant accent (like a badge), not UI chrome that should invert in
        dark mode; --navy itself flips to near-white there for text-on-
        surface contrast, which would make white chip text disappear. */
-    background: oklch(22% 0 0); border-radius: var(--radius-pill); width: fit-content;
+    background: oklch(22% 0 0); border-radius: var(--radius-pill);
+    /* No longer width:fit-content (2026-09-14) -- stretched to the row so
+       the file-icon button has real space to sit at the far right,
+       instead of immediately butting up against the status text. */
     font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: .01em;
     box-shadow: var(--shadow-xs);
   }
   .brand-chip-mark {
     width: 17px; height: 17px; border-radius: 50%; flex-shrink: 0;
     background: linear-gradient(155deg, var(--green-500), var(--green-600));
-    display: flex; align-items: center; justify-content: center;
-    /* Deliberately below the 11px floor: a single-letter logo mark in a
-       17px circle (the brand badge, not content text) -- WCAG's contrast/
-       legibility bar exempts logotypes for the same reason. */
-    font-family: 'Albert Sans', 'Avenir Next', 'Helvetica Neue', Arial, system-ui, sans-serif; font-weight: 800; font-size: 9.5px; color: #fff;
+    display: flex; align-items: center; justify-content: center; color: #fff;
   }
-  .brand-chip-text { color: #fff; }
-  .brand-chip-sep { color: #fff; opacity: .35; }
   .brand-chip-status { color: #fff; opacity: .7; }
   .brand-chip-status.locked { color: var(--green-500); opacity: 1; }
+  .brand-chip-file {
+    margin-left: auto; flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; border: none;
+    background: none; color: #fff; opacity: .6; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; padding: 0;
+  }
+  .brand-chip-file:hover { opacity: 1; background: rgba(255,255,255,.12); }
   .page-card {
     margin: 16px 16px 0; padding: 14px 15px; border-radius: var(--radius-lg); background: var(--surface-sunken);
     border: 1px solid var(--border-soft);
@@ -477,10 +480,9 @@
   <!-- Home tab: current page + quick send + Profile/Discover -->
   <div class="tab-panel active" id="panel-home">
     <div class="brand-chip">
-      <span class="brand-chip-mark">K</span>
-      <span class="brand-chip-text">Send to Koli</span>
-      <span class="brand-chip-sep">·</span>
-      <span class="brand-chip-status" id="brandChipStatus">not locked</span>
+      <span class="brand-chip-mark" id="brandChipLock"></span>
+      <span class="brand-chip-status" id="brandChipStatus">Locked-Out</span>
+      <button type="button" class="brand-chip-file" id="brandChipFileBtn" title="Open Koli in Google Sheets" hidden></button>
     </div>
     <div class="page-card" id="pageCard">
       <div class="kicker">Current page</div>
@@ -545,8 +547,11 @@
         <div><b id="videoPreviewGender">N/A</b><span>Gender</span></div>
       </div>
       <div class="preview-action-row">
-        <button class="preview-add-btn" id="videoPreviewAddBtn">+ Add to Sheet</button>
+        <button class="preview-add-btn" id="videoPreviewAddBtn">Send to Koli</button>
         <a class="preview-view-link" id="videoPreviewViewLink" target="_blank" rel="noopener" hidden>View in Sheet</a>
+      </div>
+      <div class="preview-action-row" style="margin-top:6px;">
+        <button class="preview-view-link" id="videoPreviewCsvBtn" style="width:100%;border:1px solid var(--border);background:var(--surface-raised);color:var(--ink-700);cursor:pointer;">Save as CSV</button>
       </div>
       <div class="preview-action-status" id="videoPreviewActionStatus" hidden></div>
     </div>

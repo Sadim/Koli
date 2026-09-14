@@ -81,6 +81,7 @@ function clearAutoPullTimer_() {
 const ICONS = {
   lockOpen: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 7.3-2.3"/></svg>',
   lockClosed: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+  file: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg>',
   trash: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/></svg>',
   eye: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>',
   checkCircle: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.3 2.3L16 10"/></svg>',
@@ -204,9 +205,19 @@ async function refreshCurrentPageCard() {
   badgeEl.innerHTML = ICONS[kind] + '<span>' + (kind === 'channel' ? 'YouTube channel' : kind === 'video' ? 'YouTube video' : 'Not auto-detected') + '</span>';
 
   const lock = state.locks.youtube;
+  const isLocked = !!(lock && lock.locked);
   const chipStatus = document.getElementById('brandChipStatus');
-  chipStatus.textContent = (lock && lock.locked) ? 'locked' : 'not locked';
-  chipStatus.classList.toggle('locked', !!(lock && lock.locked));
+  chipStatus.textContent = isLocked ? 'Locked-In' : 'Locked-Out';
+  chipStatus.classList.toggle('locked', isLocked);
+  document.getElementById('brandChipLock').innerHTML = isLocked ? ICONS.lockClosed : ICONS.lockOpen;
+  const fileBtn = document.getElementById('brandChipFileBtn');
+  if (isLocked && lock.sheetUrl) {
+    fileBtn.innerHTML = ICONS.file;
+    fileBtn.hidden = false;
+    fileBtn.onclick = () => chrome.tabs.create({ url: lock.sheetUrl });
+  } else {
+    fileBtn.hidden = true;
+  }
 
   actionsEl.innerHTML = '';
   if (!lock || !lock.locked) {
@@ -612,12 +623,60 @@ function renderVideoPreviewCard_(p, mode) {
   const addBtn = document.getElementById('videoPreviewAddBtn');
   const viewLink = document.getElementById('videoPreviewViewLink');
   addBtn.hidden = mode !== 'preview';
-  addBtn.disabled = false; addBtn.textContent = '+ Add to Sheet';
+  addBtn.disabled = false; addBtn.textContent = 'Send to Koli';
   viewLink.hidden = true;
   document.getElementById('videoPreviewActionStatus').hidden = true;
 
+  // CSV export needs the same preview data this render call just received --
+  // stashed on a module-level var since the click handler (wired once,
+  // below) fires later and has no other way back to it.
+  currentVideoPreviewData_ = p;
+
   card.hidden = false;
 }
+
+/**
+ * "Save as CSV" (direct request): the preview data is already sitting in
+ * this tab's own memory the moment a pull succeeds -- no extra network
+ * call, no login of any kind beyond whatever already got the pull itself
+ * to work. A plain <a download> + blob: URL triggers a real file save in
+ * a real extension context (unlike a sandboxed page/artifact viewer,
+ * nothing here blocks it).
+ */
+let currentVideoPreviewData_ = null;
+function csvEscape_(v) {
+  const s = v === null || v === undefined ? '' : String(v);
+  return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function downloadCsv_(csv, filename) {
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+document.getElementById('videoPreviewCsvBtn').onclick = () => {
+  const p = currentVideoPreviewData_;
+  if (!p) return;
+  const rows = [
+    ['Field', 'Value'],
+    ['Title', p.title || ''],
+    ['URL', (currentTab && currentTab.url) || ''],
+    ['Views', p.views],
+    ['Likes', p.likes],
+    ['Comments', p.commentCount],
+    ['Engagement %', p.engagementRatio],
+    ['Authenticity', (p.authScore === null || p.authScore === undefined) ? 'n/a' : p.authScore + '/10'],
+    ['New Subscribers', p.newSubscribers],
+    ['Location', p.location || ''],
+    ['Age', p.age || ''],
+    ['Gender', p.gender || '']
+  ];
+  const csv = rows.map((r) => r.map(csvEscape_).join(',')).join('\r\n');
+  const safeName = (resolveDisplayName_(p.title, '') || 'koli-video').replace(/[\\/:*?"<>|]/g, '-').slice(0, 80);
+  downloadCsv_(csv, safeName + '.csv');
+};
 
 function formatCompactNumber_(n) {
   if (typeof n !== 'number') return 'N/A';
@@ -1008,6 +1067,13 @@ document.getElementById('lockModalCancel').onclick = () => document.getElementBy
  * on Test & Lock, below) means a wrong-URL and a wrong-secret show two
  * different, specific messages instead of one combined "failed."
  */
+// Populated by checkLockUrlReachable_ below whenever it succeeds -- the
+// reachability check's own JSON response already carries the real
+// spreadsheet edit URL (inboxService.gs's doGet fallback returns
+// {ok,name,url}), so this is free: no second network call needed just to
+// know where the header chip's file-icon button should point.
+let lastReachableSheetUrl_ = null;
+
 async function checkLockUrlReachable_() {
   const url = document.getElementById('lockUrl').value.trim();
   const urlStatus = document.getElementById('lockUrlStatus');
@@ -1018,6 +1084,7 @@ async function checkLockUrlReachable_() {
     const data = await resp.json();
     if (data && data.ok && data.name) {
       urlStatus.className = 'status ok'; urlStatus.textContent = '✓ Reachable — this is "' + data.name + '".';
+      lastReachableSheetUrl_ = data.url || null;
     } else {
       urlStatus.className = 'status err'; urlStatus.textContent = 'Reached a server, but it doesn\'t look like a Koli Web App.';
     }
@@ -1099,6 +1166,7 @@ document.getElementById('lockModalConfirm').onclick = async () => {
     }
 
     lock.url = url; lock.secret = secret; lock.tab = tab; lock.locked = true;
+    lock.sheetUrl = lastReachableSheetUrl_ || lock.sheetUrl || '';
     await saveLocks();
     status.className = 'status ok'; status.textContent = 'Locked.';
     setTimeout(() => document.getElementById('lockModal').classList.remove('open'), 500);
