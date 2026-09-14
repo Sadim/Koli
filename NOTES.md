@@ -4,6 +4,67 @@
 nothing in STATUS.md/ROADMAP.md, which are the durable project docs —
 this is the "what was I doing right before the clear" layer.*
 
+## 2026-09-14 addendum #19: Auto-Pull (beta) shipped; multi-platform expansion scoped (not yet built)
+
+- **Auto-Pull shipped** (`send-to-koli-extension/sidepanel.html`/`.js`):
+  opt-in, off by default, Settings > Auto-Pull -- a dwell-time dropdown
+  (2/5/10/30s, 2s floor enforced in code regardless of stored value), a
+  `confirm()` quota-cost warning shown at toggle-ON (same pattern as the
+  existing lock-delete confirm), and a running "N automatic pulls today"
+  counter (`chrome.storage.local`, resets by date). `scheduleAutoPull_`
+  only fires if the same tab/url is still current when the timer elapses;
+  `refreshCurrentPageCard` cancels any pending timer on every real
+  navigation. This grew out of the founder asking what background/automatic
+  pulling would do to API quota -- answer: multiplies real YouTube+Gemini
+  call volume by however much more browsing outpaces deliberate clicking,
+  risking the shared daily YouTube quota (breaks Channel/Video Analysis for
+  the rest of the day) and Gemini's own rate limit. No `.gs` changes, so no
+  `clasp push` needed -- purely an extension change, needs a reload of the
+  unpacked extension to pick up. Not yet live-tested.
+- **Multi-platform expansion (Instagram/TikTok/etc., "Koli webapp for other
+  platforms"): scoped via research, not built.** Founder gave 7 repos to
+  check, with an explicit constraint: no downloading/scraping YouTube media,
+  read-and-use data only. Verdict on each (GitHub API + reading actual source
+  where real, per this project's usual practice): `surendrakhan/youtube-
+  email-scrapper` -- essentially empty (0 stars, 3KB, no license, created
+  and abandoned same day) -- looks like a placeholder/SEO repo, not real
+  software. `hridaydutta123/the-youtube-scraper`, `hansputera/youtube-finder`,
+  `mashukui/youtube_user`, `PareekshithPalat/Youtube_Metadata_scrapper` --
+  all real-enough standalone YouTube scrapers, no license (so technique-only,
+  not code to copy), and the WRONG technique anyway: they're server-side
+  crawlers hitting YouTube's own pages with no user present, which is a
+  materially different (riskier, easier to bot-detect/ban) posture than what
+  Koli already does. `insightsocialxyz/insightsocial` -- real, actively
+  SOLD paid product (Chrome Web Store, $9.99/mo, 9 platforms incl. YouTube)
+  -- but its GitHub repo is documentation-only (README.md/FACTS.md/
+  screenshots), zero source code, so nothing to borrow directly; valuable
+  only as validation that the approach below is a proven, monetizable shape
+  a real competitor already ships. `fluquid/extract-social-media` -- real,
+  small, MIT -- read the actual regex source (`__init__.py`): a maintainable
+  PREFIX+SITES+BETWEEN+ACCOUNT pattern-composition approach plus a
+  blacklist regex filtering out share/intent/search/watch noise links --
+  the blacklist idea specifically is a real, immediately-applicable
+  improvement to Koli's OWN existing `extractAllUrls_`/contactService.gs
+  link-finder even before any multi-platform work, not built yet.
+  **Recommended approach, given to the founder, not yet acted on**: extend
+  Koli's own already-proven mechanism (the extension reading a live,
+  already-logged-in tab's own rendered DOM/state --
+  `extractYoutubeLinksFromPage_`/`captureYoutubeLinksFromTab_` in
+  `send-to-koli-extension/background.js`, `chrome.scripting.executeScript`
+  with `world:'MAIN'`) rather than building a server-side scraper for each
+  new platform -- this is both the technique that already works for YouTube
+  in Koli AND the same one insightsocial (the real paid competitor) uses
+  across 9 platforms, so it's validated twice over, and needs zero new
+  backend infrastructure (satisfies "zero/near-zero cost by construction").
+  Each platform still needs its OWN page-type recognizer + field extractor
+  (Instagram's rendered state shape isn't YouTube's), so this is real,
+  incremental, per-platform work, not one generic solution -- recommended
+  picking ONE second platform first (Instagram or TikTok) and proving the
+  whole pattern end-to-end before going wider, the same "scope before build"
+  discipline as the CRM pass in addendum #17/#18. **Not started** -- this is
+  a recommendation given in conversation, not a plan file, and not agreed to
+  yet.
+
 ## 2026-09-14 addendum #18: CRM data model implemented (schema + service layer, no UI) -- founder answered all 7 open questions from addendum #17's plan
 
 Full plan (context, entity rationale, all 7 open questions) lives at
