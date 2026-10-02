@@ -116,6 +116,17 @@ before calling it done.
 
 - **Phase 1** (the insight) is in the Sheet itself: new columns/sheets plus
   a sidebar card. No new surface.
+- **A "Brand Graph" tab in the Koli Sheet** (founder's ask, 2026-10-02:
+  "visualize the graph in a tab"). A Sheets tab can only hold cells,
+  built-in charts, images and drawings, not a live WebGL page, so the tab
+  holds:
+  - a **snapshot image** of the map at the top. The map renders it to PNG
+    on open/refresh, and Apps Script inserts it with
+    `sheet.insertImage(blob)`.
+  - an **"Open live map" button** (a drawing assigned to a script) that
+    launches the interactive map.
+  - the **nodes and edges as plain tables** below. These are the data layer
+    Phase 1 builds anyway, so the grid stays a real fallback UI.
 - **The map** is one HTML file. It's launched from the Koli Sheet as a large
   dialog (`Brand Intelligence > Brand Map`) and served unchanged by the web
   app (`doGet`, `?map=1`) for a full-screen tab. The web app version is
