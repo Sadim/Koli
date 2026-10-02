@@ -112,6 +112,32 @@ Translated to the map:
 Run the impeccable design pass on it, and render it in a real browser
 before calling it done.
 
+### Game mode: "play the graph" (founder idea, 2026-10-02)
+
+Wormhole's mechanics map onto real Koli work, so a play session also
+produces pipeline work:
+
+- **Launch a pitch** from a creator (the comet). Each brand's gravity is
+  its fit score with that creator: good fits pull, bad fits and risky
+  brands push away.
+- **Landing on a brand** = a real action: add to Brand Targets, or open a
+  draft outreach email (reuse `outreachDraftService.gs`).
+- **Hole-in-one** = a high-fit pairing nobody has pitched yet.
+- **Wormholes** = structural gaps. Flying through one jumps to the bridging
+  cluster the AI suggests.
+- **Daily galaxy**: in Wormhole everyone plays the same series of galaxies.
+  Here, each day's galaxy is that day's top opportunities.
+- **Replay** = "why this match": the edges and scores behind it.
+- **Score** = potential pipeline value created this session.
+
+Rules:
+- The plain map and the Sheet tables always stay available; the game is a
+  mode on top, never the only way in.
+- Every landing asks for confirmation before it writes to the Sheet.
+- Build after Phase 2, once the map is real.
+- The founder should check the details against the actual game (the
+  developer's blog is blocked from Claude's environment).
+
 ## Where it lives
 
 - **Phase 1** (the insight) is in the Sheet itself: new columns/sheets plus
@@ -176,6 +202,55 @@ before calling it done.
   service. Needs hosting and budget decisions that conflict with today's
   zero-cost rule, so it needs a founder call when the time comes.
 - Shared live data (OrbitDB or an alternative) once multiple users exist.
+
+## Koli Network: pooled data across installs
+
+Founder question (2026-10-02): wouldn't an OrbitDB variant make sense for
+the whole "Koli Network": more data, more insight, more accuracy?
+
+The **network** makes sense. It's already ROADMAP.md's "opt-in sponsor
+market-intelligence" item, which ROADMAP calls the closest thing to a real
+moat, with a draft consent clause in `EULA_DATA_SHARING_CLAUSE.md`. Pooled
+co-sponsorship and niche data would make every graph insight sharper.
+
+**OrbitDB is the wrong substrate for it**, for reasons specific to this
+dataset:
+
+1. **The moat leaks.** Data on IPFS can be read and copied by anyone who
+   finds it, including competitors. A pooled dataset whose value is that
+   only Koli has it can't live on a public P2P network. Encrypting it
+   doesn't help, because every install needs the key to read it.
+2. **Erasure.** The EULA draft already flags GDPR Article 17 (the right to
+   erasure). OrbitDB logs are append-only, and IPFS copies spread across
+   peers, so honoring a withdrawal is close to impossible.
+3. **Poisoning.** Any install can write to an open log. One bad or
+   malicious contributor skews "who sponsors what" for everyone. Validating
+   and deduplicating contributions is what makes pooled data *more
+   accurate*, and that needs one place where checks run.
+4. **Anonymization has to happen before release.** For example, only
+   publish a brand × niche fact once several installs report it. That's a
+   central aggregation step; peers would be swapping raw contributions.
+5. **Peers aren't always online.** With few installs, the data is
+   unreachable unless an always-on peer pins it, and that peer is a server
+   anyway.
+6. **Apps Script can't run it.** No libp2p server-side. It would only
+   live in browser pages and the extension.
+
+**Recommended shape:**
+- Installs that opt in send anonymized signals through the API gateway
+  ROADMAP.md already plans, to one central store.
+- That store validates, deduplicates and aggregates the signals, and
+  publishes the network graph (brand × niche × size tier).
+- Each install downloads that network snapshot into **PGlite** in the
+  browser and merges it with its own private graph locally, so private
+  data never leaves the install.
+- That's where PGlite earns its place: querying "network + mine" fast,
+  offline, in the map.
+
+**Where P2P could still fit later:** private, encrypted sync of one
+agency's own graph between its teammates. That's a small trusted group,
+where deletion and poisoning are manageable. Evaluate it against simpler
+sync options when that need is real.
 
 ## Still open
 - Founder to sanity-check the Wormhole translation above against the
