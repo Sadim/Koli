@@ -96,7 +96,8 @@ Translated to the map:
 - **Space:** the dark "paper" theme (`--bg: oklch(17% 0 0)`) as deep space,
   with a faint parallax star field.
 - **Galaxies = clusters** (niches/communities from Louvain). Zooming out
-  shows galaxies; zooming in flies into one.
+  shows galaxies; zooming in flies into one. This is the exploration map
+  only; the game uses short levels instead (see Game mode).
 - **Planets = brands**, sized by how many creators they sponsor, in
   kinpaku gold (`oklch(78% .13 82)` / `oklch(87% .2 85)`).
 - **Moons/ships = creators** orbiting the brands they work with, in patina
@@ -114,29 +115,65 @@ before calling it done.
 
 ### Game mode: "play the graph" (founder idea, 2026-10-02)
 
-Wormhole's mechanics map onto real Koli work, so a play session also
-produces pipeline work:
+**What Wormhole actually is** (from the developer's post-mortem, which the
+founder pasted in): space golf/billiards. You aim and shoot a comet;
+planets attract or repel with varying gravity; slingshots, trick shots and
+hole-in-one into a black hole are all possible; wormholes help or hinder.
 
-- **Launch a pitch** from a creator (the comet). Each brand's gravity is
-  its fit score with that creator: good fits pull, bad fits and risky
-  brands push away.
-- **Landing on a brand** = a real action: add to Brand Targets, or open a
-  draft outreach email (reuse `outreachDraftService.gs`).
-- **Hole-in-one** = a high-fit pairing nobody has pitched yet.
-- **Wormholes** = structural gaps. Flying through one jumps to the bridging
-  cluster the AI suggests.
-- **Daily galaxy**: in Wormhole everyone plays the same series of galaxies.
-  Here, each day's galaxy is that day's top opportunities.
-- **Replay** = "why this match": the edges and scores behind it.
-- **Score** = potential pipeline value created this session.
+How it was built:
+- **A never-ending belt of galaxies** with short, sweet transitions. The
+  developer **cut** an earlier version with a whole universe to fly
+  through, because "the traversal between galaxies... didn't add anything
+  to the game", even though "zooming through the universe looked super
+  cool".
+- **Deterministic:** everyone plays the same sequence at their own pace,
+  with stepped difficulty that repeats in cycles.
+- **Replay** of a great shot with the R key.
+- **Polish:** particles, parallax, keyboard control, noise texture (SVG),
+  round rects. Built in **LittleJS**, a small JS game engine, with ZzFX for
+  sound.
 
-Rules:
+**The lesson for us:** keep the **map** (free exploration, cosmos.gl) and
+the **game** (short focused levels) as separate modes. Flying around the
+whole graph is the part the developer found looked cool but wasn't fun.
+The game should be a belt of small levels, not the big map.
+
+**Mapping to Koli** (one level = one decision):
+- **Level:** one creator (the comet) and a handful of candidate brands
+  (planets), drawn from Phase 1/3 suggestions.
+- **Goal (the black hole):** a brand the creator hasn't pitched yet.
+- **Forces are the reasons:**
+  - Attract: shared sponsors, niche fit, Brand Fit Score.
+  - Repel: brand-safety risk, a competitor already sponsored, already
+    pitched.
+
+  Aiming is easy, so the skill is picking the right target. The forces
+  show *why* while you play.
+- **Hole-in-one:** the highest-fit unpitched brand.
+- **Sinking a shot:** confirms a real action, either add to Brand Targets
+  or open a draft outreach (`outreachDraftService.gs`). Nothing writes to
+  the Sheet without that confirm.
+- **Skip:** a valid move. Skipping marks the pairing as "not now", which
+  feeds back into suggestions (reuse `dislikeService.gs`).
+- **Daily belt:** a deterministic order of today's top opportunities, so
+  progress means real triage done.
+- **Wormholes:** structural-gap suggestions. Going through one swaps in a
+  brand from the bridging cluster.
+- **Replay (R):** "why this match": the edges and scores behind it.
+- **Score:** pipeline value created this session.
+
+**Tech:**
+- LittleJS for the game mode, cosmos.gl for the map.
+- Sound off by default; the founder works in a spreadsheet all day.
+- Re-check the LittleJS and ZzFX licenses before adding them (believed
+  MIT, not yet verified).
+
+**Rules:**
 - The plain map and the Sheet tables always stay available; the game is a
   mode on top, never the only way in.
-- Every landing asks for confirmation before it writes to the Sheet.
-- Build after Phase 2, once the map is real.
-- The founder should check the details against the actual game (the
-  developer's blog is blocked from Claude's environment).
+- Build after Phase 2.
+- Start with a roughly 300-line prototype of one level on real data,
+  matching how Wormhole itself started, and only round it out if it's fun.
 
 ## Where it lives
 
@@ -253,7 +290,5 @@ where deletion and poisoning are manageable. Evaluate it against simpler
 sync options when that need is real.
 
 ## Still open
-- Founder to sanity-check the Wormhole translation above against the
-  actual game.
 - Codiv terms/limits and OpenJev accuracy (Phase 3 gate).
 - OASIS license (future gate).
