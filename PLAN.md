@@ -1,123 +1,173 @@
-# Plan: Brand Map (live graph of brand tracking, with AI built in)
+# Plan: Brand Graph (brand tracking, with AI built in)
 
 Started 2026-10-02. Status: **proposal, nothing built yet.** This file is the
-working plan for this session; NOTES.md stays the running session log.
+working plan; NOTES.md stays the running session log.
 
-## The idea, in the founder's words (paraphrased)
+## The idea
 
-A live map of Koli's brand-tracking data: our own take on Cosmograph, with AI
-built in the way InfraNodus does it, feeling like the Wormhole game in the
-Comet browser but in Koli's colors. Candidates named: OpenJev, Needle, and
-something like MiroFish. Because Koli is browser-native: PGlite, and OrbitDB
-on IPFS for scale.
+A live map of Koli's brand-tracking data: our own take on Cosmograph, with
+InfraNodus-style AI insight built in, looking and feeling like Comet's
+Wormhole game but in Koli's colors. Later it becomes the base for
+brand-facing analysis, with prediction from our own MiroFish-style engine.
 
-## What each named piece actually is, and whether we can use it
+## Founder decisions (2026-10-02)
 
-Checked 2026-10-02 (web search; the GitHub pages themselves timed out, so
-re-confirm each license file before adding a dependency).
+1. **OpenJev** means [`razorback16/openjev`](https://github.com/razorback16/openjev).
+2. **Comet's Wormhole game** is the reference for look and feel (UX/UI), in
+   Koli's own colors.
+3. **Audience:** agency-only for now. Later, brands use it for competitor
+   analysis, influencer-relationship analysis, and predictive analysis from
+   our own version of the MiroFish engine. That engine runs on OASIS as a
+   **separate service, not in the browser**, and is a distant-future plan.
+4. **Starting point:** the founder asked for a recommendation; see "Build
+   order" below.
 
-| Piece | What it is | License | Verdict |
+Also agreed: AGPL projects (InfraNodus, MiroFish) are idea sources only. We
+can borrow concepts and published methods, but not their code, prompt text
+or assets. Write our own implementation from the idea and the published
+paper, without working from their source.
+
+## Why build it (value check)
+
+The value is the **analysis**; the map is how it's presented. Measured
+against PRODUCT.md's main goal (faster, cheaper vetting) plus outreach:
+
+- **Brands to pitch a creator to:** brands that sponsor similar creators but
+  not this one yet.
+- **Co-sponsorship:** brands that sponsor the same creators, which gives a
+  warmer lead list than cold discovery.
+- **Gaps:** niches with creators but no brands, or brands but no creators.
+  A sharper version of Gap Analysis and Brand Discovery.
+- **Vetting signal:** whether a creator's past sponsors cluster with good
+  brands or with risky ones.
+- **Later, for brands:** competitor maps (who sponsors whom in my
+  category), relationship history with influencers, and predicted reactions.
+
+So the graph *data layer* is the real product. The map makes it explorable
+and is a showpiece, but it isn't required for the first payoff.
+
+## Pieces and verdicts
+
+Licenses checked 2026-10-02 by web search. Re-confirm each license file
+before adding a dependency.
+
+| Piece | Role | License | Verdict |
 |---|---|---|---|
-| **cosmos.gl** (engine behind Cosmograph, now an OpenJS Foundation incubating project, repo `cosmosgl/graph`) | GPU/WebGL force-directed layout and rendering, 1M+ nodes in the browser | MIT | **Use it.** This is the renderer. Use the engine directly, not the `@cosmograph/cosmograph` product package, whose terms differ and need checking separately. |
-| **InfraNodus** (`noduslabs/infranodus`) | Text to network graph; centrality, topic clusters, "structural gaps", AI prompts that ask what bridges the gaps | AGPL-3.0; the open repo is the old 2020 version, Node + Neo4j | **Don't take code.** AGPL conflicts with the "fork it, add proprietary features, sell it" plan (same reason ROADMAP.md rejected Teable and Plunk). Reimplement the *method*, which is published (Paranyushkin, WWW'19), using MIT graph libraries. |
-| **MiroFish** (`666ghj/MiroFish`) | Multi-agent "swarm intelligence" prediction engine; builds a simulated social world from seed material and lets agents react. Simulation layer is CAMEL-AI's OASIS. | AGPL-3.0; Python backend, a lot of LLM calls per run | **Don't take code; take the idea, small.** A full MiroFish run is a server plus hundreds or thousands of LLM calls, which breaks Koli's zero-cost rule. A capped, browser-side "audience panel" simulation gets the useful part (see Phase 4). OASIS's own license is unchecked; check before borrowing from it. |
-| **Needle 2** (Cactus Compute) | 45M-parameter, 14MB tool-calling / structured-extraction model for edge devices | MIT | **Maybe, later.** Interesting as a free, on-device intent parser ("show me brands near beauty that we haven't pitched"). Still to check: whether it has a browser (WASM/WebGPU) runtime today. If it doesn't, it's not usable here. |
-| **OpenJev** | Not one project: several unrelated repos share the name, all imitating a proprietary "Jev" typed-decision API (yes/no, choice, score with calibrated probabilities). Main ones need a GPU (vLLM on a 26B model). | Varies by repo | **Skip for now.** A GPU server breaks the zero-cost rule, and Gemini's structured output already covers typed scoring (Brand Fit Score uses it). **Need from founder:** which OpenJev repo you meant. |
-| **PGlite** (ElectricSQL) | Postgres compiled to WASM, runs in the browser, IndexedDB/OPFS persistence, pgvector extension available | Apache-2.0 / PostgreSQL | **Use it, scoped.** As a local query + vector cache under the map, not as the source of truth (the Sheet stays the source of truth; that's Koli's core positioning). |
-| **OrbitDB on IPFS** (Helia/libp2p) | Peer-to-peer, eventually-consistent database | MIT | **Defer.** See "On OrbitDB/IPFS and scale" below. |
-| **Comet's Wormhole game** | Comet's built-in replacement for Chrome's dino game | n/a | Design reference only. **Need from founder:** a screenshot or a sentence on what "feel" means (the fly-through motion? dark space? the score/game loop?). I can't see it from here. |
+| **cosmos.gl** (`cosmosgl/graph`, OpenJS Foundation incubating) | GPU/WebGL force layout + rendering, 1M+ nodes | MIT | **Renderer.** Use the engine directly. The `@cosmograph/cosmograph` product package has its own terms (unchecked). |
+| **graphology** | Centrality, Louvain communities, in the browser | MIT | **Analysis library** for the InfraNodus-style layer. |
+| **InfraNodus** | Clusters, structural gaps, AI questions that bridge the gaps | AGPL-3.0 | **Ideas only.** The method is published (Paranyushkin, WWW'19). |
+| **OpenJev** (`razorback16/openjev`) | "System One" typed-decision server: yes/no (Noul), Choice and Score answers, with probability and confidence in about 30ms | Apache-2.0 (code and DiffusionGemma weights) | **Use it as a fast classifier**, called server-side from Apps Script (`UrlFetchApp`). Self-hosting needs a 24GB GPU or about 16GB on Apple silicon, so use the **free hosted endpoint on Codiv**. Gemini stays the fallback. See "OpenJev's job" below. |
+| **Needle 2** (Cactus Compute) | 14MB on-device tool-calling model | MIT | **Maybe, later**, if a browser runtime exists. ROADMAP.md removed an earlier natural-language box for adding latency without capability, so this needs a real reason. |
+| **PGlite** | Postgres + pgvector in the browser | Apache-2.0 / PostgreSQL | **Later**, as a local query/vector cache. The Sheet stays the source of truth. |
+| **MiroFish / OASIS** | Multi-agent social simulation for prediction | MiroFish AGPL-3.0; OASIS license unchecked | **Distant future, separate service** (founder decision). Ideas only from MiroFish. Check OASIS's license before using any of it. |
+| **OrbitDB on IPFS** | P2P database | MIT | **Deferred.** Data volume is small, IPFS is public unless encrypted (Koli has no key management), and P2P sync only matters with several users. Revisit when brands or teammates share live data. Compare against PGlite + ElectricSQL sync and Grist (ROADMAP.md's rebuild pick). |
 
-## On OrbitDB/IPFS and scale (honest take)
+### OpenJev's job
 
-- **Scale isn't the problem today.** One operator and one agency's data:
-  thousands of rows, not millions. cosmos.gl plus PGlite in one browser tab
-  handles far more than that with no network at all.
-- **IPFS content is public by default.** Contacts, deal terms and outreach
-  history would have to be encrypted before they ever reach the network.
-  That needs key management, which Koli doesn't have.
-- **P2P sync only matters once there are several users.** PRODUCT.md is
-  explicit that there is exactly one user and no permissions model yet.
-- **Revisit when** a second real user (agency teammate or client brand)
-  needs the same live map. Even then, compare OrbitDB with simpler options:
-  PGlite with ElectricSQL sync, or Grist, which ROADMAP.md already picked
-  for the platform rebuild.
+The graph needs many small, typed judgments, one per creator-brand edge.
+Gemini's free tier is slow and rate-limited for that; OpenJev is built for it.
+
+- **Choice, relationship type:** paid sponsorship / affiliate / gifted /
+  organic mention / competitor mention.
+- **Noul, flags:** "Is this sponsor in a brand-safety risk category?",
+  "Is this brand a competitor of brand X?" (needed later for competitor
+  analysis).
+- **Score, edge strength:** how central the brand is to the creator's
+  content.
+
+Wrap it behind one `classify_()` helper with a Gemini fallback, so Koli
+keeps working if the free hosted endpoint changes or goes away.
+
+**To check before relying on it:**
+- Codiv's terms and data policy, since creator and brand text would be sent there.
+- Rate limits on the free tier.
+- Whether accuracy on our labels is good enough. Test on about 50 real
+  Sponsors rows against what Gemini says.
+
+## Look and feel: Wormhole, in Koli's colors
+
+From descriptions of the game (I couldn't load the developer's blog from
+this environment; the founder should sanity-check against the real thing):
+procedurally generated galaxies, planets that pull and push with gravity,
+a comet you steer, slingshot trails, and fast zooms through space.
+
+Translated to the map:
+
+- **Space:** the dark "paper" theme (`--bg: oklch(17% 0 0)`) as deep space,
+  with a faint parallax star field.
+- **Galaxies = clusters** (niches/communities from Louvain). Zooming out
+  shows galaxies; zooming in flies into one.
+- **Planets = brands**, sized by how many creators they sponsor, in
+  kinpaku gold (`oklch(78% .13 82)` / `oklch(87% .2 85)`).
+- **Moons/ships = creators** orbiting the brands they work with, in patina
+  teal (`oklch(78% .1 188)` / `oklch(82% .07 188)`).
+- **Risk = vermilion** (`oklch(68% .16 35)`).
+- **The comet is you**: selecting a node flies the camera there with a
+  glowing trail. Relationship edges light up like gravity lines.
+- **Wormholes = structural gaps**: a gap between two galaxies is drawn as a
+  wormhole. Clicking it shows the AI's "what bridges these" suggestion.
+- Albert Sans for all UI text; minimal HUD; motion respects
+  `prefers-reduced-motion`.
+
+Run the impeccable design pass on it, and render it in a real browser
+before calling it done.
 
 ## Where it lives
 
-Koli surfaces are Apps Script HtmlService dialogs and sidebar, the Send to
-Koli extension side panel, and the `doGet` web app.
+- **Phase 1** (the insight) is in the Sheet itself: new columns/sheets plus
+  a sidebar card. No new surface.
+- **The map** is one HTML file. It's launched from the Koli Sheet as a large
+  dialog (`Brand Intelligence > Brand Map`) and served unchanged by the web
+  app (`doGet`, `?map=1`) for a full-screen tab. The web app version is
+  also the future path for brand access.
+- **Live updates:** Koli Sheet panels can't receive pushes from Apps Script,
+  so the map polls a cheap "graph version" stamp every few seconds, the
+  same pattern `Sidebar.html` already uses (1.5s and 4s intervals). Koli's
+  own writes bump the stamp. A new `onEdit` trigger (none exists today)
+  bumps it for hand edits in the grid.
 
-**Recommendation:** start as a full-size dialog (`BrandMapDialog.html`,
-opened from `Brand Intelligence > Brand Map`). Load cosmos.gl and PGlite
-from jsDelivr, and get data through `google.script.run`, the same pattern
-the Kanban boards use. Unknown until tested: whether IndexedDB/OPFS
-persistence works inside the sandboxed `googleusercontent` iframe. If it
-doesn't, PGlite runs in-memory per open (fine at our size), or the map
-moves to the extension side panel, which has its own origin and storage.
+## Build order (recommendation)
 
-## Graph model (all from data Koli already has)
+### Phase 1: graph data layer + insight in the Sheet (first payoff, no map)
+- `brandGraphService.gs`: build nodes and edges from Sponsors, Brand
+  Targets, Brand Discovery, outreach status and Brand Fit Scores. Cache it
+  with `cache.gs` and keep a version stamp.
+- **"Suggested brands"** on a creator's record/sidebar card: brands that
+  sponsor similar creators but not this one, each with the reason.
+- **"Brand Opportunities" sheet:** co-sponsoring brands and niche gaps,
+  with one-click "Add to Brand Targets" (reuse `brandService.gs`).
+- **Done when:** the founder runs it on the real Sheet and gets at least
+  one suggestion they'd actually act on. Also record real row counts here,
+  to decide how dense the map will be.
 
-- **Nodes:** creators/channels, brands (Sponsors, Brand Targets, Brand
-  Discovery results), campaigns, topics/niches.
-- **Edges:**
-  - creator → brand: *sponsored* (Sponsors tab, weight = segment count/recency)
-  - creator → brand: *pitched* / *in pipeline* (outreach status)
-  - creator → brand: *fit* (Brand Fit Score)
-  - brand → brand: *shared creators* (co-sponsorship)
-  - topic ↔ topic: co-occurrence, InfraNodus-style, from titles, captions and notes
-- **Live:** Apps Script can't push to a dialog, so the dialog polls a cheap
-  "graph version" stamp (bumped by `sheetWriter.gs` writes) every ~20s and
-  re-fetches only when it changes.
+### Phase 2: the map (Wormhole look)
+- `BrandMap.html` with cosmos.gl + graphology loaded from jsDelivr, the
+  visual design above, and hover card / click that opens the existing
+  RecordModal.
+- Dialog launch plus the web app full-screen route. Polling for live updates.
+- **Done when:** it renders the real data in under 2s and the founder
+  agrees it feels right.
 
-## Phases
+### Phase 3: AI layer
+- OpenJev `classify_()` with Gemini fallback, used to label edges
+  (relationship type, risk, strength).
+- Structural gaps → one Gemini call per gap → shown as wormholes with
+  bridge suggestions.
 
-### Phase 1: the map (no AI)
-- `brandGraphService.gs`: build `{nodes, links}` from the sheets above,
-  cached with `cache.gs`.
-- `BrandMapDialog.html`: cosmos.gl render. Kinpaku gold = brands, patina
-  teal = creators, ink = topics, vermilion = at-risk (brand-safety flags).
-  Dark "paper" background, so it uses the existing dark-mode tokens.
-  Hover card, click opens the existing `RecordModal`, search/filter by
-  niche and pipeline stage.
-- "Wormhole" motion: camera flies to a node on select, and nodes ease in
-  as they're added. Exact feel to be set after the founder's answer above.
-- **Done when:** the founder opens it on the real Sheet and it renders the
-  real data in under 2s.
+### Phase 4: PGlite (only if needed)
+- Local tables + Gemini embeddings in pgvector, for "brands like this one"
+  search and an embedding-based layout mode.
 
-### Phase 2: InfraNodus-style insight (own implementation)
-- `graphology` (MIT) in the browser for betweenness centrality and Louvain
-  communities.
-- Find **structural gaps**: pairs of clusters with few links between them.
-- One Gemini call per gap: "What brand or creator angle bridges cluster A
-  and cluster B?" Output: concrete *untapped brand* and *untried pairing*
-  suggestions, each with a button that adds to Brand Targets (reuse
-  `brandService.gs`).
-- This is the vetting-speed payoff: it says where to look next.
+### Future (brand-facing, separate service)
+- Competitor analysis and relationship analysis views for brands, via the
+  web app with read-only access (build on Brand View / Publish-as-Page).
+- Our own prediction engine on OASIS, MiroFish-style, as a separate
+  service. Needs hosting and budget decisions that conflict with today's
+  zero-cost rule, so it needs a founder call when the time comes.
+- Shared live data (OrbitDB or an alternative) once multiple users exist.
 
-### Phase 3: PGlite under the map
-- Load the graph into PGlite tables. Store Gemini embeddings (free tier) of
-  brand and creator descriptions in pgvector.
-- Enables "brands like this one" nearest-neighbor search and an
-  embedding-based layout mode (Cosmograph's other strength).
-- Only worth doing if Phase 2 shows the plain in-memory graph isn't enough.
-
-### Phase 4: "Audience panel" simulation (MiroFish idea, budget-capped)
-- For a proposed creator × brand pairing: generate N (default 8) audience
-  personas from the creator's real comment and caption data, then have each
-  react to a mock sponsor read in one batched Gemini call. Output: predicted
-  sentiment split, likely objections, a fit risk note.
-- Hard cap per run, shown in the UI before it runs. No server.
-- Labeled as a simulation, never as a prediction of fact.
-
-### Phase 5 (conditional): on-device AI and sync
-- Needle 2 for a free natural-language filter bar, if a browser runtime
-  exists. Note that ROADMAP.md removed the earlier NL "Assistant tab"
-  because it added latency without capability, so this needs a real reason.
-- OrbitDB or another sync layer only when a second user exists.
-
-## Open questions for the founder
-1. Which OpenJev repo did you mean, and what should it do here?
-2. What about the Comet Wormhole game should the map feel like?
-3. "Brand tracking": is the map agency-facing only for now, or should a
-   read-only version go into Brand View / Publish-as-Page for brands?
-4. OK to start with Phase 1 as a Sheets dialog?
+## Still open
+- Founder to sanity-check the Wormhole translation above against the
+  actual game.
+- Codiv terms/limits and OpenJev accuracy (Phase 3 gate).
+- OASIS license (future gate).
